@@ -26,18 +26,27 @@ import util.U;
 
 /** selector thingy */
 class Brush {
-	int startX=-1, startY=-1;
-	int endX=-1, endY=-1;
+	int x1=-1, y1=-1;
+	int x2=-1, y2=-1;
+	
+	// info for drag movement
+	Point initialMousePosition;
+	int initx1=-1,initx2=-1,inity1=-1,inity2=-1;
 	
 	Brush(int x, int y) {
-		startX=endX=x;
-		startY=endY=y;
+		x1=x2=x;
+		y1=y2=y;
 	}
 	
 	Rectangle getRegion() {
-		return new Rectangle(Math.min(startX,endX),Math.min(startY,endY), 
-				Math.abs(endX-startX), Math.abs(endY-startY));
+		return new Rectangle(Math.min(x1,x2),Math.min(y1,y2), 
+				Math.abs(x2-x1), Math.abs(y2-y1));
 	}
+	
+	void storeCurrentPositionAsInitial() {
+		initx1=x1; initx2=x2; inity1=y1; inity2=y2; 
+	}
+	
 }
 
 @SuppressWarnings("serial")
@@ -111,8 +120,17 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 		return maxPhysY - (relpos*pscale);
 	}
 
+	Mode mode = Mode.NO_BRUSH;
+	
+	static enum Mode {
+		NO_BRUSH, 
+		DRAWING_BRUSH,  // you're starting the drag to draw the brush. 
+		STILL_BRUSH,  // you're done drawing (mouse released) and the brush is being held in place
+		MOVING_BRUSH; // you're dragging the brush-box around.
+	}
+	
 	boolean isDuringBrush() {
-		return brush != null;
+		return mode==Mode.DRAWING_BRUSH;
 	}
 	
 	List<Integer> selectPoints(Rectangle q) {
@@ -148,12 +166,12 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 
 	@Override
 	public void mousePressed(MouseEvent e) {
-	}
-
-	@Override
-	public void mouseReleased(MouseEvent e) {
-		endBrush();
-		repaint();
+		if (mode==Mode.STILL_BRUSH && !brush.getRegion().contains(e.getPoint())) {
+			clearSelection();
+			setMode(Mode.NO_BRUSH);
+			brush = null;
+			repaint();
+		}
 	}
 
 	@Override
@@ -165,29 +183,67 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 	}
 
 	@Override
-	public void mouseDragged(MouseEvent e) {
-		if (!isDuringBrush()) {
-			startBrush(e.getX(),e.getY());
+	public void mouseReleased(MouseEvent e) {
+		if (mode==Mode.DRAWING_BRUSH) {
+			setMode(Mode.STILL_BRUSH);
 		}
-		else {
-			continueBrush(e.getX(),e.getY());
+		else if (mode==Mode.MOVING_BRUSH) {
+			setMode(Mode.STILL_BRUSH);
+			brush.initialMousePosition = null;
+		}
+	}
+	void setMode(Mode newMode) {
+//		U.p("newmode " + newMode);
+		mode = newMode;
+	}
+
+	@Override
+	public void mouseDragged(MouseEvent e) {
+//		U.p("mousedrag at current mode " + mode);
+		if (mode==Mode.NO_BRUSH) {
+			// Start a brush
+			brush = new Brush(e.getX(), e.getY());
+			clearSelection();
+			setMode(Mode.DRAWING_BRUSH);
+		}
+		else if (mode==Mode.DRAWING_BRUSH) {
+			// keep drawing
+			brush.x2=e.getX(); brush.y2=e.getY();
+			refreshSelection();
+		}
+		else if (mode==Mode.STILL_BRUSH && brush.getRegion().contains(e.getPoint())) {
+			// start a move
+			brush.initialMousePosition = e.getPoint();
+			brush.storeCurrentPositionAsInitial();
+			setMode(Mode.MOVING_BRUSH);
+			continueBrushMove(e);
+			refreshSelection();
+		}
+		else if (mode==Mode.MOVING_BRUSH) {
+			continueBrushMove(e);
+			refreshSelection();
 		}
 		repaint();
 	}
 	
-	void startBrush(int x, int y) {
-		brush = new Brush(x,y);
-		clearSelection();
-	}
-	void continueBrush(int x, int y) {
-		assert isDuringBrush();
-		brush.endX=x; brush.endY=y;
+	void refreshSelection() {
 		clearSelection();
 		for (int i : selectPoints(brush.getRegion())) {
 			points.get(i).isSelected=true;
 		}
 		queryReceiver.receiveQuery(getSelectedDocIds());
 	}
+
+	void continueBrushMove(MouseEvent e) {
+		int dx = e.getX() - brush.initialMousePosition.x;
+		int dy = e.getY() - brush.initialMousePosition.y;
+		brush.x1 = brush.initx1 + dx;
+		brush.x2 = brush.initx2 + dx;
+		brush.y1 = brush.inity1 + dy;
+		brush.y2 = brush.inity2 + dy;
+	}
+	
+	
 	List<String> getSelectedDocIds() {
 		List<String> ret = new ArrayList<>();
 		for (MyPoint p : points) {
@@ -196,10 +252,6 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 			}
 		}
 		return ret;
-	}
-	void endBrush() {
-		brush = null;
-		clearSelection();
 	}
 	void clearSelection() {
 		for (MyPoint p : points) p.isSelected=false;
@@ -223,7 +275,8 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 	}
 
 	void renderBrush(Graphics2D g) {
-		if (!isDuringBrush()) return;
+		if (mode==Mode.NO_BRUSH) return;
+		assert brush != null;
 		g.setColor(Color.gray);
 		g.setStroke(new BasicStroke(3));
 		Rectangle r = brush.getRegion();

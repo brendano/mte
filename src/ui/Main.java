@@ -154,9 +154,9 @@ public class Main implements QueryReceiver {
         termprobPanel.add(termProbThresh);
         termpanel.add(termprobPanel);
         
-        termpanel.setPreferredSize(new Dimension(350,800));
-        tt.table.setPreferredSize(new Dimension(350,700));
-        tt.scrollpane.setPreferredSize(new Dimension(350,700));
+        termpanel.setPreferredSize(new Dimension(350,600));
+        tt.table.setPreferredSize(new Dimension(350,500));
+        tt.scrollpane.setPreferredSize(new Dimension(350,500));
         termpanel.add(tt.scrollpane);
         
         JTextArea docshower = new JTextArea("show stuff here");
@@ -167,7 +167,7 @@ public class Main implements QueryReceiver {
         frame.getContentPane().add(bppanel,BorderLayout.NORTH);
         
         frame.setLayout(new FlowLayout());
-        frame.setSize(800,800);
+        frame.setSize(600,600);
         frame.getContentPane().add(termpanel);
         frame.getContentPane().add(bppanel);
 
