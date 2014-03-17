@@ -12,7 +12,9 @@ import java.awt.event.KeyListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
+import java.awt.geom.AffineTransform;
 import java.awt.geom.Ellipse2D;
+import java.awt.geom.Rectangle2D;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -53,16 +55,22 @@ class Brush {
 public class BrushPanel extends JPanel implements MouseListener, MouseMotionListener {
 	
 	// (meta)data value space
-	double minUserX=1980;
+	double minUserX=1984;
 	double maxUserX=2015;
-	double minUserY=-1.5;
-	double maxUserY=1.5;
+	double minUserY=-2;
+	double maxUserY=2;
 	
 	// swing coordinate space
-	double minPhysX = 5;
-	double minPhysY = 5;
+	double minPhysX = -1;
+	double minPhysY = -1;
 	double maxPhysX = -1;
 	double maxPhysY = -1;
+	
+	int marLeft = 40;
+	int marBottom = 50;
+	int marTop = 20;
+	int marRight = 20;
+	int tickSize = 5;
 	
 	Brush brush = null;
 	List<MyPoint> points;
@@ -85,11 +93,11 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 
 	public void setMySize(int w, int h) {
         setPreferredSize(new Dimension(w,h));
-        int mar = 5;
-        minPhysX = mar;
-        minPhysY = mar;
-        maxPhysX = w-mar;
-        maxPhysY = h-mar;
+        // tricky: y=0 is top, y=high is bottom
+        minPhysX = marLeft;
+        minPhysY = marTop;
+        maxPhysX = w-marRight;
+        maxPhysY = h-marBottom;
 	}
 
 	/** user coordinates from physical (UI library) coordinates */
@@ -262,16 +270,67 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 		g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 		g.setBackground(Color.white);
 		super.paintComponent(_g);
+		
+		drawAxes(g);
 
 		for (int i=0; i<points.size(); i++) {
 			Color c = points.get(i).isSelected ? Color.blue : Color.black;
 			g.setColor(c);
 			Point p = points.get(i).physPoint();
-			
-			Ellipse2D.Double circle = new Ellipse2D.Double(p.x, p.y, 6,6);
-			g.fill(circle);
+			GUtil.drawCenteredFilledCircle(g, p.x, p.y, 6);
 		}
 		renderBrush(g);
+	}
+	
+	void drawAxes(Graphics2D g) {
+		drawRect(g, minPhysX, minPhysY, maxPhysX-minPhysX, maxPhysY-minPhysY);
+		for (double x=xtickMin(); x<=xtickMax(); x+=xtickDelta()) {
+			g.drawLine((int)x_u2p(x), (int)(maxPhysY+tickSize), (int)x_u2p(x), (int)maxPhysY );
+		}
+		for (double x=xtickMin(); x<=xtickMax(); x+=xlabelDelta()) {
+//			g.transform(AffineTransform.getTranslateInstance((double)getWidth(),0));
+//			g.transform(AffineTransform.getRotateInstance(Math.PI/2));
+			GUtil.drawCenteredString(g, renderXtick(x), (int) x_u2p(x), (int)(maxPhysY+2*tickSize), 0, 1);
+//			g.transform(AffineTransform.getRotateInstance(-Math.PI/2));
+//			g.transform(AffineTransform.getTranslateInstance(-(double)getWidth(),0));
+		}
+		for (double y=ytickMin(); y<=ytickMax(); y+=ytickDelta()) {
+			g.drawLine((int)(minPhysX-tickSize), (int)y_u2p(y), (int)(minPhysX), (int)y_u2p(y));
+			GUtil.drawCenteredString(g, renderYtick(y), (int)(minPhysX-tickSize*2), (int) y_u2p(y), -1, -0.3);
+		}
+	}
+
+	String renderXtick(double ux) {
+		return U.sf("%.0f",ux);
+	}
+	String renderYtick(double uy) {
+		return U.sf("%.0f", uy);
+	}
+	double xtickMin() {
+		return minUserX;
+	}
+	double xtickMax() {
+		return maxUserX;
+	}
+	double xtickDelta() {
+		return 1;
+	}
+	double xlabelDelta() {
+		return 4;
+	}
+	double ytickMin() {
+//		return minUserY;
+		return -1;
+	}
+	double ytickMax() {
+//		return maxUserY;
+		return 1;
+	}
+	double ytickDelta() {
+		return 1;
+	}
+	static void drawRect(Graphics2D g, double x, double y, double w, double h) {
+		g.drawRect((int)x,(int)y,(int)w,(int)h);
 	}
 
 	void renderBrush(Graphics2D g) {

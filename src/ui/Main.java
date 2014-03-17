@@ -50,7 +50,7 @@ public class Main implements QueryReceiver {
 	@Override
 	public void receiveQuery(Collection<String> docids) {
 		curDS = corpus.getDocSet(docids);
-		topTerms = Analysis.topEPMI(50, getTermProbThresh(), curDS.terms, corpus.globalTerms);
+		topTerms = Analysis.topEPMI(500, getTermProbThresh(), curDS.terms, corpus.globalTerms);
 		
 		ttModel.fireTableDataChanged();
 		refreshQueryInfo();
@@ -135,7 +135,7 @@ public class Main implements QueryReceiver {
         bppanel.add(queryInfo);
         
         BrushPanel brushPanel = new BrushPanel(this, corpus.allDocs());
-        brushPanel.setMySize(300,200);
+        brushPanel.setMySize(500,300);
         brushPanel.setBorder(BorderFactory.createLineBorder(Color.black));
         bppanel.add(brushPanel);
         
