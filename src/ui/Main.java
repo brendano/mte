@@ -24,6 +24,7 @@ import javax.swing.JSpinner.NumberEditor;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import javax.swing.table.AbstractTableModel;
+import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.TableColumn;
 
 import util.U;
@@ -95,7 +96,7 @@ public class Main implements QueryReceiver {
 
 		@Override
 		public String getColumnName(int j) {
-			return (new String[]{ "term", "local:global", "LR" })[ j ];
+			return (new String[]{ "term", "local","","global", "lift" })[ j ];
 		}
 		@Override
 		public int getRowCount() {
@@ -104,39 +105,40 @@ public class Main implements QueryReceiver {
 
 		@Override
 		public int getColumnCount() {
-			return 3;
+			return 5;
 		}
 
 		@Override
 		public Object getValueAt(int rowIndex, int columnIndex) {
 			WeightedTerm t = focusTerms.get(rowIndex);
 			switch (columnIndex) {
-			case 0:
-				return t.term;
-			case 1:
-				return U.sf("%.0f : %.0f", curDS.terms.value(t.term), corpus.globalTerms.value(t.term));
-//			case 1:
-//				return U.sf("%d", (int) curDS.terms.value(t.term));
-//			case 3:
-//				return U.sf("%d", (int) corpus.globalTerms.value(t.term));
-//			case 2:
-//				return "vs";
-			case 2:
-				return t.weight > 1 ? U.sf("%.2f", t.weight) : U.sf("%.4g", t.weight);
+			case 0: return t.term;
+//			case 1: return U.sf("%.0f : %.0f", curDS.terms.value(t.term), corpus.globalTerms.value(t.term));
+			case 1: return U.sf("%d", (int) curDS.terms.value(t.term));
+			case 2: return ":";
+			case 3: return U.sf("%d", (int) corpus.globalTerms.value(t.term));
+			case 4: return t.weight > 1 ? U.sf("%.2f", t.weight) : U.sf("%.4g", t.weight);
 			}
 			assert false; return null;
 		}
 		
 	}
 	void setupTermTable() {
+		DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer();
+		centerRenderer.setHorizontalAlignment( JLabel.CENTER );
+
         TableColumn cc;
         cc = tt.table.getColumnModel().getColumn(0);
         cc.setMinWidth(100);
-        cc = tt.table.getColumnModel().getColumn(1); cc.setMinWidth(80); cc.setWidth(80);
-//        cc = tt.table.getColumnModel().getColumn(2); cc.setMinWidth(20); cc.setMaxWidth(21);
-//        cc = tt.table.getColumnModel().getColumn(3); cc.setMinWidth(20); cc.setWidth(20);
-        cc = tt.table.getColumnModel().getColumn(2);
+        cc = tt.table.getColumnModel().getColumn(1); cc.setMinWidth(20); cc.setWidth(20);
+        cc.setCellRenderer(centerRenderer);
+        cc = tt.table.getColumnModel().getColumn(2); cc.setMinWidth(8); cc.setMaxWidth(8);
+        cc = tt.table.getColumnModel().getColumn(3); cc.setMinWidth(20); cc.setWidth(20);
+        cc.setCellRenderer(centerRenderer);
+        cc = tt.table.getColumnModel().getColumn(4);
         cc.setMinWidth(50);
+        
+        tt.table.setAutoCreateRowSorter(true);
 	}
 	
 	static class MySM extends AbstractSpinnerModel {
@@ -188,7 +190,7 @@ public class Main implements QueryReceiver {
 		}
 	}
 	
-	void go() {
+	void goUI() {
 		
         JFrame frame = new JFrame("Text Explorer Tool");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -205,10 +207,6 @@ public class Main implements QueryReceiver {
         brushPanel.setMySize(500,300);
         brushPanel.setBorder(BorderFactory.createLineBorder(Color.black));
         bppanel.add(brushPanel);
-        
-        ttModel = new TermTableModel();
-        tt = new TermTable(ttModel);
-        setupTermTable();
         
         JPanel termpanel = new JPanel();
         termpanel.setLayout(new FlowLayout());
@@ -243,9 +241,12 @@ public class Main implements QueryReceiver {
         termlistInfo = new JLabel();
         termpanel.add(termlistInfo);
         
+        ttModel = new TermTableModel();
+        tt = new TermTable(ttModel);
+        setupTermTable();
+        
         termpanel.setPreferredSize(new Dimension(350,600));
-//        tt.table.setPreferredSize(new Dimension(350,500));
-        tt.scrollpane.setPreferredSize(new Dimension(350,500));
+        tt.scrollpane.setPreferredSize(new Dimension(300,500));
         termpanel.add(tt.scrollpane);
         
         JTextArea docshower = new JTextArea("show stuff here");
@@ -276,7 +277,7 @@ public class Main implements QueryReceiver {
 		main.initData();
 		SwingUtilities.invokeLater(new Runnable() {
             public void run() {
-                main.go();
+                main.goUI();
             }
         });
 	}
