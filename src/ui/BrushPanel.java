@@ -22,6 +22,7 @@ import java.util.List;
 
 import javax.swing.*;
 
+import d.Corpus;
 import d.Document;
 
 import util.U;
@@ -288,16 +289,31 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 			g.drawLine((int)x_u2p(x), (int)(maxPhysY+tickSize), (int)x_u2p(x), (int)maxPhysY );
 		}
 		for (double x=xtickMin(); x<=xtickMax(); x+=xlabelDelta()) {
-//			g.transform(AffineTransform.getTranslateInstance((double)getWidth(),0));
-//			g.transform(AffineTransform.getRotateInstance(Math.PI/2));
 			GUtil.drawCenteredString(g, renderXtick(x), (int) x_u2p(x), (int)(maxPhysY+2*tickSize), 0, 1);
-//			g.transform(AffineTransform.getRotateInstance(-Math.PI/2));
-//			g.transform(AffineTransform.getTranslateInstance(-(double)getWidth(),0));
+			g.drawLine((int)x_u2p(x), (int)(maxPhysY+1.6*tickSize), (int)x_u2p(x), (int)maxPhysY );
 		}
 		for (double y=ytickMin(); y<=ytickMax(); y+=ytickDelta()) {
 			g.drawLine((int)(minPhysX-tickSize), (int)y_u2p(y), (int)(minPhysX), (int)y_u2p(y));
 			GUtil.drawCenteredString(g, renderYtick(y), (int)(minPhysX-tickSize*2), (int) y_u2p(y), -1, -0.3);
 		}
+	}
+	
+	public void setDefaultXYLim(Corpus corpus) {
+		double xmin=Double.POSITIVE_INFINITY,xmax=Double.NEGATIVE_INFINITY;
+		double ymin=Double.POSITIVE_INFINITY,ymax=Double.NEGATIVE_INFINITY;
+		for (Document d : corpus.allDocs()) {
+			if (d.x < xmin) xmin=d.x;
+			if (d.x > xmax) xmax=d.x;
+			if (d.y < ymin) ymin=d.y;
+			if (d.y > ymax) ymax=d.y;
+		}
+		double scale;
+		scale = ymax-ymin;
+		minUserY = ymin - scale*0.1;
+		maxUserY = ymax + scale*0.1;
+		scale = xmax-xmin;
+		minUserX = xmin - scale*0.1;
+		maxUserX = xmax + scale*0.1;
 	}
 
 	String renderXtick(double ux) {
@@ -319,15 +335,19 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 		return 4;
 	}
 	double ytickMin() {
-//		return minUserY;
-		return -1;
+		return roundup(minUserY, ytickDelta());
 	}
 	double ytickMax() {
-//		return maxUserY;
-		return 1;
+		return rounddown(maxUserY, ytickDelta());
 	}
 	double ytickDelta() {
 		return 1;
+	}
+	double roundup(double x, double d) {
+		return Math.ceil(x/d)*d;
+	}
+	double rounddown(double x, double d) {
+		return Math.floor(x/d)*d;
 	}
 	static void drawRect(Graphics2D g, double x, double y, double w, double h) {
 		g.drawRect((int)x,(int)y,(int)w,(int)h);

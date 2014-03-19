@@ -16,6 +16,7 @@ import javax.swing.BoxLayout;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
 import javax.swing.JSpinner;
 import javax.swing.JTextArea;
 import javax.swing.SpinnerNumberModel;
@@ -23,6 +24,8 @@ import javax.swing.SwingUtilities;
 import javax.swing.JSpinner.NumberEditor;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
 import javax.swing.table.AbstractTableModel;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.TableColumn;
@@ -32,6 +35,7 @@ import d.Analysis;
 import d.Corpus;
 import d.DocSet;
 import d.WeightedTerm;
+import edu.stanford.nlp.util.StringUtils;
 
 interface QueryReceiver {
 	public void receiveQuery(Collection<String> docids);
@@ -44,13 +48,16 @@ public class Main implements QueryReceiver {
 	public List<WeightedTerm> focusTerms = new ArrayList<>();
 	TermTable  tt;
 	TermTableModel ttModel;
+	TextPanel textPanel;
 	JLabel queryInfo;
+	JLabel subqueryInfo;
 	JLabel termlistInfo;
 	JSpinner termProbThreshSpinner;
 	JSpinner termCountThreshSpinner;
 	
 	void initData() {
 		corpus = Corpus.load("/d/sotu/sotu.xy");
+//		corpus = Corpus.load("/d/acl/just_meta.xy");
 	}
 	
 	double getTermProbThresh() {
@@ -139,6 +146,22 @@ public class Main implements QueryReceiver {
         cc.setMinWidth(50);
         
         tt.table.setAutoCreateRowSorter(true);
+        
+        tt.table.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
+			@Override
+			public void valueChanged(ListSelectionEvent e) {
+				List<String> terms = new ArrayList<>();
+				for (int row : tt.table.getSelectedRows()) {
+					String term = (String) tt.table.getValueAt(row,0);
+					terms.add(term);
+				}
+				
+				if (terms.size() > 0) {
+					subqueryInfo.setText(terms.size()+" selected terms: " + StringUtils.join(terms, ", "));
+					textPanel.show(terms.get(0), curDS);
+				}
+			}
+        });
 	}
 	
 	static class MySM extends AbstractSpinnerModel {
@@ -200,12 +223,16 @@ public class Main implements QueryReceiver {
         bppanel.setLayout(new BoxLayout(bppanel,BoxLayout.Y_AXIS));
         
         queryInfo = new JLabel();
-        queryInfo.setPreferredSize(new Dimension(300,50));
+        queryInfo.setPreferredSize(new Dimension(300,12));
         bppanel.add(queryInfo);
+        subqueryInfo = new JLabel();
+        subqueryInfo.setPreferredSize(new Dimension(300,12));
+        bppanel.add(subqueryInfo);
         
         BrushPanel brushPanel = new BrushPanel(this, corpus.allDocs());
         brushPanel.setMySize(500,300);
         brushPanel.setBorder(BorderFactory.createLineBorder(Color.black));
+        brushPanel.setDefaultXYLim(corpus);
         bppanel.add(brushPanel);
         
         JPanel termpanel = new JPanel();
@@ -249,10 +276,9 @@ public class Main implements QueryReceiver {
         tt.scrollpane.setPreferredSize(new Dimension(300,500));
         termpanel.add(tt.scrollpane);
         
-        JTextArea docshower = new JTextArea("show stuff here");
-        docshower.setPreferredSize(new Dimension(400,300));
-        docshower.setEditable(false);
-        bppanel.add(docshower);
+        textPanel = new TextPanel();
+        textPanel.scrollpane.setPreferredSize(new Dimension(400,300));
+        bppanel.add(textPanel.scrollpane);
         
         frame.getContentPane().add(bppanel,BorderLayout.NORTH);
         

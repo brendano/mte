@@ -1,12 +1,12 @@
 package d;
 
 public class Token {
-	String text;
+	public String text;
 
 	/** inclusive */
-	int startChar = -1;
+	public int startChar = -1;
 	/** exclusive */
-	int endChar = -1;
+	public int endChar = -1;
 	
 	public String toString() {
 		if (text==null) return "[NULLTOKEN]";
