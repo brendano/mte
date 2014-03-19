@@ -18,12 +18,15 @@ import java.awt.geom.Rectangle2D;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import javax.swing.*;
 
 import d.Corpus;
 import d.Document;
+import d.TermQuery;
 
 import util.U;
 
@@ -75,11 +78,13 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 	
 	Brush brush = null;
 	List<MyPoint> points;
+	Map<String,MyPoint> pointsByDocid;
 	QueryReceiver queryReceiver;
 
 	class MyPoint {
 		Document doc;
-		boolean isSelected;
+		boolean isDocquerySelected = false;
+		boolean isTermquerySelected = false;
 	
 		public int physX() {
 			return (int) x_u2p(doc.x);
@@ -160,11 +165,13 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 		queryReceiver = qr;
 		
 		points = new ArrayList<>();
+		pointsByDocid = new HashMap<>();
 		for (Document d : docs) {
 			MyPoint p = new MyPoint();
 			p.doc = d;
-			p.isSelected = false;
+			p.isDocquerySelected = false;
 			points.add(p);
+			pointsByDocid.put(d.docid, p);
 		}
 		
 	}
@@ -238,7 +245,7 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 	void refreshSelection() {
 		clearSelection();
 		for (int i : selectPoints(brush.getRegion())) {
-			points.get(i).isSelected=true;
+			points.get(i).isDocquerySelected=true;
 		}
 		queryReceiver.receiveQuery(getSelectedDocIds());
 	}
@@ -256,14 +263,14 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 	List<String> getSelectedDocIds() {
 		List<String> ret = new ArrayList<>();
 		for (MyPoint p : points) {
-			if (p.isSelected) {
+			if (p.isDocquerySelected) {
 				ret.add( p.doc.docid );
 			}
 		}
 		return ret;
 	}
 	void clearSelection() {
-		for (MyPoint p : points) p.isSelected=false;
+		for (MyPoint p : points) p.isDocquerySelected=false;
 	}
 	
 	public void paintComponent(Graphics _g) {
@@ -275,26 +282,50 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 		drawAxes(g);
 
 		for (int i=0; i<points.size(); i++) {
-			Color c = points.get(i).isSelected ? Color.blue : Color.black;
+			MyPoint mp = points.get(i);
+			Color c = mp.isDocquerySelected ? Color.blue : Color.black;
 			g.setColor(c);
-			Point p = points.get(i).physPoint();
-			GUtil.drawCenteredFilledCircle(g, p.x, p.y, 6);
+			Point p = mp.physPoint();
+			if (mp.isTermquerySelected) {
+				GUtil.drawCenteredTriangle(g, p.x, p.y, 6, mp.isTermquerySelected);
+			}
+			else {
+				GUtil.drawCenteredCircle(g, p.x, p.y, 6, mp.isTermquerySelected);
+			}
+			
 		}
 		renderBrush(g);
 	}
 	
+	public void showTerms(TermQuery tq) {
+		for (MyPoint p : points) {
+			p.isTermquerySelected = false;
+		}
+		for (Document d : tq.getMatchingDocs().docs()) {
+			pointsByDocid.get(d.docid).isTermquerySelected = true;
+		}
+		repaint();
+	}
+
+
+	
+	double largerTickMultiplier = 1.6;
+	double tickLabelOffset = 2.0;
+	
 	void drawAxes(Graphics2D g) {
+		double aa = tickLabelOffset;
+		double bb = largerTickMultiplier;
 		drawRect(g, minPhysX, minPhysY, maxPhysX-minPhysX, maxPhysY-minPhysY);
 		for (double x=xtickMin(); x<=xtickMax(); x+=xtickDelta()) {
 			g.drawLine((int)x_u2p(x), (int)(maxPhysY+tickSize), (int)x_u2p(x), (int)maxPhysY );
 		}
 		for (double x=xtickMin(); x<=xtickMax(); x+=xlabelDelta()) {
-			GUtil.drawCenteredString(g, renderXtick(x), (int) x_u2p(x), (int)(maxPhysY+2*tickSize), 0, 1);
-			g.drawLine((int)x_u2p(x), (int)(maxPhysY+1.6*tickSize), (int)x_u2p(x), (int)maxPhysY );
+			GUtil.drawCenteredString(g, renderXtick(x), x_u2p(x), maxPhysY+aa*tickSize, 0, 1);
+			GUtil.drawLine(g, x_u2p(x), maxPhysY+bb*tickSize, x_u2p(x), maxPhysY);
 		}
 		for (double y=ytickMin(); y<=ytickMax(); y+=ytickDelta()) {
-			g.drawLine((int)(minPhysX-tickSize), (int)y_u2p(y), (int)(minPhysX), (int)y_u2p(y));
-			GUtil.drawCenteredString(g, renderYtick(y), (int)(minPhysX-tickSize*2), (int) y_u2p(y), -1, -0.3);
+			GUtil.drawLine(g, minPhysX-tickSize, y_u2p(y), minPhysX, y_u2p(y));
+			GUtil.drawCenteredString(g, renderYtick(y), minPhysX-aa*tickSize, y_u2p(y), -1, -0.3);
 		}
 	}
 	

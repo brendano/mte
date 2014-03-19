@@ -6,6 +6,7 @@ import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -30,10 +31,16 @@ import javax.swing.table.AbstractTableModel;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.TableColumn;
 
+import org.codehaus.jackson.JsonProcessingException;
+
 import util.U;
 import d.Analysis;
 import d.Corpus;
 import d.DocSet;
+import d.Document;
+import d.PreAnalysis;
+import d.PreAnalysis.DocAnalyzer;
+import d.TermQuery;
 import d.WeightedTerm;
 import edu.stanford.nlp.util.StringUtils;
 
@@ -45,9 +52,12 @@ interface QueryReceiver {
 public class Main implements QueryReceiver {
 	public Corpus corpus;
 	public DocSet curDS = new DocSet();
+	public DocSet termquery = null;
+	
 	public List<WeightedTerm> focusTerms = new ArrayList<>();
 	TermTable  tt;
 	TermTableModel ttModel;
+	BrushPanel brushPanel;
 	TextPanel textPanel;
 	JLabel queryInfo;
 	JLabel subqueryInfo;
@@ -55,9 +65,25 @@ public class Main implements QueryReceiver {
 	JSpinner termProbThreshSpinner;
 	JSpinner termCountThreshSpinner;
 	
-	void initData() {
-		corpus = Corpus.load("/d/sotu/sotu.xy");
-//		corpus = Corpus.load("/d/acl/just_meta.xy");
+	void initData() throws JsonProcessingException, IOException {
+//		corpus = Corpus.loadXY("/d/sotu/sotu.xy");
+//		corpus.loadNLP("/d/sotu/sotu.ner");
+		corpus = Corpus.loadXY("/d/acl/just_meta.xy");
+		corpus.loadNLP("/d/acl/just_meta.ner");
+//		corpus = Corpus.loadXY("/d/twi/geo2/data/v8/smalltweets2.smallsample.xy");
+//		corpus = Corpus.loadXY("/d/twi/geo2/data/v8/medsamp.xy");
+		
+//		DocAnalyzer da = new PreAnalysis.UnigramAnalyzer();
+		
+		PreAnalysis.NgramAnalyzer da = new PreAnalysis.NgramAnalyzer();
+		da.order = 3;
+		da.posnerFilter = true;
+		
+		for (Document doc : corpus.docsById.values()) {
+			PreAnalysis.analyzeDocument(da, doc);	
+		}
+		
+		corpus.finalizeIndexing();
 	}
 	
 	double getTermProbThresh() {
@@ -93,7 +119,7 @@ public class Main implements QueryReceiver {
 	}
 	
 	void refreshQueryInfo() {
-		String s = U.sf("Current selection: %s docs, %.0f wordtoks\n", curDS.docs.size(), curDS.terms.totalCount);
+		String s = U.sf("Current selection: %s docs, %.0f wordtoks\n", curDS.docs().size(), curDS.terms.totalCount);
 		queryInfo.setText(s);
 	}
 	
@@ -150,15 +176,16 @@ public class Main implements QueryReceiver {
         tt.table.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
 			@Override
 			public void valueChanged(ListSelectionEvent e) {
-				List<String> terms = new ArrayList<>();
+				TermQuery tq = new TermQuery(corpus);
 				for (int row : tt.table.getSelectedRows()) {
 					String term = (String) tt.table.getValueAt(row,0);
-					terms.add(term);
+					tq.terms.add(term);
 				}
 				
-				if (terms.size() > 0) {
-					subqueryInfo.setText(terms.size()+" selected terms: " + StringUtils.join(terms, ", "));
-					textPanel.show(terms.get(0), curDS);
+				if (tq.terms.size() > 0) {
+					subqueryInfo.setText(tq.terms.size()+" selected terms: " + StringUtils.join(tq.terms, ", "));
+					textPanel.show(tq.terms, curDS);
+					brushPanel.showTerms(tq);
 				}
 			}
         });
@@ -223,13 +250,15 @@ public class Main implements QueryReceiver {
         bppanel.setLayout(new BoxLayout(bppanel,BoxLayout.Y_AXIS));
         
         queryInfo = new JLabel();
-        queryInfo.setPreferredSize(new Dimension(300,12));
+        queryInfo.setPreferredSize(new Dimension(300,20));
         bppanel.add(queryInfo);
         subqueryInfo = new JLabel();
-        subqueryInfo.setPreferredSize(new Dimension(300,12));
+        subqueryInfo.setPreferredSize(new Dimension(300,20));
         bppanel.add(subqueryInfo);
         
-        BrushPanel brushPanel = new BrushPanel(this, corpus.allDocs());
+        brushPanel = new BrushPanel(this, corpus.allDocs());
+        brushPanel.setOpaque(true);
+        brushPanel.setBackground(Color.white);
         brushPanel.setMySize(500,300);
         brushPanel.setBorder(BorderFactory.createLineBorder(Color.black));
         brushPanel.setDefaultXYLim(corpus);
@@ -298,7 +327,7 @@ public class Main implements QueryReceiver {
 
 	}
 	
-	public static void main(String[] args) {
+	public static void main(String[] args) throws IOException {
 		final Main main = new Main();
 		main.initData();
 		SwingUtilities.invokeLater(new Runnable() {

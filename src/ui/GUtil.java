@@ -1,14 +1,21 @@
 package ui;
 
 import java.awt.Graphics2D;
+
 import java.awt.geom.Ellipse2D;
 import java.awt.geom.Rectangle2D;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import util.U;
 
 public class GUtil {
+	
+    public static void drawLine(Graphics2D g, double x1, double y1, double x2, double y2) {
+    	g.drawLine( (int) x1, (int) y1, (int) x2, (int) y2);
+    }
+
 	/** 
 	 * centered: adjx,adjy = (0,0)
 	 * right-aligned (flush left of the point): adjx=-1
@@ -25,9 +32,31 @@ public class GUtil {
         g.drawString(s, (float) finalx, (float) finaly); 
 	}
 
-	public static void drawCenteredFilledCircle(Graphics2D g, int x, int y, int radius) {
+	public static void drawCenteredCircle(Graphics2D g, int x, int y, int radius, boolean fill) {
 		Ellipse2D.Double circle = new Ellipse2D.Double(x -radius/2, y -radius/2, radius, radius);
-		g.fill(circle);
+		if (fill) {
+			g.fill(circle);
+		} else {
+			g.draw(circle);	
+		}
+	}
+	static int roundInt(double x) {
+		return (int) Math.round(x);
+	}
+	public static void drawCenteredTriangle(Graphics2D g, double x, double y, double radius, boolean fill) {
+		// w,h are the half-width and half-height of the equilateral triangle, respectively
+		// http://brenocon.com/Screen%20Shot%202014-03-19%20at%203.35.50%20PM.jpg
+		double w = radius * Math.cos(Math.PI/6);
+		double h = radius * Math.sin(Math.PI/6);
+		double z = 0.8;  // horiz multiplier
+		// botleft, topctr, botright
+		int[] xs = new int[]{ roundInt(x-w*z), roundInt(x), roundInt(x+w*z) };
+		int[] ys = new int[]{ roundInt(y+h), roundInt(y-h), roundInt(y+h) };
+		if (fill) {
+			g.fillPolygon(xs,ys,xs.length);
+		} else {
+			g.drawPolygon(xs,ys,xs.length);
+		}
 	}
 	
 	static boolean isInteger(double x) {
@@ -73,8 +102,17 @@ public class GUtil {
 		return ret;
 	}
 	
-	public static void main(String[] args) {
-		U.p(logGrid125( Double.parseDouble(args[0]), Double.parseDouble(args[1]) ));
-		U.p(logGrid1s( Double.parseDouble(args[0]), Double.parseDouble(args[1]) ));
+//	public static void main(String[] args) {
+//		U.p(logGrid125( Double.parseDouble(args[0]), Double.parseDouble(args[1]) ));
+//		U.p(logGrid1s( Double.parseDouble(args[0]), Double.parseDouble(args[1]) ));
+//	}
+	
+	public static List<Integer> intRangeList(int start, int end) {
+		assert start <= end;
+		List<Integer> ret = new ArrayList<>();
+		for (int i=start; i<end; i++) {
+			ret.add(i);
+		}
+		return ret;
 	}
 }

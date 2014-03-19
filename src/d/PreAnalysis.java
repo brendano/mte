@@ -1,0 +1,165 @@
+package d;
+
+import java.util.*;
+import java.util.stream.Collectors;
+
+import ui.GUtil;
+import util.U;
+
+import com.google.common.collect.Lists;
+
+import edu.stanford.nlp.ling.CoreLabel;
+import edu.stanford.nlp.ling.CoreAnnotations.SentencesAnnotation;
+import edu.stanford.nlp.ling.CoreAnnotations.TokensAnnotation;
+import edu.stanford.nlp.pipeline.Annotation;
+import edu.stanford.nlp.pipeline.StanfordCoreNLP;
+import edu.stanford.nlp.util.CoreMap;
+
+public class PreAnalysis {
+	
+	static StanfordCoreNLP stPipeline;
+	static {
+	    Properties props = new Properties();
+	    props.put("annotators", "tokenize ssplit");
+	    stPipeline = new StanfordCoreNLP(props);
+	}
+
+	/** return token list with char offsets */
+	static List<Token> tokenize(String text) {
+//		return stanfordTokenize(text);
+		return simpleTokenize(text);
+	}
+	
+	static List<Token> simpleTokenize(String text) {
+		String[] toks = text.split("\\s+");
+		List<Token> ret = new ArrayList<>();
+		for (String tok : toks) {
+			Token myTok = new Token();
+			myTok.text = tok;
+			myTok.startChar=-1;
+			myTok.endChar=-1;
+			ret.add(myTok);
+		}
+		return ret;
+	}
+	
+	static List<Token> stanfordTokenize(String text) {
+		List<Token> ret = new ArrayList<>();
+		
+	    Annotation stdoc = new Annotation(text);
+	    stPipeline.annotate(stdoc);
+        List<CoreMap> sentences = stdoc.get(SentencesAnnotation.class);
+        for (CoreMap stSent : sentences) {
+            for (CoreLabel stTok: stSent.get(TokensAnnotation.class)) {
+            	Token myTok = new Token();
+            	myTok.startChar = stTok.beginPosition();
+            	myTok.endChar = stTok.endPosition();
+            	myTok.text = stTok.value();
+            	ret.add(myTok);
+            }
+        }
+
+        return ret;
+	}
+	
+	// I think this analysis framework is basically the same as Lucene's
+	
+	public static interface DocAnalyzer { 
+		List<TermInstance> analyze(Document doc);
+	}
+	
+	public static class UnigramAnalyzer implements DocAnalyzer {
+		public List<TermInstance> analyze(Document doc) {
+			List<TermInstance> ret = new ArrayList<>();
+			for (int i=0; i<doc.tokens.size(); i++) {
+				Token tok = doc.tokens.get(i);
+				TermInstance ti = new TermInstance(tok.text.toLowerCase(), Lists.newArrayList(i));
+				ret.add(ti);
+			}
+			return ret;
+		}
+	}
+	
+	public static class NgramAnalyzer implements DocAnalyzer {
+		public int order = 1;
+		public boolean posnerFilter = false;
+		
+		public List<TermInstance> analyze(Document doc) {
+			List<TermInstance> ret = new ArrayList<>();
+			for (int i=0; i<doc.tokens.size(); i++) {
+				Token tok = doc.tokens.get(i);
+				TermInstance ti = new TermInstance(tok.text.toLowerCase(), Lists.newArrayList(i));
+				ret.add(ti);
+				for (int k=1; k<=order; k++) {
+					if (i+k >= doc.tokens.size()) continue;
+					List<Integer> inds =GUtil.intRangeList(i,i+k+1); 
+
+					String s = inds.stream()
+							.map(j -> doc.tokens.get(j).text.toLowerCase())
+							.collect(Collectors.joining("_"));
+
+					if (posnerFilter) {
+						Token t = doc.tokens.get(inds.get(0));
+						assert t.pos != null && t.ner != null : "posFilter=true requires POS&NER preproc.";
+						if (isGoodNER(inds,doc) || isGoodPOSPattern(inds,doc)) {
+							// ok
+						}
+						else {
+//							String poses = inds.stream().map(j->doc.tokens.get(j).pos).collect(Collectors.joining("_"));
+//							U.p("REJECT " +s + " ||| " + poses);
+							continue;
+						}
+					}
+					ret.add(new TermInstance(s.toLowerCase(), inds));
+				}
+			}
+			return ret;
+		}
+		static boolean isGoodPOSPattern(List<Integer> inds, Document doc) {
+			int lasti = inds.get(inds.size()-1);
+			if ( ! isNominal(doc.tokens.get(lasti).pos)) return false;
+			boolean jjmode = true;
+			for (int i : inds) {
+				String pos = doc.tokens.get(i).pos;
+				if (jjmode && isAdj(pos)) {
+					// ok
+				}
+				else if (jjmode && isNominal(pos)) {
+					// ok and state change
+					jjmode = false;
+				}
+				else if (!jjmode && isNominal(pos)) {
+					// ok
+				}
+				else {
+					return false;
+				}
+			}
+			return true;
+		}
+		static boolean isNominal(String pos) {
+			return pos.startsWith("NN") || (pos.equals("N") || pos.equals("^"));
+		}
+		static boolean isAdj(String pos) {
+			return pos.startsWith("JJ") || (pos.equals("A"));
+		}
+	}
+	static boolean isGoodNER(List<Integer> inds, Document doc) {
+		Set<String> nertags = inds.stream().map(i -> doc.tokens.get(i).ner).collect(Collectors.toSet());
+		if (nertags.size()>1) return false;
+		String tag = nertags.toArray(new String[0])[0];
+		return tag.equals("PERSON") || tag.equals("ORGANIZATION") || tag.equals("LOCATION") || tag.equals("MISC");
+	}
+
+	///////////////////////////////////////////////////////////
+	
+	
+	/** edits doc in-place, creating terminstances and termvectors.  assumes tokenization/nlp is complete. */
+	public static void analyzeDocument(DocAnalyzer analyzer, Document doc) {
+		doc.termVec = new TermVector();
+		for (TermInstance ti : analyzer.analyze(doc)) {
+			doc.termVec.increment(ti.termName);
+		}
+	}
+	
+}
