@@ -26,8 +26,9 @@ import javax.swing.*;
 
 import d.Corpus;
 import d.Document;
+import d.Levels;
+import d.Levels.Level;
 import d.TermQuery;
-
 import util.U;
 
 /** selector thingy */
@@ -70,7 +71,7 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 	double maxPhysX = -1;
 	double maxPhysY = -1;
 	
-	int marLeft = 40;
+	int marLeft = 65;
 	int marBottom = 50;
 	int marTop = 20;
 	int marRight = 20;
@@ -80,6 +81,8 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 	List<MyPoint> points;
 	Map<String,MyPoint> pointsByDocid;
 	QueryReceiver queryReceiver;
+	
+	public Levels yLevels;
 
 	class MyPoint {
 		Document doc;
@@ -319,14 +322,36 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 		for (double x=xtickMin(); x<=xtickMax(); x+=xtickDelta()) {
 			g.drawLine((int)x_u2p(x), (int)(maxPhysY+tickSize), (int)x_u2p(x), (int)maxPhysY );
 		}
-		for (double x=xtickMin(); x<=xtickMax(); x+=xlabelDelta()) {
+		for (double x : xtickPositions()) {
 			GUtil.drawCenteredString(g, renderXtick(x), x_u2p(x), maxPhysY+aa*tickSize, 0, 1);
 			GUtil.drawLine(g, x_u2p(x), maxPhysY+bb*tickSize, x_u2p(x), maxPhysY);
 		}
-		for (double y=ytickMin(); y<=ytickMax(); y+=ytickDelta()) {
+		for (double y : ytickPositions()) {
 			GUtil.drawLine(g, minPhysX-tickSize, y_u2p(y), minPhysX, y_u2p(y));
 			GUtil.drawCenteredString(g, renderYtick(y), minPhysX-aa*tickSize, y_u2p(y), -1, -0.3);
 		}
+	}
+	
+	List<Double> xtickPositions() {
+		List<Double> ret = new ArrayList<>();
+		for (double x=xtickMin(); x<=xtickMax(); x+=xlabelDelta()) {
+			ret.add(x);
+		}
+		return ret;
+	}
+	List<Double> ytickPositions() {
+		List<Double> ret = new ArrayList<>();
+		if (yLevels != null) {
+			for (Level lev : yLevels.levels()) {
+				ret.add( (double) lev.number);
+			}
+		}
+		else {
+			for (double y=ytickMin(); y<=ytickMax(); y+=ytickDelta()) {
+				ret.add(y);
+			}
+		}
+		return ret;
 	}
 	
 	public void setDefaultXYLim(Corpus corpus) {
@@ -350,8 +375,18 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 	String renderXtick(double ux) {
 		return U.sf("%.0f",ux);
 	}
+	boolean isIntegral(double x) {
+		int rounded = (int) Math.round(x);
+		return Math.abs(rounded-x) < 1e-100;
+	}
 	String renderYtick(double uy) {
-		return U.sf("%.0f", uy);
+		if (yLevels != null && isIntegral(uy)) {
+			int i = (int) Math.round(uy);
+			if (yLevels.num2level.containsKey(i)) {
+				return yLevels.num2level.get(i).name;
+			}
+		}
+		return U.sf("%.0f", uy);	
 	}
 	double xtickMin() {
 		return minUserX;

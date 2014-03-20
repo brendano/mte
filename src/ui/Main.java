@@ -37,11 +37,14 @@ import javax.swing.table.TableColumn;
 
 import org.codehaus.jackson.JsonProcessingException;
 
+import util.BasicFileIO;
+import util.JsonUtil;
 import util.U;
 import d.Analysis;
 import d.Corpus;
 import d.DocSet;
 import d.Document;
+import d.Levels;
 import d.NLP;
 import d.NLP.DocAnalyzer;
 import d.TermQuery;
@@ -73,23 +76,24 @@ public class Main implements QueryReceiver {
 	void initData() throws JsonProcessingException, IOException {
 		corpus = Corpus.loadXY("/d/sotu/sotu.xy");
 		corpus.loadNLP("/d/sotu/sotu.ner");
+		corpus.yLevels = new Levels();
+		corpus.yLevels.loadJSON(JsonUtil.readJsonNX( BasicFileIO.readFile("/d/sotu/schema.json")));
 		
 //		corpus = Corpus.loadXY("/d/acl/just_meta.xy");
-//		corpus.runTokenizer(NLP::simpleTokenize);
-//		corpus.runTokenizer(NLP::stanfordTokenize);
+////		corpus.runTokenizer(NLP::simpleTokenize);
+////		corpus.runTokenizer(NLP::stanfordTokenize);
 //		corpus.loadNLP("/d/acl/just_meta.ner");
-		
-//		corpus.loadNLP("/d/acl/alltext.pos");
-//		corpus = Corpus.loadXY("/d/twi/geo2/data/v8/smalltweets2.smallsample.xy");
-//		corpus = Corpus.loadXY("/d/twi/geo2/data/v8/medsamp.xy");
-		
-//		DocAnalyzer da = new PreAnalysis.UnigramAnalyzer();
-		
+//		corpus.yLevels = new Levels();
+//		corpus.yLevels.loadJSON(JsonUtil.readJsonNX( BasicFileIO.readFile("/d/acl/schema.json")));
+
 		NLP.NgramAnalyzer da = new NLP.NgramAnalyzer();
 		da.order = 5;
 		da.posnerFilter = true;
-		
-//		NLP.UnigramAnalyzer da = new NLP.UnigramAnalyzer();
+
+//		corpus = Corpus.loadXY("/d/twi/geo2/data/v8/smalltweets2.smallsample.xy");
+//		corpus = Corpus.loadXY("/d/twi/geo2/data/v8/medsamp.xy");
+//		corpus.runTokenizer(NLP::simpleTokenize);
+//		DocAnalyzer da = new NLP.UnigramAnalyzer();
 		
 		for (Document doc : corpus.docsById.values()) {
 			NLP.analyzeDocument(da, doc);	
@@ -321,6 +325,7 @@ public class Main implements QueryReceiver {
         bppanel.add(subqueryInfo);
         
         brushPanel = new BrushPanel(this, corpus.allDocs());
+        brushPanel.yLevels = corpus.yLevels;
         brushPanel.setOpaque(true);
         brushPanel.setBackground(Color.white);
         brushPanel.setMySize(500,300);

@@ -86,11 +86,15 @@ public class TextPanel  {
 				s.append(" ");
 				if (j==h.termStart) s.append("<b>");
 				String w = d.tokens.get(j).text;
+				w = htmlEscape(w);
 				s.append(w);
 				if (j+1==h.termEnd) s.append("</b>"); 
 			}
 			s.append("\n");
 		}
 		return s;
+	}
+	static String htmlEscape(String s) {
+		return s.replace("<","&lt;").replace(">","&gt;").replace("&","&amp;");
 	}
 }

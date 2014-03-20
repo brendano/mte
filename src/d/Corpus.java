@@ -16,6 +16,7 @@ public class Corpus {
 	InvertedIndex index;
 	SpatialIndex hierIndex;
 	DoubleSummaryStatistics xSummary, ySummary;
+	public Levels yLevels;
 	
 	private Corpus() {
 		docsById = new HashMap<>();
