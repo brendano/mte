@@ -31,7 +31,7 @@ public class Document {
 	public String text;
 	public List<Token> tokens;
 	public TermVector termVec;
-	// TODO needs a local index of terminstances
+	public Map<Integer, List<TermInstance>> tisByStartTokindex; // not filled in until preanalysis stage
 	
 	static List<Document> loadXY(String filename) {
 		

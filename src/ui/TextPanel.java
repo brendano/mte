@@ -14,10 +14,10 @@ import com.google.common.collect.Ordering;
 
 import util.U;
 import util.misc.Pair;
-
 import d.Corpus;
 import d.DocSet;
 import d.Document;
+import d.TermInstance;
 import edu.stanford.nlp.util.Sets;
 
 public class TextPanel  {
@@ -55,37 +55,39 @@ public class TextPanel  {
 //		scrollpane.getVerticalScrollBar().setValue(0);
 	}
 	
-	
+	static class WithinDocHit {
+		// [inclusive,exclusive)
+		int spanStart, spanEnd;
+		int termStart, termEnd;
+	}
 	StringBuilder passageReport(Document d, Set<String> terms) {
-		StringBuilder s = new StringBuilder();
-		
-		List< Pair<String, List<Integer>>> hits = new ArrayList<>();
-		
+		List<WithinDocHit> hits = new ArrayList<>();
 		for (int i=0; i<d.tokens.size(); i++) {
-			String w = d.tokens.get(i).text.toLowerCase();
-			if (terms.contains(w)) {
-				List<Integer> tokindsHere = new ArrayList<>();
-				for (int j= Math.max(i-wordRadius, 0); j<Math.min(i+wordRadius, d.tokens.size()); j++) {
-					tokindsHere.add(j);
+			if ( ! d.tisByStartTokindex.containsKey(i)) continue;
+			for (TermInstance ti : d.tisByStartTokindex.get(i)) {
+				if (terms.contains(ti.termName)) {
+					WithinDocHit h = new WithinDocHit();
+					h.termStart = ti.tokIndsInDoc.get(0);
+					h.termEnd = ti.tokIndsInDoc.get( ti.tokIndsInDoc.size()-1 ) + 1;
+					h.spanStart = Math.max(h.termStart-wordRadius, 0);
+					h.spanEnd = Math.min(h.termEnd+wordRadius, d.tokens.size()); 
+					hits.add(h);
 				}
-				hits.add(U.pair(w, tokindsHere));
 			}
 		}
 		
-		Collections.sort(hits, Ordering.natural().onResultOf(p -> p.second.get(0)));
+		Collections.sort(hits, Ordering.natural().onResultOf(h -> U.pair(h.spanStart, h.termStart)));
 		
-		for (Pair<String,List<Integer>> hit : hits) {
+		StringBuilder s = new StringBuilder();
+		for (WithinDocHit h : hits) {
+			assert h.spanStart<=h.termStart && h.termStart<=h.termEnd && h.termEnd <= h.spanEnd;
 			s.append("&nbsp; -");
-			for (int j : hit.second) {
+			for (int j=h.spanStart; j<h.spanEnd; j++) {
 				s.append(" ");
+				if (j==h.termStart) s.append("<b>");
 				String w = d.tokens.get(j).text;
-				if (w.toLowerCase().equals(hit.first)) {
-//						s.append("**" + d.tokens.get(j).text + "**");
-					s.append("<b>" + w + "</b>");
-				}
-				else {
-					s.append(w);
-				}
+				s.append(w);
+				if (j+1==h.termEnd) s.append("</b>"); 
 			}
 			s.append("\n");
 		}

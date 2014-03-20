@@ -35,12 +35,9 @@ public class Analysis {
 			arr.add(new WeightedTerm(term, ratio));
 		}
 		List<Integer> inds = Arr.asList( Arr.rangeInts(arr.size()) );
-		Collections.sort(inds, Ordering.natural().reverse().onResultOf(new Function<Integer,Pair<Double,Double>>() {
-			@Override
-			public Pair<Double,Double> apply(Integer ind) {
-				return U.pair(arr.get(ind).weight,  focus.value(arr.get(ind).term));
-			}
-		} ));
+		Collections.sort(inds, Ordering.natural().reverse().onResultOf(ind ->
+				U.pair(arr.get(ind).weight,  focus.value(arr.get(ind).term))
+		));
 		List<WeightedTerm> ret = new ArrayList<>();
 		for (int i : inds) ret.add(arr.get(i));
 		return ret;

@@ -2,6 +2,7 @@ package d;
 
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import ui.GUtil;
 import util.U;
@@ -17,12 +18,15 @@ import edu.stanford.nlp.util.CoreMap;
 
 public class PreAnalysis {
 	
-	static StanfordCoreNLP stPipeline;
-	static {
-	    Properties props = new Properties();
-	    props.put("annotators", "tokenize ssplit");
-	    stPipeline = new StanfordCoreNLP(props);
-	}
+	static StanfordCoreNLP stPipeline() {
+		if (_stPipeline == null) {
+		    Properties props = new Properties();
+		    props.put("annotators", "tokenize ssplit");
+		    _stPipeline = new StanfordCoreNLP(props);
+		}
+		return _stPipeline;
+	};
+	private static StanfordCoreNLP _stPipeline;
 
 	/** return token list with char offsets */
 	static List<Token> tokenize(String text) {
@@ -47,7 +51,7 @@ public class PreAnalysis {
 		List<Token> ret = new ArrayList<>();
 		
 	    Annotation stdoc = new Annotation(text);
-	    stPipeline.annotate(stdoc);
+	    stPipeline().annotate(stdoc);
         List<CoreMap> sentences = stdoc.get(SentencesAnnotation.class);
         for (CoreMap stSent : sentences) {
             for (CoreLabel stTok: stSent.get(TokensAnnotation.class)) {
@@ -92,7 +96,7 @@ public class PreAnalysis {
 				ret.add(ti);
 				for (int k=1; k<=order; k++) {
 					if (i+k >= doc.tokens.size()) continue;
-					List<Integer> inds =GUtil.intRangeList(i,i+k+1); 
+					List<Integer> inds =GUtil.intRangeList(i,i+k+1);
 
 					String s = inds.stream()
 							.map(j -> doc.tokens.get(j).text.toLowerCase())
@@ -101,11 +105,13 @@ public class PreAnalysis {
 					if (posnerFilter) {
 						Token t = doc.tokens.get(inds.get(0));
 						assert t.pos != null && t.ner != null : "posFilter=true requires POS&NER preproc.";
-						if (isGoodNER(inds,doc) || isGoodPOSPattern(inds,doc)) {
+//						String poses = inds.stream().map(j->doc.tokens.get(j).pos +":"+j).collect(Collectors.joining("_"));
+//						U.p(poses);
+//						isLaxerPOSPattern(inds,doc);
+						if (isGoodNER(inds,doc) || isBaseNPPOSPattern(inds,doc)) {
 							// ok
 						}
 						else {
-//							String poses = inds.stream().map(j->doc.tokens.get(j).pos).collect(Collectors.joining("_"));
 //							U.p("REJECT " +s + " ||| " + poses);
 							continue;
 						}
@@ -115,7 +121,13 @@ public class PreAnalysis {
 			}
 			return ret;
 		}
-		static boolean isGoodPOSPattern(List<Integer> inds, Document doc) {
+//		static boolean isLaxerPOSPattern(List<Integer> inds, Document doc) {
+//			Set<String> poses = inds.stream().map(i -> doc.tokens.get(i).pos).collect(Collectors.toSet());
+//			for (int i : inds.stream().filter(i -> isNominal(doc.tokens.get(i).pos)).collect(Collectors.toList())  ) {
+//			}
+//			return true;
+//		}
+		static boolean isBaseNPPOSPattern(List<Integer> inds, Document doc) {
 			int lasti = inds.get(inds.size()-1);
 			if ( ! isNominal(doc.tokens.get(lasti).pos)) return false;
 			boolean jjmode = true;
@@ -157,8 +169,14 @@ public class PreAnalysis {
 	/** edits doc in-place, creating terminstances and termvectors.  assumes tokenization/nlp is complete. */
 	public static void analyzeDocument(DocAnalyzer analyzer, Document doc) {
 		doc.termVec = new TermVector();
+		doc.tisByStartTokindex = new HashMap<>();
 		for (TermInstance ti : analyzer.analyze(doc)) {
 			doc.termVec.increment(ti.termName);
+			int firstIndex = ti.tokIndsInDoc.get(0);
+			if (!doc.tisByStartTokindex.containsKey(firstIndex)) {
+				doc.tisByStartTokindex.put(firstIndex, new ArrayList<>());
+			}
+			doc.tisByStartTokindex.get(firstIndex).add(ti);
 		}
 	}
 	
