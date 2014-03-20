@@ -38,8 +38,8 @@ import d.Analysis;
 import d.Corpus;
 import d.DocSet;
 import d.Document;
-import d.PreAnalysis;
-import d.PreAnalysis.DocAnalyzer;
+import d.NLP;
+import d.NLP.DocAnalyzer;
 import d.TermQuery;
 import d.WeightedTerm;
 import edu.stanford.nlp.util.StringUtils;
@@ -69,19 +69,26 @@ public class Main implements QueryReceiver {
 	void initData() throws JsonProcessingException, IOException {
 		corpus = Corpus.loadXY("/d/sotu/sotu.xy");
 		corpus.loadNLP("/d/sotu/sotu.ner");
+		
 //		corpus = Corpus.loadXY("/d/acl/just_meta.xy");
+//		corpus.runTokenizer(NLP::simpleTokenize);
+//		corpus.runTokenizer(NLP::stanfordTokenize);
 //		corpus.loadNLP("/d/acl/just_meta.ner");
+		
+//		corpus.loadNLP("/d/acl/alltext.pos");
 //		corpus = Corpus.loadXY("/d/twi/geo2/data/v8/smalltweets2.smallsample.xy");
 //		corpus = Corpus.loadXY("/d/twi/geo2/data/v8/medsamp.xy");
 		
 //		DocAnalyzer da = new PreAnalysis.UnigramAnalyzer();
 		
-		PreAnalysis.NgramAnalyzer da = new PreAnalysis.NgramAnalyzer();
+		NLP.NgramAnalyzer da = new NLP.NgramAnalyzer();
 		da.order = 5;
 		da.posnerFilter = true;
 		
+//		NLP.UnigramAnalyzer da = new NLP.UnigramAnalyzer();
+		
 		for (Document doc : corpus.docsById.values()) {
-			PreAnalysis.analyzeDocument(da, doc);	
+			NLP.analyzeDocument(da, doc);	
 		}
 		
 		corpus.finalizeIndexing();
@@ -91,8 +98,8 @@ public class Main implements QueryReceiver {
 		return Double.parseDouble((String) termProbThreshSpinner.getValue());
 	}
 	int getTermCountThresh() {
-		return 1;
-//		return (int) termCountThreshSpinner.getValue();
+//		return 1;
+		return (int) termCountThreshSpinner.getValue();
 	}
 	
 	@Override
@@ -109,7 +116,7 @@ public class Main implements QueryReceiver {
 		
 		int effectiveTermcountThresh = (int) Math.floor(getTermProbThresh() * curDS.terms.totalCount);
 		
-		termcountInfo.setText(effectiveTermcountThresh==0 ? "all terms" : U.sf("count >= %d", effectiveTermcountThresh));
+//		termcountInfo.setText(effectiveTermcountThresh==0 ? "all terms" : U.sf("count >= %d", effectiveTermcountThresh));
 		
 //		U.p("=== TOP WORDS ===");
 //		for (WeightedTerm t : topTerms) {
@@ -279,11 +286,10 @@ public class Main implements QueryReceiver {
         termProbThreshSpinner.setPreferredSize(new Dimension(100,30));
         termProbThreshSpinner.addChangeListener(e -> refreshTermList());
 
-//        termCountThreshSpinner = new JSpinner(new SpinnerNumberModel(1, 0, 1000, 1));
-//        termCountThreshSpinner.setPreferredSize(new Dimension(60,30));
-//        termCountThreshSpinner.setValue(1);
-////        termCountThreshSpinner.setEditor(new JSpinner.NumberEditor(termCountThreshSpinner));
-//        termCountThreshSpinner.addChangeListener(e -> refreshTermList());
+        termCountThreshSpinner = new JSpinner(new SpinnerNumberModel(1, 0, 1000, 1));
+        termCountThreshSpinner.setPreferredSize(new Dimension(60,30));
+        termCountThreshSpinner.setValue(1);
+        termCountThreshSpinner.addChangeListener(e -> refreshTermList());
 
         JPanel termprobPanel = new JPanel();
         termprobPanel.setLayout(new BoxLayout(termprobPanel, BoxLayout.X_AXIS));
@@ -291,11 +297,12 @@ public class Main implements QueryReceiver {
         termprobPanel.add(termProbThreshSpinner);
         termpanel.add(termprobPanel);
         
-        termcountInfo = new JLabel("");
-        termcountInfo.setMinimumSize(new Dimension(250,30));
-        termprobPanel.add(termcountInfo);
-//        termprobPanel.add(new JLabel("Term count >="));
-//        termprobPanel.add(termCountThreshSpinner);
+//        termcountInfo = new JLabel("");
+//        termcountInfo.setMinimumSize(new Dimension(250,30));
+//        termprobPanel.add(termcountInfo);
+        
+        termprobPanel.add(new JLabel("Term count >="));
+        termprobPanel.add(termCountThreshSpinner);
         termlistInfo = new JLabel();
         termpanel.add(termlistInfo);
         

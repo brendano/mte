@@ -66,19 +66,22 @@ public class Document {
 				Token myTok = new Token();
 				myTok.text = jsent.get("tokens").get(i).asText();
 				myTok.pos = jsent.get("pos").get(i).asText();
-				myTok.ner = jsent.get("ner").get(i).asText();
+				if (jsent.has("ner")) {
+					myTok.ner = jsent.get("ner").get(i).asText();
+				}
 				alltoks.add(myTok);
 			}
 		}
 		tokens = alltoks;
 	}
 	
-	public void tokenizationFromText() {
-		this.tokens = PreAnalysis.simpleTokenize(this.text);
-//		this.tokens = PreAnalysis.stanfordTokenize(this.text);
+	public boolean hasNER() {
+		if (tokens.size()==0) return false;
+		return tokens.get(0).ner != null;
 	}
 	
-	public static void main(String[] args) {
-		loadXY(args[0]);
-	}
+//	public static void main(String[] args) {
+//		loadXY(args[0]);
+//	}
+
 }

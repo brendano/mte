@@ -2,6 +2,7 @@ package d;
 
 import java.io.IOException;
 import java.util.*;
+import java.util.function.Function;
 
 import org.codehaus.jackson.JsonNode;
 import org.codehaus.jackson.JsonProcessingException;
@@ -13,7 +14,7 @@ public class Corpus {
 	public Map<String,Document> docsById;
 	public TermVector globalTerms;
 	InvertedIndex index;
-	HierIndex hierIndex;
+	SpatialIndex hierIndex;
 	DoubleSummaryStatistics xSummary, ySummary;
 	
 	private Corpus() {
@@ -33,14 +34,15 @@ public class Corpus {
 		return ds;
 	}
 	
-	public DocSet select(int minX, int maxX, int minY, int maxY) {
+	public DocSet naiveSelect(int minX, int maxX, int minY, int maxY) {
 		DocSet ds = new DocSet();
-		for (Document d : docsById.values()) {
-			if (d.x >= minX && d.x <= maxX && d.y>=minY && d.y<=maxY) {
-				ds.add(d);	
-			}
-		}
+		docsById.values().stream()
+			.filter(d ->d.x >= minX && d.x <= maxX && d.y>=minY && d.y<=maxY)
+			.forEach(d -> ds.add(d));
 		return ds;
+	}
+	public DocSet select(int minX, int maxX, int minY, int maxY) {
+		return naiveSelect(minX, maxX, minY, maxY);
 	}
 	public static Corpus loadXY(String filename) {
 		Corpus c = new Corpus();
@@ -49,6 +51,11 @@ public class Corpus {
 			c.docsById.put(d.docid, d);
 		}
 		return c;
+	}
+	public void runTokenizer(Function<String,List<Token>> tokenizer) {
+		for (Document d : docsById.values()) {
+			d.tokens = tokenizer.apply(d.text);
+		}
 	}
 	public void loadNLP(String filename) throws JsonProcessingException, IOException {
 		for (String line : BasicFileIO.openFileLines(filename)) {
@@ -60,15 +67,15 @@ public class Corpus {
 		}
 	}
 	public void finalizeIndexing() {
-		xSummary = docsById.values().stream().mapToDouble(d->d.x).summaryStatistics();
-		ySummary = docsById.values().stream().mapToDouble(d->d.y).summaryStatistics();
-		hierIndex = new HierIndex(16, xSummary.getMin(), xSummary.getMax(), ySummary.getMin(), ySummary.getMax());
+//		xSummary = docsById.values().stream().mapToDouble(d->d.x).summaryStatistics();
+//		ySummary = docsById.values().stream().mapToDouble(d->d.y).summaryStatistics();
+//		hierIndex = new HierIndex(16, xSummary.getMin(), xSummary.getMax(), ySummary.getMin(), ySummary.getMax());
+//		hierSums.doSpatialSums(docsById.values());
+//		hierSums.dump();
 
 		for (Document d : docsById.values()) {
 			index.add(d);
 		}
-//		hierSums.doSpatialSums(docsById.values());
-//		hierSums.dump();
 		DocSet allds = new DocSet( docsById.values() );
 		globalTerms = allds.terms;
 	}

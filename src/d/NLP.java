@@ -16,7 +16,7 @@ import edu.stanford.nlp.pipeline.Annotation;
 import edu.stanford.nlp.pipeline.StanfordCoreNLP;
 import edu.stanford.nlp.util.CoreMap;
 
-public class PreAnalysis {
+public class NLP {
 	
 	static StanfordCoreNLP stPipeline() {
 		if (_stPipeline == null) {
@@ -28,13 +28,7 @@ public class PreAnalysis {
 	};
 	private static StanfordCoreNLP _stPipeline;
 
-	/** return token list with char offsets */
-	static List<Token> tokenize(String text) {
-//		return stanfordTokenize(text);
-		return simpleTokenize(text);
-	}
-	
-	static List<Token> simpleTokenize(String text) {
+	public static List<Token> simpleTokenize(String text) {
 		String[] toks = text.split("\\s+");
 		List<Token> ret = new ArrayList<>();
 		for (String tok : toks) {
@@ -47,7 +41,7 @@ public class PreAnalysis {
 		return ret;
 	}
 	
-	static List<Token> stanfordTokenize(String text) {
+	public static List<Token> stanfordTokenize(String text) {
 		List<Token> ret = new ArrayList<>();
 		
 	    Annotation stdoc = new Annotation(text);
@@ -157,6 +151,7 @@ public class PreAnalysis {
 		}
 	}
 	static boolean isGoodNER(List<Integer> inds, Document doc) {
+		if (!doc.hasNER()) return false;
 		Set<String> nertags = inds.stream().map(i -> doc.tokens.get(i).ner).collect(Collectors.toSet());
 		if (nertags.size()>1) return false;
 		String tag = nertags.toArray(new String[0])[0];

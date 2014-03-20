@@ -6,12 +6,12 @@ import java.util.*;
 import ui.GUtil;
 import util.U;
 
-public class HierIndex {
+public class SpatialIndex {
 	int bottomReso;
 	double xmin,xmax,ymin,ymax;
 	Cell root;
 	
-	public HierIndex(int n, double xmin, double xmax, double ymin, double ymax) {
+	public SpatialIndex(int n, double xmin, double xmax, double ymin, double ymax) {
 		this.xmin=xmin; this.xmax=xmax; this.ymin=ymin; this.ymax=ymax;
 		this.bottomReso = n;
 		initializeTree();
