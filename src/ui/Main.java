@@ -66,8 +66,8 @@ public class Main implements QueryReceiver {
 	JLabel queryInfo;
 	JLabel subqueryInfo;
 	JLabel termlistInfo;
-	JSpinner termProbThreshSpinner;
-	JSpinner termCountThreshSpinner;
+	JSpinner tpSpinner;
+	JSpinner tcSpinner;
 	JLabel termcountInfo;
 	
 	void initData() throws JsonProcessingException, IOException {
@@ -99,12 +99,12 @@ public class Main implements QueryReceiver {
 	}
 	
 	double getTermProbThresh() {
-		return (double) termProbThreshSpinner.getValue();
+		return (double) tpSpinner.getValue();
 //		return Double.parseDouble((String) termProbThreshSpinner.getValue());
 	}
 	int getTermCountThresh() {
 //		return 1;
-		return (int) termCountThreshSpinner.getValue();
+		return (int) tcSpinner.getValue();
 	}
 	
 	@Override
@@ -211,6 +211,17 @@ public class Main implements QueryReceiver {
         });
 	}
 	
+	static class BaseMult {
+		double base;
+		int mult;
+		BaseMult(double b, int m) { base=b; mult=m; }
+		static BaseMult fromDouble(double x) {
+			double b = Math.pow(10, Math.floor(Math.log10(x)));
+			int m = (int) Math.round(x/b);
+			return new BaseMult(b,m);
+		}
+	}
+	
 	static class MySM extends AbstractSpinnerModel {
 		double curbase;
 		int curmult;
@@ -223,7 +234,6 @@ public class Main implements QueryReceiver {
 
 		@Override
 		public void setValue(Object value) {
-			U.p("VALUE " + value);
 			double x = (double) value;
 			
 //			double x = Double.NEGATIVE_INFINITY;
@@ -234,8 +244,9 @@ public class Main implements QueryReceiver {
 //				return;
 //			}
 			
-			curbase = Math.pow(10, Math.floor(Math.log10(x)));
-			curmult = (int) Math.round(x/curbase);
+			BaseMult bm = BaseMult.fromDouble(x);
+			curbase = bm.base;
+			curmult = bm.mult;
 			fireStateChanged();
 		}
 
@@ -264,23 +275,35 @@ public class Main implements QueryReceiver {
 		}
 	}
 	
-	static class NiceFractionFormatter extends AbstractFormatter {
-
+	static class SimpleFractionFormatter extends AbstractFormatter {
 		@Override
 		public Object stringToValue(String text) throws ParseException {
 			return Double.parseDouble(text);
-//			assert false : "don't need this I hope";
-//			return null;
 		}
-
 		@Override
 		public String valueToString(Object value) throws ParseException {
 			Double x = (Double) value;
 			return U.sf("%f", x);
 		}
-		
 	}
-	
+
+	static class NiceFractionFormatter extends AbstractFormatter {
+		@Override
+		public Object stringToValue(String text) throws ParseException {
+			String[] parts = text.split(" ");
+			int mult = Integer.parseInt(parts[0].replace(",",""));
+			int baseReciprocal = Integer.parseInt(parts[ parts.length-1 ].replace(",",""));
+			double base = 1.0 / baseReciprocal;
+			return mult*base;
+		}
+		@Override
+		public String valueToString(Object value) throws ParseException {
+			Double x = (Double) value;
+			BaseMult bm = BaseMult.fromDouble(x);
+			return U.sf("%d out of %s", bm.mult, GUtil.commaize((int) Math.round(1/bm.base)));
+		}
+	}
+
 	void goUI() {
 		
         JFrame frame = new JFrame("Text Explorer Tool");
@@ -307,36 +330,35 @@ public class Main implements QueryReceiver {
         
         JPanel termpanel = new JPanel();
         termpanel.setLayout(new FlowLayout());
-        termProbThreshSpinner = new JSpinner(new MySM());
-        JFormattedTextField f = ((JSpinner.DefaultEditor) termProbThreshSpinner.getEditor()).getTextField();
-        U.p(f);
-        f.setFormatterFactory(new AbstractFormatterFactory() {
+        tpSpinner = new JSpinner(new MySM());
+        JFormattedTextField tpText = ((JSpinner.DefaultEditor) tpSpinner.getEditor()).getTextField();
+        tpText.setFormatterFactory(new AbstractFormatterFactory() {
 			@Override public AbstractFormatter getFormatter(JFormattedTextField tf) {
+//				return new SimpleFractionFormatter();
 				return new NiceFractionFormatter();
 			}
         });
-        		//(JFormattedTextField tf) -> new NiceFractionFormatter());
-        termProbThreshSpinner.setValue(.0005);
-        termProbThreshSpinner.setPreferredSize(new Dimension(100,30));
-        termProbThreshSpinner.addChangeListener(e -> refreshTermList());
+        tpSpinner.setValue(.0005);
+        tpSpinner.setPreferredSize(new Dimension(150,30));
+        tpSpinner.addChangeListener(e -> refreshTermList());
 
-        termCountThreshSpinner = new JSpinner(new SpinnerNumberModel(1, 0, 1000, 1));
-        termCountThreshSpinner.setPreferredSize(new Dimension(60,30));
-        termCountThreshSpinner.setValue(1);
-        termCountThreshSpinner.addChangeListener(e -> refreshTermList());
+        tcSpinner = new JSpinner(new SpinnerNumberModel(1, 0, 1000, 1));
+        tcSpinner.setPreferredSize(new Dimension(60,30));
+        tcSpinner.setValue(1);
+        tcSpinner.addChangeListener(e -> refreshTermList());
 
         JPanel termprobPanel = new JPanel();
         termprobPanel.setLayout(new BoxLayout(termprobPanel, BoxLayout.X_AXIS));
-        termprobPanel.add(new JLabel("Term prob >="));
-        termprobPanel.add(termProbThreshSpinner);
+        termprobPanel.add(new JLabel("Term Prob >="));
+        termprobPanel.add(tpSpinner);
         termpanel.add(termprobPanel);
         
 //        termcountInfo = new JLabel("");
 //        termcountInfo.setMinimumSize(new Dimension(250,30));
 //        termprobPanel.add(termcountInfo);
         
-        termprobPanel.add(new JLabel("Term count >="));
-        termprobPanel.add(termCountThreshSpinner);
+        termprobPanel.add(new JLabel("Count >="));
+        termprobPanel.add(tcSpinner);
         termlistInfo = new JLabel();
         termpanel.add(termlistInfo);
         
@@ -344,18 +366,18 @@ public class Main implements QueryReceiver {
         tt = new TermTable(ttModel);
         setupTermTable();
         
-        termpanel.setPreferredSize(new Dimension(350,600));
-        tt.scrollpane.setPreferredSize(new Dimension(300,500));
+        termpanel.setPreferredSize(new Dimension(400,600));
+        tt.scrollpane.setPreferredSize(new Dimension(400,500));
         termpanel.add(tt.scrollpane);
         
         textPanel = new TextPanel();
-        textPanel.scrollpane.setPreferredSize(new Dimension(400,300));
+        textPanel.scrollpane.setPreferredSize(new Dimension(500,300));
         bppanel.add(textPanel.scrollpane);
         
         frame.getContentPane().add(bppanel,BorderLayout.NORTH);
         
         frame.setLayout(new FlowLayout());
-        frame.setSize(600,600);
+        frame.setSize(900,600);
         frame.getContentPane().add(termpanel);
         frame.getContentPane().add(bppanel);
 
