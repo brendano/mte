@@ -67,17 +67,17 @@ public class Main implements QueryReceiver {
 	JLabel termcountInfo;
 	
 	void initData() throws JsonProcessingException, IOException {
-//		corpus = Corpus.loadXY("/d/sotu/sotu.xy");
-//		corpus.loadNLP("/d/sotu/sotu.ner");
-		corpus = Corpus.loadXY("/d/acl/just_meta.xy");
-		corpus.loadNLP("/d/acl/just_meta.ner");
+		corpus = Corpus.loadXY("/d/sotu/sotu.xy");
+		corpus.loadNLP("/d/sotu/sotu.ner");
+//		corpus = Corpus.loadXY("/d/acl/just_meta.xy");
+//		corpus.loadNLP("/d/acl/just_meta.ner");
 //		corpus = Corpus.loadXY("/d/twi/geo2/data/v8/smalltweets2.smallsample.xy");
 //		corpus = Corpus.loadXY("/d/twi/geo2/data/v8/medsamp.xy");
 		
 //		DocAnalyzer da = new PreAnalysis.UnigramAnalyzer();
 		
 		PreAnalysis.NgramAnalyzer da = new PreAnalysis.NgramAnalyzer();
-		da.order = 3;
+		da.order = 5;
 		da.posnerFilter = true;
 		
 		for (Document doc : corpus.docsById.values()) {
@@ -99,10 +99,7 @@ public class Main implements QueryReceiver {
 	public void receiveQuery(Collection<String> docids) {
 		curDS = corpus.getDocSet(docids);
 		refreshQueryInfo();
-		
 		refreshTermList();
-		
-				
 	}
 	
 	void refreshTermList() {

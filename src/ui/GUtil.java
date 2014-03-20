@@ -118,9 +118,11 @@ public class GUtil {
 	}
 	
 	public static String commaize(int x) {
+		if (Math.abs(x) < 1e6) return U.sf("%d", x);
 		return NumberFormat.getNumberInstance(Locale.US).format(x);	
 	}
 	public static String commaize(double x) {
+		if (Math.abs(x) < 1e6) return U.sf("%f", x);
 		return NumberFormat.getNumberInstance(Locale.US).format(x);	
 	}
 	

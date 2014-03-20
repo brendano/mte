@@ -13,6 +13,8 @@ public class Corpus {
 	public Map<String,Document> docsById;
 	public TermVector globalTerms;
 	InvertedIndex index;
+	HierIndex hierIndex;
+	DoubleSummaryStatistics xSummary, ySummary;
 	
 	private Corpus() {
 		docsById = new HashMap<>();
@@ -58,9 +60,15 @@ public class Corpus {
 		}
 	}
 	public void finalizeIndexing() {
+		xSummary = docsById.values().stream().mapToDouble(d->d.x).summaryStatistics();
+		ySummary = docsById.values().stream().mapToDouble(d->d.y).summaryStatistics();
+		hierIndex = new HierIndex(16, xSummary.getMin(), xSummary.getMax(), ySummary.getMin(), ySummary.getMax());
+
 		for (Document d : docsById.values()) {
-			index.add(d);	
+			index.add(d);
 		}
+//		hierSums.doSpatialSums(docsById.values());
+//		hierSums.dump();
 		DocSet allds = new DocSet( docsById.values() );
 		globalTerms = allds.terms;
 	}
