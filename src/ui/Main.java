@@ -64,6 +64,7 @@ public class Main implements QueryReceiver {
 	JLabel termlistInfo;
 	JSpinner termProbThreshSpinner;
 	JSpinner termCountThreshSpinner;
+	JLabel termcountInfo;
 	
 	void initData() throws JsonProcessingException, IOException {
 //		corpus = Corpus.loadXY("/d/sotu/sotu.xy");
@@ -90,7 +91,8 @@ public class Main implements QueryReceiver {
 		return Double.parseDouble((String) termProbThreshSpinner.getValue());
 	}
 	int getTermCountThresh() {
-		return (int) termCountThreshSpinner.getValue();
+		return 1;
+//		return (int) termCountThreshSpinner.getValue();
 	}
 	
 	@Override
@@ -108,6 +110,10 @@ public class Main implements QueryReceiver {
 		ttModel.fireTableDataChanged();
 		termlistInfo.setText(U.sf("%d/%d terms", focusTerms.size(), curDS.terms.support().size()));
 		
+		int effectiveTermcountThresh = (int) Math.floor(getTermProbThresh() * curDS.terms.totalCount);
+		
+		termcountInfo.setText(effectiveTermcountThresh==0 ? "all terms" : U.sf("count >= %d", effectiveTermcountThresh));
+		
 //		U.p("=== TOP WORDS ===");
 //		for (WeightedTerm t : topTerms) {
 //			U.pf("%-15s || %d vs %d || %.4g\n", 
@@ -119,7 +125,9 @@ public class Main implements QueryReceiver {
 	}
 	
 	void refreshQueryInfo() {
-		String s = U.sf("Current selection: %s docs, %.0f wordtoks\n", curDS.docs().size(), curDS.terms.totalCount);
+		String s = U.sf("Current selection: %s docs, %s wordtoks\n", 
+				GUtil.commaize(curDS.docs().size()), 
+				GUtil.commaize((int)curDS.terms.totalCount));
 		queryInfo.setText(s);
 	}
 	
@@ -159,6 +167,8 @@ public class Main implements QueryReceiver {
 	void setupTermTable() {
 		DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer();
 		centerRenderer.setHorizontalAlignment( JLabel.CENTER );
+		DefaultTableCellRenderer rightRenderer = new DefaultTableCellRenderer();
+		rightRenderer.setHorizontalAlignment( JLabel.RIGHT );
 
         TableColumn cc;
         cc = tt.table.getColumnModel().getColumn(0);
@@ -169,6 +179,7 @@ public class Main implements QueryReceiver {
         cc = tt.table.getColumnModel().getColumn(3); cc.setMinWidth(20); cc.setWidth(20);
         cc.setCellRenderer(centerRenderer);
         cc = tt.table.getColumnModel().getColumn(4);
+        cc.setCellRenderer(centerRenderer);
         cc.setMinWidth(50);
         
         tt.table.setAutoCreateRowSorter(true);
@@ -269,22 +280,13 @@ public class Main implements QueryReceiver {
         termProbThreshSpinner = new JSpinner(new MySM());
         termProbThreshSpinner.setValue(".0005");
         termProbThreshSpinner.setPreferredSize(new Dimension(100,30));
-        termProbThreshSpinner.addChangeListener(new ChangeListener() {
-			@Override
-			public void stateChanged(ChangeEvent e) {
-				refreshTermList();
-			}
-        });
-        termCountThreshSpinner = new JSpinner(new SpinnerNumberModel(1, 0, 1000, 1));
-        termCountThreshSpinner.setPreferredSize(new Dimension(60,30));
-        termCountThreshSpinner.setValue(1);
-//        termCountThreshSpinner.setEditor(new JSpinner.NumberEditor(termCountThreshSpinner));
-        termCountThreshSpinner.addChangeListener(new ChangeListener() {
-			@Override
-			public void stateChanged(ChangeEvent e) {
-				refreshTermList();
-			}
-        });
+        termProbThreshSpinner.addChangeListener(e -> refreshTermList());
+
+//        termCountThreshSpinner = new JSpinner(new SpinnerNumberModel(1, 0, 1000, 1));
+//        termCountThreshSpinner.setPreferredSize(new Dimension(60,30));
+//        termCountThreshSpinner.setValue(1);
+////        termCountThreshSpinner.setEditor(new JSpinner.NumberEditor(termCountThreshSpinner));
+//        termCountThreshSpinner.addChangeListener(e -> refreshTermList());
 
         JPanel termprobPanel = new JPanel();
         termprobPanel.setLayout(new BoxLayout(termprobPanel, BoxLayout.X_AXIS));
@@ -292,8 +294,11 @@ public class Main implements QueryReceiver {
         termprobPanel.add(termProbThreshSpinner);
         termpanel.add(termprobPanel);
         
-        termprobPanel.add(new JLabel("Term count >="));
-        termprobPanel.add(termCountThreshSpinner);
+        termcountInfo = new JLabel("");
+        termcountInfo.setMinimumSize(new Dimension(250,30));
+        termprobPanel.add(termcountInfo);
+//        termprobPanel.add(new JLabel("Term count >="));
+//        termprobPanel.add(termCountThreshSpinner);
         termlistInfo = new JLabel();
         termpanel.add(termlistInfo);
         

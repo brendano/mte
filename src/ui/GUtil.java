@@ -1,11 +1,12 @@
 package ui;
 
 import java.awt.Graphics2D;
-
 import java.awt.geom.Ellipse2D;
 import java.awt.geom.Rectangle2D;
+import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 
 import util.U;
@@ -114,6 +115,13 @@ public class GUtil {
 			ret.add(i);
 		}
 		return ret;
+	}
+	
+	public static String commaize(int x) {
+		return NumberFormat.getNumberInstance(Locale.US).format(x);	
+	}
+	public static String commaize(double x) {
+		return NumberFormat.getNumberInstance(Locale.US).format(x);	
 	}
 	
 }
