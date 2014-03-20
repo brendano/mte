@@ -7,6 +7,7 @@ import java.awt.FlowLayout;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.io.IOException;
+import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -14,6 +15,9 @@ import java.util.List;
 import javax.swing.AbstractSpinnerModel;
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
+import javax.swing.JFormattedTextField;
+import javax.swing.JFormattedTextField.AbstractFormatter;
+import javax.swing.JFormattedTextField.AbstractFormatterFactory;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
@@ -95,7 +99,8 @@ public class Main implements QueryReceiver {
 	}
 	
 	double getTermProbThresh() {
-		return Double.parseDouble((String) termProbThreshSpinner.getValue());
+		return (double) termProbThreshSpinner.getValue();
+//		return Double.parseDouble((String) termProbThreshSpinner.getValue());
 	}
 	int getTermCountThresh() {
 //		return 1;
@@ -212,20 +217,22 @@ public class Main implements QueryReceiver {
 		
 		@Override
 		public Object getValue() {
-//			return curbase*curmult;
-			return U.sf("%f",curbase*curmult);
+			return curbase*curmult;
+//			return U.sf("%f",curbase*curmult);
 		}
 
 		@Override
 		public void setValue(Object value) {
-//			double x = (double) value;
-			double x = Double.NEGATIVE_INFINITY;
-			try {
-				x = (double) Double.parseDouble((String)value);
-				if (x==0) { U.p("WTF"); x=1e-10; }
-			} catch (NumberFormatException e) {
-				return;
-			}
+			U.p("VALUE " + value);
+			double x = (double) value;
+			
+//			double x = Double.NEGATIVE_INFINITY;
+//			try {
+//				x = (double) Double.parseDouble((String)value);
+//				if (x==0) { U.p("WTF"); x=1e-10; }
+//			} catch (NumberFormatException e) {
+//				return;
+//			}
 			
 			curbase = Math.pow(10, Math.floor(Math.log10(x)));
 			curmult = (int) Math.round(x/curbase);
@@ -240,7 +247,8 @@ public class Main implements QueryReceiver {
 				newmult = 1;
 				newbase *= 10;
 			}
-			return U.sf("%f",newbase*newmult);
+			return newbase*newmult;
+//			return U.sf("%f",newbase*newmult);
 		}
 
 		@Override
@@ -251,8 +259,26 @@ public class Main implements QueryReceiver {
 				newmult=9;
 				newbase /= 10;
 			}
-			return U.sf("%f",newbase*newmult);
+			return newbase*newmult;
+//			return U.sf("%f",newbase*newmult);
 		}
+	}
+	
+	static class NiceFractionFormatter extends AbstractFormatter {
+
+		@Override
+		public Object stringToValue(String text) throws ParseException {
+			return Double.parseDouble(text);
+//			assert false : "don't need this I hope";
+//			return null;
+		}
+
+		@Override
+		public String valueToString(Object value) throws ParseException {
+			Double x = (Double) value;
+			return U.sf("%f", x);
+		}
+		
 	}
 	
 	void goUI() {
@@ -282,7 +308,15 @@ public class Main implements QueryReceiver {
         JPanel termpanel = new JPanel();
         termpanel.setLayout(new FlowLayout());
         termProbThreshSpinner = new JSpinner(new MySM());
-        termProbThreshSpinner.setValue(".0005");
+        JFormattedTextField f = ((JSpinner.DefaultEditor) termProbThreshSpinner.getEditor()).getTextField();
+        U.p(f);
+        f.setFormatterFactory(new AbstractFormatterFactory() {
+			@Override public AbstractFormatter getFormatter(JFormattedTextField tf) {
+				return new NiceFractionFormatter();
+			}
+        });
+        		//(JFormattedTextField tf) -> new NiceFractionFormatter());
+        termProbThreshSpinner.setValue(.0005);
         termProbThreshSpinner.setPreferredSize(new Dimension(100,30));
         termProbThreshSpinner.addChangeListener(e -> refreshTermList());
 
