@@ -15,8 +15,8 @@ public class TermTable {
 	JScrollPane scrollpane;
 	Main.TermTableModel model;
 	
-	public TermTable(Main.TermTableModel _model) {
-		model = _model;
+	public TermTable(Main.TermTableModel ttm) {
+		model = ttm;
 		table = new JTable(model);
 		scrollpane = new JScrollPane(table);
 	}

@@ -354,6 +354,8 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 		return ret;
 	}
 	
+	double scaleMult = 0.1;
+	
 	public void setDefaultXYLim(Corpus corpus) {
 		double xmin=Double.POSITIVE_INFINITY,xmax=Double.NEGATIVE_INFINITY;
 		double ymin=Double.POSITIVE_INFINITY,ymax=Double.NEGATIVE_INFINITY;
@@ -365,11 +367,11 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 		}
 		double scale;
 		scale = ymax-ymin;
-		minUserY = ymin - scale*0.1;
-		maxUserY = ymax + scale*0.1;
+		minUserY = ymin - scale*scaleMult;
+		maxUserY = ymax + scale*scaleMult;
 		scale = xmax-xmin;
-		minUserX = xmin - scale*0.1;
-		maxUserX = xmax + scale*0.1;
+		minUserX = xmin - scale*scaleMult;
+		maxUserX = xmax + scale*scaleMult;
 	}
 
 	String renderXtick(double ux) {

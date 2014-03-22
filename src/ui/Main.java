@@ -62,8 +62,8 @@ public class Main implements QueryReceiver {
 	public DocSet termquery = null;
 	
 	public List<WeightedTerm> focusTerms = new ArrayList<>();
-	TermTable  tt;
-	TermTableModel ttModel;
+	JFrame mainFrame;
+	TermTable  termTable;
 	BrushPanel brushPanel;
 	TextPanel textPanel;
 	JLabel queryInfo;
@@ -71,7 +71,7 @@ public class Main implements QueryReceiver {
 	JLabel termlistInfo;
 	JSpinner tpSpinner;
 	JSpinner tcSpinner;
-	JLabel termcountInfo;
+	JLabel tcInfo;
 	
 	void initData() throws JsonProcessingException, IOException {
 		corpus = Corpus.loadXY("/d/sotu/sotu.xy");
@@ -98,10 +98,15 @@ public class Main implements QueryReceiver {
 		for (Document doc : corpus.docsById.values()) {
 			NLP.analyzeDocument(da, doc);	
 		}
-		
 		corpus.finalizeIndexing();
 	}
+
+	void uiOverrides() {
+//      brushPanel.minUserY = -1.5;
+//      brushPanel.maxUserY = 1.5;
+	}
 	
+
 	double getTermProbThresh() {
 		return (double) tpSpinner.getValue();
 //		return Double.parseDouble((String) termProbThreshSpinner.getValue());
@@ -120,7 +125,7 @@ public class Main implements QueryReceiver {
 	
 	void refreshTermList() {
 		focusTerms = Analysis.topEPMI(getTermProbThresh(), getTermCountThresh(), curDS.terms, corpus.globalTerms);
-		ttModel.fireTableDataChanged();
+		termTable.model.fireTableDataChanged();
 		termlistInfo.setText(U.sf("%d/%d terms", focusTerms.size(), curDS.terms.support().size()));
 		
 		int effectiveTermcountThresh = (int) Math.floor(getTermProbThresh() * curDS.terms.totalCount);
@@ -144,7 +149,7 @@ public class Main implements QueryReceiver {
 		queryInfo.setText(s);
 	}
 	
-	class TermTableModel extends AbstractTableModel {
+	public class TermTableModel extends AbstractTableModel {
 		public TermTableModel() {
 		}
 
@@ -184,28 +189,27 @@ public class Main implements QueryReceiver {
 		rightRenderer.setHorizontalAlignment( JLabel.RIGHT );
 
         TableColumn cc;
-        cc = tt.table.getColumnModel().getColumn(0);
+        cc = termTable.table.getColumnModel().getColumn(0);
         cc.setMinWidth(100);
-        cc = tt.table.getColumnModel().getColumn(1); cc.setMinWidth(20); cc.setWidth(20);
+        cc = termTable.table.getColumnModel().getColumn(1); cc.setMinWidth(20); cc.setWidth(20);
         cc.setCellRenderer(centerRenderer);
-        cc = tt.table.getColumnModel().getColumn(2); cc.setMinWidth(8); cc.setMaxWidth(8);
-        cc = tt.table.getColumnModel().getColumn(3); cc.setMinWidth(20); cc.setWidth(20);
+        cc = termTable.table.getColumnModel().getColumn(2); cc.setMinWidth(8); cc.setMaxWidth(8);
+        cc = termTable.table.getColumnModel().getColumn(3); cc.setMinWidth(20); cc.setWidth(20);
         cc.setCellRenderer(centerRenderer);
-        cc = tt.table.getColumnModel().getColumn(4);
+        cc = termTable.table.getColumnModel().getColumn(4);
         cc.setCellRenderer(centerRenderer);
         cc.setMinWidth(50);
         
-        tt.table.setAutoCreateRowSorter(true);
+        termTable.table.setAutoCreateRowSorter(true);
         
-        tt.table.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
+        termTable.table.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
 			@Override
 			public void valueChanged(ListSelectionEvent e) {
 				TermQuery tq = new TermQuery(corpus);
-				for (int row : tt.table.getSelectedRows()) {
-					String term = (String) tt.table.getValueAt(row,0);
+				for (int row : termTable.table.getSelectedRows()) {
+					String term = (String) termTable.table.getValueAt(row,0);
 					tq.terms.add(term);
 				}
-				
 				if (tq.terms.size() > 0) {
 					subqueryInfo.setText(tq.terms.size()+" selected terms: " + StringUtils.join(tq.terms, ", "));
 					textPanel.show(tq.terms, curDS);
@@ -308,30 +312,14 @@ public class Main implements QueryReceiver {
 		}
 	}
 
-	void goUI() {
-		
-        JFrame frame = new JFrame("Text Explorer Tool");
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+	void setupUI() {
+        int leftwidth = 400, rightwidth=400, height=600;
+
+        mainFrame = new JFrame("Text Explorer Tool");
+        mainFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+
         
-        
-        JPanel bppanel = new JPanel();
-        bppanel.setLayout(new BoxLayout(bppanel,BoxLayout.Y_AXIS));
-        
-        queryInfo = new JLabel();
-        queryInfo.setPreferredSize(new Dimension(300,20));
-        bppanel.add(queryInfo);
-        subqueryInfo = new JLabel();
-        subqueryInfo.setPreferredSize(new Dimension(300,20));
-        bppanel.add(subqueryInfo);
-        
-        brushPanel = new BrushPanel(this, corpus.allDocs());
-        brushPanel.yLevels = corpus.yLevels;
-        brushPanel.setOpaque(true);
-        brushPanel.setBackground(Color.white);
-        brushPanel.setMySize(500,300);
-        brushPanel.setBorder(BorderFactory.createLineBorder(Color.black));
-        brushPanel.setDefaultXYLim(corpus);
-        bppanel.add(brushPanel);
+        /////////////////  termpanel  ///////////////////
         
         JPanel termpanel = new JPanel();
         termpanel.setLayout(new FlowLayout());
@@ -358,69 +346,63 @@ public class Main implements QueryReceiver {
         termprobPanel.add(tpSpinner);
         termpanel.add(termprobPanel);
         
-//        termcountInfo = new JLabel("");
-//        termcountInfo.setMinimumSize(new Dimension(250,30));
-//        termprobPanel.add(termcountInfo);
+//        tcInfo = new JLabel("");
+//        tcInfo.setMinimumSize(new Dimension(250,30));
+//        termprobPanel.add(tcInfo);
         
         termprobPanel.add(new JLabel("Count >="));
         termprobPanel.add(tcSpinner);
         termlistInfo = new JLabel();
+        termlistInfo.setPreferredSize(new Dimension(leftwidth,20));
         termpanel.add(termlistInfo);
         
-        ttModel = new TermTableModel();
-        tt = new TermTable(ttModel);
+        termTable = new TermTable(new TermTableModel());
         setupTermTable();
         
-        termpanel.setPreferredSize(new Dimension(400,600));
-        tt.scrollpane.setPreferredSize(new Dimension(400,500));
-        termpanel.add(tt.scrollpane);
+        termpanel.setPreferredSize(new Dimension(leftwidth,height));
+        termTable.scrollpane.setPreferredSize(new Dimension(leftwidth,height-120));
+        termpanel.add(termTable.scrollpane);
+
+        
+        //////////////////////////  brush panel  /////////////////////////
+        
+        JPanel bppanel = new JPanel();
+        bppanel.setLayout(new BoxLayout(bppanel,BoxLayout.Y_AXIS));
+
+        queryInfo = new JLabel();
+        queryInfo.setPreferredSize(new Dimension(300,20));
+        bppanel.add(queryInfo);
+        subqueryInfo = new JLabel();
+        subqueryInfo.setPreferredSize(new Dimension(300,20));
+        bppanel.add(subqueryInfo);
+        
+        brushPanel = new BrushPanel(this, corpus.allDocs());
+        brushPanel.yLevels = corpus.yLevels;
+        brushPanel.setOpaque(true);
+        brushPanel.setBackground(Color.white);
+        brushPanel.setMySize(rightwidth,300);
+        brushPanel.setBorder(BorderFactory.createLineBorder(Color.black));
+        brushPanel.setDefaultXYLim(corpus);
+        bppanel.add(brushPanel);
         
         textPanel = new TextPanel();
-        textPanel.scrollpane.setPreferredSize(new Dimension(500,300));
+        textPanel.scrollpane.setPreferredSize(new Dimension(rightwidth,300));
         bppanel.add(textPanel.scrollpane);
         
-        frame.getContentPane().add(bppanel,BorderLayout.NORTH);
-        
-        frame.setLayout(new FlowLayout());
-        frame.setSize(900,600);
-        frame.getContentPane().add(termpanel);
-        frame.getContentPane().add(bppanel);
-
-////////////////
-        frame.addKeyListener(new KeyExiter());
-        tt.scrollpane.addKeyListener(new KeyExiter());
-        brushPanel.addKeyListener(new KeyExiter());
-
-        //Display the window.
-        frame.pack();
-        frame.setVisible(true);
-
+        mainFrame.setLayout(new FlowLayout());
+        mainFrame.setSize(leftwidth+rightwidth, height);
+        mainFrame.getContentPane().add(termpanel);
+        mainFrame.getContentPane().add(bppanel);
+        mainFrame.pack();
 	}
 	
 	public static void main(String[] args) throws IOException {
 		final Main main = new Main();
 		main.initData();
-		SwingUtilities.invokeLater(new Runnable() {
-            public void run() {
-                main.goUI();
-            }
-        });
-	}
-
-}
-
-
-class KeyExiter implements KeyListener {
-	@Override
-	public void keyTyped(KeyEvent e) {
-		if (e.getKeyChar() == 'q') {
-			System.exit(0);
-		}
-	}
-	@Override
-	public void keyPressed(KeyEvent e) {
-	}
-	@Override
-	public void keyReleased(KeyEvent e) {
+		SwingUtilities.invokeLater(() -> {
+			main.setupUI();
+			main.uiOverrides();
+			main.mainFrame.setVisible(true);
+		});
 	}
 }
