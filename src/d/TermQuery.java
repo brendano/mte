@@ -6,7 +6,6 @@ import java.util.List;
 import util.U;
 
 public class TermQuery {
-	// disjunctive query
 	public List<String> terms;
 	private DocSet matchingDocs = null;
 	private Corpus corpus;

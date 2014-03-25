@@ -17,6 +17,42 @@ import util.U;
 import util.misc.Pair;
 
 public class Analysis {
+	public static class FocusContrastView {
+		TermVector focus, background;
+		
+		public FocusContrastView(TermVector focus, TermVector bg) {
+			this.focus=focus;
+			this.background = bg;
+		}
+		
+		public double epmi(String term) {
+			double myprob = focus.value(term) / focus.totalCount;
+			double globalprob = background.value(term) / background.totalCount;
+			return myprob / globalprob;
+		}
+		
+		public List<String> topEpmi(double minprob, int mincount) {
+			final List<String> terms = new ArrayList<>();
+			final List<Double> epmis = new ArrayList<>();
+			for (String term : focus.support()) {
+				double myprob = focus.value(term) / focus.totalCount;
+				double globalprob = background.value(term) / background.totalCount;
+				if (myprob < minprob) continue;
+				if (focus.value(term) < mincount) continue;
+
+				double ratio = myprob / globalprob;
+				terms.add(term);
+				epmis.add(ratio);
+			}
+			List<Integer> inds = Arr.asList( Arr.rangeInts(terms.size()) );
+			Collections.sort(inds, Ordering.natural().reverse().onResultOf(ind ->
+				U.pair(epmis.get(ind), focus.value(terms.get(ind)))
+			));
+			List<String> ret = new ArrayList<>();
+			for (int i : inds) ret.add(terms.get(i));
+			return ret;
+		}
+	}
 	
 	/**
 	 * exponentiated PMI = p(x|y)/p(x)  (= p(x,y)/[p(x)p(y)])
@@ -42,5 +78,5 @@ public class Analysis {
 		for (int i : inds) ret.add(arr.get(i));
 		return ret;
 	}
-
+	
 }

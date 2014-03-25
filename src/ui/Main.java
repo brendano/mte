@@ -1,18 +1,13 @@
 package ui;
 
-import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
-import java.awt.event.KeyEvent;
-import java.awt.event.KeyListener;
 import java.io.IOException;
-import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-import javax.swing.AbstractSpinnerModel;
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
 import javax.swing.JFormattedTextField;
@@ -21,14 +16,9 @@ import javax.swing.JFormattedTextField.AbstractFormatterFactory;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
-import javax.swing.JScrollPane;
 import javax.swing.JSpinner;
-import javax.swing.JTextArea;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.SwingUtilities;
-import javax.swing.JSpinner.NumberEditor;
-import javax.swing.event.ChangeEvent;
-import javax.swing.event.ChangeListener;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 import javax.swing.table.AbstractTableModel;
@@ -41,12 +31,12 @@ import util.BasicFileIO;
 import util.JsonUtil;
 import util.U;
 import d.Analysis;
+import d.Analysis.FocusContrastView;
 import d.Corpus;
 import d.DocSet;
 import d.Document;
 import d.Levels;
 import d.NLP;
-import d.NLP.DocAnalyzer;
 import d.TermQuery;
 import d.WeightedTerm;
 import edu.stanford.nlp.util.StringUtils;
@@ -59,11 +49,15 @@ interface QueryReceiver {
 public class Main implements QueryReceiver {
 	public Corpus corpus;
 	public DocSet curDS = new DocSet();
-	public DocSet termquery = null;
+
+//	TermQuery curTQ;
+	public List<String> focusTerms = new ArrayList<>();
+	public List<String> pinnedTerms = new ArrayList<>();
+	FocusContrastView fcView;
 	
-	public List<WeightedTerm> focusTerms = new ArrayList<>();
 	JFrame mainFrame;
-	TermTable  termTable;
+	TermTable  focusTermTable;
+	TermTable pinnedTermTable;
 	BrushPanel brushPanel;
 	TextPanel textPanel;
 	JLabel queryInfo;
@@ -124,8 +118,10 @@ public class Main implements QueryReceiver {
 	}
 	
 	void refreshTermList() {
-		focusTerms = Analysis.topEPMI(getTermProbThresh(), getTermCountThresh(), curDS.terms, corpus.globalTerms);
-		termTable.model.fireTableDataChanged();
+		fcView = new FocusContrastView(curDS.terms, corpus.globalTerms);
+		focusTerms.clear();
+		focusTerms.addAll( fcView.topEpmi(getTermProbThresh(), getTermCountThresh()) );
+		focusTermTable.model.fireTableDataChanged();
 		termlistInfo.setText(U.sf("%d/%d terms", focusTerms.size(), curDS.terms.support().size()));
 		
 		int effectiveTermcountThresh = (int) Math.floor(getTermProbThresh() * curDS.terms.totalCount);
@@ -149,168 +145,89 @@ public class Main implements QueryReceiver {
 		queryInfo.setText(s);
 	}
 	
+	/** this feels race condition-y */
+	TermQuery getCurrentTQ() {
+		TermQuery curTQ;
+    	curTQ = new TermQuery(corpus);
+    	for (int row : focusTermTable.table.getSelectedRows()) {
+    		String term = (String) focusTermTable.table.getValueAt(row,0);
+    		curTQ.terms.add(term);
+    	}
+    	for (String w : pinnedTerms) {
+    		curTQ.terms.add(w);
+    	}
+    	return curTQ;
+	}
+	
+	void updateAndRunTermQuery() {
+		TermQuery curTQ = getCurrentTQ();
+    	if (curTQ.terms.size() > 0) {
+    		subqueryInfo.setText(curTQ.terms.size()+" selected terms: " + StringUtils.join(curTQ.terms, ", "));
+    		textPanel.show(curTQ.terms, curDS);
+    		brushPanel.showTerms(curTQ);
+    	}
+	}
+	
+	/** give this a termlist. it consults the global fcView for the terms' stats. */
 	public class TermTableModel extends AbstractTableModel {
-		public TermTableModel() {
+		List<String> terms;
+		public TermTableModel(List<String> terms) {
+			this.terms = terms;
 		}
-
 		@Override
 		public String getColumnName(int j) {
 			return (new String[]{ "term", "local","","global", "lift" })[ j ];
 		}
 		@Override
 		public int getRowCount() {
-			return focusTerms.size();
+			return terms.size();
 		}
-
 		@Override
 		public int getColumnCount() {
 			return 5;
 		}
-
 		@Override
 		public Object getValueAt(int rowIndex, int columnIndex) {
-			WeightedTerm t = focusTerms.get(rowIndex);
+			String t = terms.get(rowIndex);
+			double epmi = fcView.epmi(t);
 			switch (columnIndex) {
-			case 0: return t.term;
+			case 0: return t;
 //			case 1: return U.sf("%.0f : %.0f", curDS.terms.value(t.term), corpus.globalTerms.value(t.term));
-			case 1: return U.sf("%d", (int) curDS.terms.value(t.term));
+			case 1: return U.sf("%d", (int) curDS.terms.value(t));
 			case 2: return ":";
-			case 3: return U.sf("%d", (int) corpus.globalTerms.value(t.term));
-			case 4: return t.weight > 1 ? U.sf("%.2f", t.weight) : U.sf("%.4g", t.weight);
+			case 3: return U.sf("%d", (int) corpus.globalTerms.value(t));
+			case 4: return epmi > 1 ? U.sf("%.2f", epmi) : U.sf("%.4g", epmi);
 			}
 			assert false; return null;
 		}
 		
 	}
-	void setupTermTable() {
+	
+	void setupTermTable(TermTable tt) {
+		tt.table.setFillsViewportHeight(true);
+		
 		DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer();
 		centerRenderer.setHorizontalAlignment( JLabel.CENTER );
 		DefaultTableCellRenderer rightRenderer = new DefaultTableCellRenderer();
 		rightRenderer.setHorizontalAlignment( JLabel.RIGHT );
 
         TableColumn cc;
-        cc = termTable.table.getColumnModel().getColumn(0);
+        cc = tt.table.getColumnModel().getColumn(0);
         cc.setMinWidth(100);
-        cc = termTable.table.getColumnModel().getColumn(1); cc.setMinWidth(20); cc.setWidth(20);
+        cc = tt.table.getColumnModel().getColumn(1); cc.setMinWidth(20); cc.setWidth(20);
         cc.setCellRenderer(centerRenderer);
-        cc = termTable.table.getColumnModel().getColumn(2); cc.setMinWidth(8); cc.setMaxWidth(8);
-        cc = termTable.table.getColumnModel().getColumn(3); cc.setMinWidth(20); cc.setWidth(20);
+        cc = tt.table.getColumnModel().getColumn(2); cc.setMinWidth(8); cc.setMaxWidth(8);
+        cc = tt.table.getColumnModel().getColumn(3); cc.setMinWidth(20); cc.setWidth(20);
         cc.setCellRenderer(centerRenderer);
-        cc = termTable.table.getColumnModel().getColumn(4);
+        cc = tt.table.getColumnModel().getColumn(4);
         cc.setCellRenderer(centerRenderer);
         cc.setMinWidth(50);
         
-        termTable.table.setAutoCreateRowSorter(true);
-        
-        termTable.table.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
-			@Override
-			public void valueChanged(ListSelectionEvent e) {
-				TermQuery tq = new TermQuery(corpus);
-				for (int row : termTable.table.getSelectedRows()) {
-					String term = (String) termTable.table.getValueAt(row,0);
-					tq.terms.add(term);
-				}
-				if (tq.terms.size() > 0) {
-					subqueryInfo.setText(tq.terms.size()+" selected terms: " + StringUtils.join(tq.terms, ", "));
-					textPanel.show(tq.terms, curDS);
-					brushPanel.showTerms(tq);
-				}
-			}
-        });
+        tt.table.setAutoCreateRowSorter(true);
+
+        tt.table.getSelectionModel().addListSelectionListener(e -> updateAndRunTermQuery());
 	}
 	
-	static class BaseMult {
-		double base;
-		int mult;
-		BaseMult(double b, int m) { base=b; mult=m; }
-		static BaseMult fromDouble(double x) {
-			double b = Math.pow(10, Math.floor(Math.log10(x)));
-			int m = (int) Math.round(x/b);
-			return new BaseMult(b,m);
-		}
-	}
-	
-	static class MySM extends AbstractSpinnerModel {
-		double curbase;
-		int curmult;
-		
-		@Override
-		public Object getValue() {
-			return curbase*curmult;
-//			return U.sf("%f",curbase*curmult);
-		}
-
-		@Override
-		public void setValue(Object value) {
-			double x = (double) value;
-			
-//			double x = Double.NEGATIVE_INFINITY;
-//			try {
-//				x = (double) Double.parseDouble((String)value);
-//				if (x==0) { U.p("WTF"); x=1e-10; }
-//			} catch (NumberFormatException e) {
-//				return;
-//			}
-			
-			BaseMult bm = BaseMult.fromDouble(x);
-			curbase = bm.base;
-			curmult = bm.mult;
-			fireStateChanged();
-		}
-
-		@Override
-		public Object getNextValue() {
-			int newmult = curmult+1;
-			double newbase = curbase;
-			if (newmult >= 10) {
-				newmult = 1;
-				newbase *= 10;
-			}
-			return newbase*newmult;
-//			return U.sf("%f",newbase*newmult);
-		}
-
-		@Override
-		public Object getPreviousValue() {
-			int newmult = curmult-1;
-			double newbase = curbase;
-			if (newmult<=0) {
-				newmult=9;
-				newbase /= 10;
-			}
-			return newbase*newmult;
-//			return U.sf("%f",newbase*newmult);
-		}
-	}
-	
-	static class SimpleFractionFormatter extends AbstractFormatter {
-		@Override
-		public Object stringToValue(String text) throws ParseException {
-			return Double.parseDouble(text);
-		}
-		@Override
-		public String valueToString(Object value) throws ParseException {
-			Double x = (Double) value;
-			return U.sf("%f", x);
-		}
-	}
-
-	static class NiceFractionFormatter extends AbstractFormatter {
-		@Override
-		public Object stringToValue(String text) throws ParseException {
-			String[] parts = text.split(" ");
-			int mult = Integer.parseInt(parts[0].replace(",",""));
-			int baseReciprocal = Integer.parseInt(parts[ parts.length-1 ].replace(",",""));
-			double base = 1.0 / baseReciprocal;
-			return mult*base;
-		}
-		@Override
-		public String valueToString(Object value) throws ParseException {
-			Double x = (Double) value;
-			BaseMult bm = BaseMult.fromDouble(x);
-			return U.sf("%d out of %s", bm.mult, GUtil.commaize((int) Math.round(1/bm.base)));
-		}
-	}
 
 	void setupUI() {
         int leftwidth = 400, rightwidth=400, height=600;
@@ -323,12 +240,12 @@ public class Main implements QueryReceiver {
         
         JPanel termpanel = new JPanel();
         termpanel.setLayout(new FlowLayout());
-        tpSpinner = new JSpinner(new MySM());
+        tpSpinner = new JSpinner(new SpinnerStuff.MySM());
         JFormattedTextField tpText = ((JSpinner.DefaultEditor) tpSpinner.getEditor()).getTextField();
         tpText.setFormatterFactory(new AbstractFormatterFactory() {
 			@Override public AbstractFormatter getFormatter(JFormattedTextField tf) {
-//				return new SimpleFractionFormatter();
-				return new NiceFractionFormatter();
+//				return new SpinnerStuff.SimpleFractionFormatter();
+				return new SpinnerStuff.NiceFractionFormatter();
 			}
         });
         tpSpinner.setValue(.0005);
@@ -356,12 +273,14 @@ public class Main implements QueryReceiver {
         termlistInfo.setPreferredSize(new Dimension(leftwidth,20));
         termpanel.add(termlistInfo);
         
-        termTable = new TermTable(new TermTableModel());
-        setupTermTable();
+        //////  termtable: below the frequency spinners  /////
+        
+        focusTermTable = new TermTable(new TermTableModel(focusTerms));
+        setupTermTable(focusTermTable);
         
         termpanel.setPreferredSize(new Dimension(leftwidth,height));
-        termTable.scrollpane.setPreferredSize(new Dimension(leftwidth,height-120));
-        termpanel.add(termTable.scrollpane);
+        focusTermTable.scrollpane.setPreferredSize(new Dimension(leftwidth,height-120));
+        termpanel.add(focusTermTable.scrollpane);
 
         
         //////////////////////////  brush panel  /////////////////////////
