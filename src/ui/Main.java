@@ -50,7 +50,6 @@ public class Main implements QueryReceiver {
 	public Corpus corpus;
 	public DocSet curDS = new DocSet();
 
-//	TermQuery curTQ;
 	public List<String> focusTerms = new ArrayList<>();
 	public List<String> pinnedTerms = new ArrayList<>();
 	FocusContrastView fcView;
@@ -68,6 +67,8 @@ public class Main implements QueryReceiver {
 	JLabel tcInfo;
 	
 	void initData() throws JsonProcessingException, IOException {
+		pinnedTerms.add("crime");
+		pinnedTerms.add("soviet");
 		corpus = Corpus.loadXY("/d/sotu/sotu.xy");
 		corpus.loadNLP("/d/sotu/sotu.ner");
 		corpus.yLevels = new Levels();
@@ -123,6 +124,7 @@ public class Main implements QueryReceiver {
 		focusTerms.addAll( fcView.topEpmi(getTermProbThresh(), getTermCountThresh()) );
 		focusTermTable.model.fireTableDataChanged();
 		termlistInfo.setText(U.sf("%d/%d terms", focusTerms.size(), curDS.terms.support().size()));
+		pinnedTermTable.model.fireTableDataChanged();
 		
 		int effectiveTermcountThresh = (int) Math.floor(getTermProbThresh() * curDS.terms.totalCount);
 		
@@ -159,7 +161,7 @@ public class Main implements QueryReceiver {
     	return curTQ;
 	}
 	
-	void updateAndRunTermQuery() {
+	void runTermQuery() {
 		TermQuery curTQ = getCurrentTQ();
     	if (curTQ.terms.size() > 0) {
     		subqueryInfo.setText(curTQ.terms.size()+" selected terms: " + StringUtils.join(curTQ.terms, ", "));
@@ -189,7 +191,7 @@ public class Main implements QueryReceiver {
 		@Override
 		public Object getValueAt(int rowIndex, int columnIndex) {
 			String t = terms.get(rowIndex);
-			double epmi = fcView.epmi(t);
+			double epmi = fcView != null ? fcView.epmi(t) : 0;
 			switch (columnIndex) {
 			case 0: return t;
 //			case 1: return U.sf("%.0f : %.0f", curDS.terms.value(t.term), corpus.globalTerms.value(t.term));
@@ -225,7 +227,7 @@ public class Main implements QueryReceiver {
         
         tt.table.setAutoCreateRowSorter(true);
 
-        tt.table.getSelectionModel().addListSelectionListener(e -> updateAndRunTermQuery());
+        tt.table.getSelectionModel().addListSelectionListener(e -> runTermQuery());
 	}
 	
 
@@ -277,10 +279,15 @@ public class Main implements QueryReceiver {
         
         focusTermTable = new TermTable(new TermTableModel(focusTerms));
         setupTermTable(focusTermTable);
+        pinnedTermTable = new TermTable(new TermTableModel(pinnedTerms));
+        setupTermTable(pinnedTermTable);
         
         termpanel.setPreferredSize(new Dimension(leftwidth,height));
-        focusTermTable.scrollpane.setPreferredSize(new Dimension(leftwidth,height-120));
+        
+        focusTermTable.scrollpane.setPreferredSize(new Dimension(leftwidth,height-220));
         termpanel.add(focusTermTable.scrollpane);
+        pinnedTermTable.scrollpane.setPreferredSize(new Dimension(leftwidth,150));
+        termpanel.add(pinnedTermTable.scrollpane);
 
         
         //////////////////////////  brush panel  /////////////////////////
