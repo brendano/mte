@@ -8,6 +8,7 @@ import com.google.common.base.Function;
 import com.google.common.collect.ContiguousSet;
 import com.google.common.collect.DiscreteDomain;
 import com.google.common.collect.DiscreteDomains;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.Range;
 import com.google.common.collect.Ranges;
@@ -45,8 +46,16 @@ public class Analysis {
 				epmis.add(ratio);
 			}
 			List<Integer> inds = Arr.asList( Arr.rangeInts(terms.size()) );
-			Collections.sort(inds, Ordering.natural().reverse().onResultOf(ind ->
-				U.pair(epmis.get(ind), focus.value(terms.get(ind)))
+			Collections.sort(inds, Ordering.natural().lexicographical().onResultOf(ind -> {
+				List arr = new ArrayList();
+				arr.add(-epmis.get(ind));
+				arr.add(-focus.value(terms.get(ind)));
+				arr.add(terms.get(ind));
+				return arr;
+			}
+//				(Iterable<Comparable>) new ArrayList(
+//						(Double) epmis.get(ind), (Double) focus.value(terms.get(ind)), (String) terms.get(ind) )
+//				U.pair(epmis.get(ind), focus.value(terms.get(ind)))
 			));
 			List<String> ret = new ArrayList<>();
 			for (int i : inds) ret.add(terms.get(i));

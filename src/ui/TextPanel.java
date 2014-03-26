@@ -25,7 +25,7 @@ public class TextPanel  {
 	JEditorPane area;
 	JScrollPane scrollpane;
 	
-	public int wordRadius = 6;
+	public int wordRadius = 5;
 	
 	public TextPanel() {
 //		area = new JTextArea();
@@ -60,6 +60,8 @@ public class TextPanel  {
 		int spanStart, spanEnd;
 		int termStart, termEnd;
 	}
+	
+	static int maxHitsWithinDoc = 10;
 	StringBuilder passageReport(Document d, Set<String> terms) {
 		List<WithinDocHit> hits = new ArrayList<>();
 		for (int i=0; i<d.tokens.size(); i++) {
@@ -73,7 +75,9 @@ public class TextPanel  {
 					h.spanEnd = Math.min(h.termEnd+wordRadius, d.tokens.size()); 
 					hits.add(h);
 				}
+				if (hits.size() >= maxHitsWithinDoc) break;
 			}
+			if (hits.size() >= maxHitsWithinDoc) break;
 		}
 		
 		Collections.sort(hits, Ordering.natural().onResultOf(h -> U.pair(h.spanStart, h.termStart)));
@@ -92,6 +96,7 @@ public class TextPanel  {
 			}
 			s.append("\n");
 		}
+//		U.p("END");
 		return s;
 	}
 	static String htmlEscape(String s) {

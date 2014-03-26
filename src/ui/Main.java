@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.stream.IntStream;
 
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
@@ -19,18 +20,13 @@ import javax.swing.JPanel;
 import javax.swing.JSpinner;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.SwingUtilities;
-import javax.swing.event.ListSelectionEvent;
-import javax.swing.event.ListSelectionListener;
 import javax.swing.table.AbstractTableModel;
-import javax.swing.table.DefaultTableCellRenderer;
-import javax.swing.table.TableColumn;
 
 import org.codehaus.jackson.JsonProcessingException;
 
 import util.BasicFileIO;
 import util.JsonUtil;
 import util.U;
-import d.Analysis;
 import d.Analysis.FocusContrastView;
 import d.Corpus;
 import d.DocSet;
@@ -38,7 +34,6 @@ import d.Document;
 import d.Levels;
 import d.NLP;
 import d.TermQuery;
-import d.WeightedTerm;
 import edu.stanford.nlp.util.StringUtils;
 
 interface QueryReceiver {
@@ -97,8 +92,8 @@ public class Main implements QueryReceiver {
 	}
 
 	void uiOverrides() {
-//      brushPanel.minUserY = -1.5;
-//      brushPanel.maxUserY = 1.5;
+      brushPanel.minUserY = -2;
+      brushPanel.maxUserY = -brushPanel.minUserY;
 	}
 	
 
@@ -124,7 +119,8 @@ public class Main implements QueryReceiver {
 		focusTerms.addAll( fcView.topEpmi(getTermProbThresh(), getTermCountThresh()) );
 		focusTermTable.model.fireTableDataChanged();
 		termlistInfo.setText(U.sf("%d/%d terms", focusTerms.size(), curDS.terms.support().size()));
-		pinnedTermTable.model.fireTableDataChanged();
+//		pinnedTermTable.model.fireTableDataChanged();
+		pinnedTermTable.updateCalculations();
 		
 		int effectiveTermcountThresh = (int) Math.floor(getTermProbThresh() * curDS.terms.totalCount);
 		
@@ -152,23 +148,26 @@ public class Main implements QueryReceiver {
 		TermQuery curTQ;
     	curTQ = new TermQuery(corpus);
     	for (int row : focusTermTable.table.getSelectedRows()) {
-    		String term = (String) focusTermTable.table.getValueAt(row,0);
-    		curTQ.terms.add(term);
+    		curTQ.terms.add(focusTermTable.getTermAt(row));
     	}
-    	for (String w : pinnedTerms) {
-    		curTQ.terms.add(w);
+    	for (int row : pinnedTermTable.table.getSelectedRows()) {
+    		curTQ.terms.add(pinnedTermTable.getTermAt(row));
     	}
+//    	for (String w : pinnedTerms) {
+//    		curTQ.terms.add(w);
+//    	}
     	return curTQ;
 	}
 	
 	void runTermQuery() {
 		TermQuery curTQ = getCurrentTQ();
-    	if (curTQ.terms.size() > 0) {
-    		subqueryInfo.setText(curTQ.terms.size()+" selected terms: " + StringUtils.join(curTQ.terms, ", "));
-    		textPanel.show(curTQ.terms, curDS);
-    		brushPanel.showTerms(curTQ);
-    	}
+		String msg = curTQ.terms.size()==0 ? "No selected terms" 
+				: curTQ.terms.size()+" selected terms: " + StringUtils.join(curTQ.terms, ", ");
+		subqueryInfo.setText(msg);
+		textPanel.show(curTQ.terms, curDS);
+		brushPanel.showTerms(curTQ);
 	}
+	
 	
 	/** give this a termlist. it consults the global fcView for the terms' stats. */
 	public class TermTableModel extends AbstractTableModel {
@@ -198,41 +197,45 @@ public class Main implements QueryReceiver {
 			case 1: return U.sf("%d", (int) curDS.terms.value(t));
 			case 2: return ":";
 			case 3: return U.sf("%d", (int) corpus.globalTerms.value(t));
-			case 4: return epmi > 1 ? U.sf("%.2f", epmi) : U.sf("%.4g", epmi);
+//			case 4: return epmi > 1 ? U.sf("%.2f", epmi) : U.sf("%.4g", epmi);
+			case 4: return epmi > .001 ? U.sf("%.3f", epmi) : U.sf("%.4g", epmi);
 			}
 			assert false; return null;
 		}
 		
 	}
 	
-	void setupTermTable(TermTable tt) {
-		tt.table.setFillsViewportHeight(true);
-		
-		DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer();
-		centerRenderer.setHorizontalAlignment( JLabel.CENTER );
-		DefaultTableCellRenderer rightRenderer = new DefaultTableCellRenderer();
-		rightRenderer.setHorizontalAlignment( JLabel.RIGHT );
+	void setupTermTable(final TermTable tt) {
+		tt.setupTermTable();
 
-        TableColumn cc;
-        cc = tt.table.getColumnModel().getColumn(0);
-        cc.setMinWidth(100);
-        cc = tt.table.getColumnModel().getColumn(1); cc.setMinWidth(20); cc.setWidth(20);
-        cc.setCellRenderer(centerRenderer);
-        cc = tt.table.getColumnModel().getColumn(2); cc.setMinWidth(8); cc.setMaxWidth(8);
-        cc = tt.table.getColumnModel().getColumn(3); cc.setMinWidth(20); cc.setWidth(20);
-        cc.setCellRenderer(centerRenderer);
-        cc = tt.table.getColumnModel().getColumn(4);
-        cc.setCellRenderer(centerRenderer);
-        cc.setMinWidth(50);
+        tt.table.getSelectionModel().addListSelectionListener(e -> {
+        	if (e.getValueIsAdjusting()) {
+        		runTermQuery(); 
+    		}});
         
-        tt.table.setAutoCreateRowSorter(true);
-
-        tt.table.getSelectionModel().addListSelectionListener(e -> runTermQuery());
+	}
+	
+	void pinTerm(String term) { 
+		pinnedTerms.add(term);
+//		refreshTermList();
+//		refreshQueryInfo();
+		pinnedTermTable.model.fireTableRowsInserted(pinnedTerms.size()-2, pinnedTerms.size()-1);
+	}
+	void unpinTerm(String term) {
+//		refreshTermList();
+//		refreshQueryInfo();
+		int[] rowsToDel = IntStream.range(0,pinnedTermTable.model.getRowCount())
+			.filter(row -> pinnedTermTable.getTermAt(row).equals(term))
+			.toArray();
+		for (int row : rowsToDel) {
+			pinnedTermTable.model.fireTableRowsDeleted(row,row);	
+		}
+		pinnedTerms.remove(term);
 	}
 	
 
 	void setupUI() {
-        int leftwidth = 400, rightwidth=400, height=600;
+        int leftwidth = 365-5, rightwidth=430-5, height=550;
 
         mainFrame = new JFrame("Text Explorer Tool");
         mainFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -279,20 +282,23 @@ public class Main implements QueryReceiver {
         
         focusTermTable = new TermTable(new TermTableModel(focusTerms));
         setupTermTable(focusTermTable);
+        focusTermTable.doubleClickListener = this::pinTerm;
         pinnedTermTable = new TermTable(new TermTableModel(pinnedTerms));
         setupTermTable(pinnedTermTable);
+        pinnedTermTable.doubleClickListener = this::unpinTerm;
         
         termpanel.setPreferredSize(new Dimension(leftwidth,height));
         
-        focusTermTable.scrollpane.setPreferredSize(new Dimension(leftwidth,height-220));
-        termpanel.add(focusTermTable.scrollpane);
-        pinnedTermTable.scrollpane.setPreferredSize(new Dimension(leftwidth,150));
-        termpanel.add(pinnedTermTable.scrollpane);
+        focusTermTable.top().setPreferredSize(new Dimension(leftwidth,height-220));
+        termpanel.add(focusTermTable.top());
+        pinnedTermTable.top().setPreferredSize(new Dimension(leftwidth,150));
+        termpanel.add(pinnedTermTable.top());
 
         
         //////////////////////////  brush panel  /////////////////////////
         
         JPanel bppanel = new JPanel();
+        bppanel.setPreferredSize(new Dimension(rightwidth,height));
         bppanel.setLayout(new BoxLayout(bppanel,BoxLayout.Y_AXIS));
 
         queryInfo = new JLabel();
@@ -306,7 +312,7 @@ public class Main implements QueryReceiver {
         brushPanel.yLevels = corpus.yLevels;
         brushPanel.setOpaque(true);
         brushPanel.setBackground(Color.white);
-        brushPanel.setMySize(rightwidth,300);
+        brushPanel.setMySize(rightwidth,250);
         brushPanel.setBorder(BorderFactory.createLineBorder(Color.black));
         brushPanel.setDefaultXYLim(corpus);
         bppanel.add(brushPanel);
