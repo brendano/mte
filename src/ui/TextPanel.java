@@ -26,7 +26,7 @@ public class TextPanel  {
 	JScrollPane scrollpane;
 	
 	public int wordRadius = 5;
-	
+
 	public TextPanel() {
 //		area = new JTextArea();
 		area = new JEditorPane("text/html","");
@@ -61,8 +61,31 @@ public class TextPanel  {
 		int termStart, termEnd;
 	}
 	
-	static int maxHitsWithinDoc = 10;
 	StringBuilder passageReport(Document d, Set<String> terms) {
+		List<WithinDocHit> hits = getHitsInDoc(d, terms, 10);
+		return makeHTML(d, hits);
+	}
+
+	StringBuilder makeHTML(Document d, List<WithinDocHit> hits) {
+		StringBuilder s = new StringBuilder();
+		for (WithinDocHit h : hits) {
+			assert h.spanStart<=h.termStart && h.termStart<=h.termEnd && h.termEnd <= h.spanEnd;
+			s.append("&nbsp; -");
+			for (int j=h.spanStart; j<h.spanEnd; j++) {
+				s.append(" ");
+				if (j==h.termStart) s.append("<b>");
+				String w = d.tokens.get(j).text;
+				w = htmlEscape(w);
+				s.append(w);
+				if (j+1==h.termEnd) s.append("</b>"); 
+			}
+			s.append("\n");
+		}
+//		U.p("END");
+		return s;
+	}
+
+	List<WithinDocHit> getHitsInDoc(Document d, Set<String> terms, int maxHitsWithinDoc) {
 		List<WithinDocHit> hits = new ArrayList<>();
 		for (int i=0; i<d.tokens.size(); i++) {
 			if ( ! d.tisByStartTokindex.containsKey(i)) continue;
@@ -81,23 +104,7 @@ public class TextPanel  {
 		}
 		
 		Collections.sort(hits, Ordering.natural().onResultOf(h -> U.pair(h.spanStart, h.termStart)));
-		
-		StringBuilder s = new StringBuilder();
-		for (WithinDocHit h : hits) {
-			assert h.spanStart<=h.termStart && h.termStart<=h.termEnd && h.termEnd <= h.spanEnd;
-			s.append("&nbsp; -");
-			for (int j=h.spanStart; j<h.spanEnd; j++) {
-				s.append(" ");
-				if (j==h.termStart) s.append("<b>");
-				String w = d.tokens.get(j).text;
-				w = htmlEscape(w);
-				s.append(w);
-				if (j+1==h.termEnd) s.append("</b>"); 
-			}
-			s.append("\n");
-		}
-//		U.p("END");
-		return s;
+		return hits;
 	}
 	static String htmlEscape(String s) {
 		return s.replace("<","&lt;").replace(">","&gt;").replace("&","&amp;");

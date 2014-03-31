@@ -4,18 +4,10 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import com.google.common.base.Function;
-import com.google.common.collect.ContiguousSet;
-import com.google.common.collect.DiscreteDomain;
-import com.google.common.collect.DiscreteDomains;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Ordering;
-import com.google.common.collect.Range;
-import com.google.common.collect.Ranges;
-
 import util.Arr;
 import util.U;
-import util.misc.Pair;
+
+import com.google.common.collect.Ordering;
 
 public class Analysis {
 	public static class FocusContrastView {
@@ -32,6 +24,7 @@ public class Analysis {
 			return myprob / globalprob;
 		}
 		
+		@SuppressWarnings({ "rawtypes", "unchecked" })
 		public List<String> topEpmi(double minprob, int mincount) {
 			final List<String> terms = new ArrayList<>();
 			final List<Double> epmis = new ArrayList<>();
@@ -53,12 +46,20 @@ public class Analysis {
 				arr.add(terms.get(ind));
 				return arr;
 			}
-//				(Iterable<Comparable>) new ArrayList(
-//						(Double) epmis.get(ind), (Double) focus.value(terms.get(ind)), (String) terms.get(ind) )
-//				U.pair(epmis.get(ind), focus.value(terms.get(ind)))
 			));
 			List<String> ret = new ArrayList<>();
-			for (int i : inds) ret.add(terms.get(i));
+			for (int i : inds) {
+				ret.add(terms.get(i));
+			}
+			
+//			U.p("");
+//			int j=-1;
+//			for (int i : inds) {
+//				j++;
+//				U.pf("%5d: %20s %.3f\n", j, terms.get(i), epmis.get(i) );
+//				if (j>50) break;
+//			}
+
 			return ret;
 		}
 	}
