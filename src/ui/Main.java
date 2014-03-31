@@ -209,7 +209,7 @@ public class Main implements QueryReceiver {
 		tt.setupTermTable();
 
         tt.table.getSelectionModel().addListSelectionListener(e -> {
-        	if (e.getValueIsAdjusting()) {
+        	if (!e.getValueIsAdjusting()) {
         		runTermQuery(); 
     		}});
         
