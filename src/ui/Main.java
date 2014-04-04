@@ -194,11 +194,26 @@ public class Main implements QueryReceiver {
 			switch (columnIndex) {
 			case 0: return t;
 //			case 1: return U.sf("%.0f : %.0f", curDS.terms.value(t.term), corpus.globalTerms.value(t.term));
-			case 1: return U.sf("%d", (int) curDS.terms.value(t));
+			
+//			case 1: return U.sf("%d", (int) curDS.terms.value(t));
+			case 1: return (int) curDS.terms.value(t);
 			case 2: return ":";
-			case 3: return U.sf("%d", (int) corpus.globalTerms.value(t));
+//			case 3: return U.sf("%d", (int) corpus.globalTerms.value(t));
+			case 3: return (int) corpus.globalTerms.value(t);
 //			case 4: return epmi > 1 ? U.sf("%.2f", epmi) : U.sf("%.4g", epmi);
-			case 4: return epmi > .001 ? U.sf("%.3f", epmi) : U.sf("%.4g", epmi);
+//			case 4: return epmi > .001 ? U.sf("%.3f", epmi) : U.sf("%.4g", epmi);
+			case 4: return epmi;
+			}
+			assert false; return null;
+		}
+		@Override
+		public Class<?> getColumnClass(int c) {
+			switch (c) {
+			case 0: return String.class;
+			case 1: return Integer.class;
+			case 2: return String.class;
+			case 3: return Integer.class;
+			case 4: return Double.class;
 			}
 			assert false; return null;
 		}
