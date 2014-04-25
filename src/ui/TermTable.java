@@ -10,7 +10,6 @@ import javax.swing.*;
 import javax.swing.table.*;
 
 import util.U;
-import d.WeightedTerm;
 
 public class TermTable {
 	JTable table;

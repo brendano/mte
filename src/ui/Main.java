@@ -1,5 +1,6 @@
 package ui;
 
+import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
@@ -11,6 +12,7 @@ import java.util.stream.IntStream;
 
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
+import javax.swing.JComponent;
 import javax.swing.JFormattedTextField;
 import javax.swing.JFormattedTextField.AbstractFormatter;
 import javax.swing.JFormattedTextField.AbstractFormatterFactory;
@@ -23,11 +25,13 @@ import javax.swing.SwingUtilities;
 import javax.swing.table.AbstractTableModel;
 
 import org.codehaus.jackson.JsonProcessingException;
+import org.jdesktop.swingx.MultiSplitLayout;
+import org.jdesktop.swingx.MultiSplitPane;
 
 import util.BasicFileIO;
 import util.JsonUtil;
 import util.U;
-import d.Analysis.FocusContrastView;
+import d.Analysis.TermvecComparison;
 import d.Corpus;
 import d.DocSet;
 import d.Document;
@@ -45,13 +49,16 @@ public class Main implements QueryReceiver {
 	public Corpus corpus;
 	public DocSet curDS = new DocSet();
 
-	public List<String> focusTerms = new ArrayList<>();
+	public List<String> docdrivenTerms = new ArrayList<>();
 	public List<String> pinnedTerms = new ArrayList<>();
-	FocusContrastView fcView;
+	public List<String> termdrivenTerms = new ArrayList<>();
+	
+	TermvecComparison fcView;
 	
 	JFrame mainFrame;
-	TermTable  focusTermTable;
+	TermTable  docdrivenTermTable;
 	TermTable pinnedTermTable;
+	TermTable  termdrivenTermTable;
 	BrushPanel brushPanel;
 	TextPanel textPanel;
 	JLabel queryInfo;
@@ -61,9 +68,9 @@ public class Main implements QueryReceiver {
 	JSpinner tcSpinner;
 	JLabel tcInfo;
 	
-	void initData() throws JsonProcessingException, IOException {
-		pinnedTerms.add("crime");
-		pinnedTerms.add("soviet");
+	public void initData() throws JsonProcessingException, IOException {
+//		pinnedTerms.add("crime");
+//		pinnedTerms.add("soviet");
 		corpus = Corpus.loadXY("/d/sotu/sotu.xy");
 		corpus.loadNLP("/d/sotu/sotu.ner");
 		corpus.yLevels = new Levels();
@@ -80,11 +87,14 @@ public class Main implements QueryReceiver {
 		da.order = 5;
 		da.posnerFilter = true;
 
-//		corpus = Corpus.loadXY("/d/twi/geo2/data/v8/smalltweets2.smallsample.xy");
 //		corpus = Corpus.loadXY("/d/twi/geo2/data/v8/medsamp.xy");
+////		corpus = Corpus.loadXY("/d/twi/geo2/data/v8/smalltweets2.sample.xy");
 //		corpus.runTokenizer(NLP::simpleTokenize);
-//		DocAnalyzer da = new NLP.UnigramAnalyzer();
-		
+//		NLP.DocAnalyzer da = new NLP.UnigramAnalyzer();
+////		NLP.NgramAnalyzer da = new NLP.NgramAnalyzer();
+////		da.order = 2;
+////		da.posnerFilter = false;
+//		
 		for (Document doc : corpus.docsById.values()) {
 			NLP.analyzeDocument(da, doc);	
 		}
@@ -114,16 +124,15 @@ public class Main implements QueryReceiver {
 	}
 	
 	void refreshTermList() {
-		fcView = new FocusContrastView(curDS.terms, corpus.globalTerms);
-		focusTerms.clear();
-		focusTerms.addAll( fcView.topEpmi(getTermProbThresh(), getTermCountThresh()) );
-		focusTermTable.model.fireTableDataChanged();
-		termlistInfo.setText(U.sf("%d/%d terms", focusTerms.size(), curDS.terms.support().size()));
+		fcView = new TermvecComparison(curDS.terms, corpus.globalTerms);
+		docdrivenTerms.clear();
+		docdrivenTerms.addAll( fcView.topEpmi(getTermProbThresh(), getTermCountThresh()) );
+		docdrivenTermTable.model.fireTableDataChanged();
+		termlistInfo.setText(U.sf("%d/%d terms", docdrivenTerms.size(), curDS.terms.support().size()));
 //		pinnedTermTable.model.fireTableDataChanged();
 		pinnedTermTable.updateCalculations();
 		
 		int effectiveTermcountThresh = (int) Math.floor(getTermProbThresh() * curDS.terms.totalCount);
-		
 //		termcountInfo.setText(effectiveTermcountThresh==0 ? "all terms" : U.sf("count >= %d", effectiveTermcountThresh));
 		
 //		U.p("=== TOP WORDS ===");
@@ -137,7 +146,7 @@ public class Main implements QueryReceiver {
 	}
 	
 	void refreshQueryInfo() {
-		String s = U.sf("Current selection: %s docs, %s wordtoks\n", 
+		String s = U.sf("Current docvar selection: %s docs, %s wordtoks\n", 
 				GUtil.commaize(curDS.docs().size()), 
 				GUtil.commaize((int)curDS.terms.totalCount));
 		queryInfo.setText(s);
@@ -147,15 +156,15 @@ public class Main implements QueryReceiver {
 	TermQuery getCurrentTQ() {
 		TermQuery curTQ;
     	curTQ = new TermQuery(corpus);
-    	for (int row : focusTermTable.table.getSelectedRows()) {
-    		curTQ.terms.add(focusTermTable.getTermAt(row));
+    	for (int row : docdrivenTermTable.table.getSelectedRows()) {
+    		curTQ.terms.add(docdrivenTermTable.getTermAt(row));
     	}
     	for (int row : pinnedTermTable.table.getSelectedRows()) {
     		curTQ.terms.add(pinnedTermTable.getTermAt(row));
     	}
-//    	for (String w : pinnedTerms) {
-//    		curTQ.terms.add(w);
-//    	}
+    	for (int row : docdrivenTermTable.table.getSelectedRows()) {
+    		curTQ.terms.add(docdrivenTermTable.getTermAt(row));
+    	}
     	return curTQ;
 	}
 	
@@ -227,14 +236,14 @@ public class Main implements QueryReceiver {
         	if (!e.getValueIsAdjusting()) {
         		runTermQuery(); 
     		}});
-        
 	}
 	
 	void pinTerm(String term) { 
 		pinnedTerms.add(term);
 //		refreshTermList();
 //		refreshQueryInfo();
-		pinnedTermTable.model.fireTableRowsInserted(pinnedTerms.size()-2, pinnedTerms.size()-1);
+//		pinnedTermTable.model.fireTableRowsInserted(pinnedTerms.size()-2, pinnedTerms.size()-1);
+		pinnedTermTable.model.fireTableRowsInserted(0, pinnedTerms.size()-1);
 	}
 	void unpinTerm(String term) {
 //		refreshTermList();
@@ -248,6 +257,12 @@ public class Main implements QueryReceiver {
 		pinnedTerms.remove(term);
 	}
 	
+	static JPanel titledPanel(String title, JComponent internal) {
+		JPanel top = new JPanel();
+		top.add(new JLabel(title));
+		top.add(internal);
+		return top;
+	}
 
 	void setupUI() {
         int leftwidth = 365-5, rightwidth=430-5, height=550;
@@ -258,57 +273,69 @@ public class Main implements QueryReceiver {
         
         /////////////////  termpanel  ///////////////////
         
-        JPanel termpanel = new JPanel();
-        termpanel.setLayout(new FlowLayout());
-        tpSpinner = new JSpinner(new SpinnerStuff.MySM());
-        JFormattedTextField tpText = ((JSpinner.DefaultEditor) tpSpinner.getEditor()).getTextField();
-        tpText.setFormatterFactory(new AbstractFormatterFactory() {
-			@Override public AbstractFormatter getFormatter(JFormattedTextField tf) {
-//				return new SpinnerStuff.SimpleFractionFormatter();
-				return new SpinnerStuff.NiceFractionFormatter();
-			}
-        });
-        tpSpinner.setValue(.0005);
-        tpSpinner.setPreferredSize(new Dimension(150,30));
-        tpSpinner.addChangeListener(e -> refreshTermList());
+//        JPanel termpanel = new JPanel();
+//        termpanel.setLayout(new FlowLayout());
+//        termpanel.setPreferredSize(new Dimension(leftwidth,height));
+//        
+        String layoutDef = "(COLUMN pinned termfilter docdriven termdriven)"; 
+        MultiSplitLayout.Node modelRoot = MultiSplitLayout.parseModel(layoutDef);
+        MultiSplitPane termpanel = new MultiSplitPane();
+        termpanel.setDividerSize(5);
+        termpanel.getMultiSplitLayout().setModel(modelRoot);
+        termpanel.setPreferredSize(new Dimension(leftwidth,height));
 
-        tcSpinner = new JSpinner(new SpinnerNumberModel(1, 0, 1000, 1));
-        tcSpinner.setPreferredSize(new Dimension(60,30));
-        tcSpinner.setValue(1);
-        tcSpinner.addChangeListener(e -> refreshTermList());
+        setupTermfilterSpinners();
 
-        JPanel termprobPanel = new JPanel();
-        termprobPanel.setLayout(new BoxLayout(termprobPanel, BoxLayout.X_AXIS));
-        termprobPanel.add(new JLabel("Term Prob >="));
-        termprobPanel.add(tpSpinner);
-        termpanel.add(termprobPanel);
+        JPanel termfilterPanel = new JPanel();
+        termfilterPanel.setLayout(new BoxLayout(termfilterPanel, BoxLayout.X_AXIS));
+        termfilterPanel.add(new JLabel("Term Prob >="));
+        termfilterPanel.add(tpSpinner);
+        termpanel.add(termfilterPanel, "termfilter");
         
-//        tcInfo = new JLabel("");
-//        tcInfo.setMinimumSize(new Dimension(250,30));
-//        termprobPanel.add(tcInfo);
+        termfilterPanel.add(new JLabel("Count >="));
+        termfilterPanel.add(tcSpinner);
         
-        termprobPanel.add(new JLabel("Count >="));
-        termprobPanel.add(tcSpinner);
         termlistInfo = new JLabel();
-        termlistInfo.setPreferredSize(new Dimension(leftwidth,20));
-        termpanel.add(termlistInfo);
+//        termlistInfo.setPreferredSize(new Dimension(leftwidth,20));
+//        termpanel.add(termlistInfo, "termlistinfo");
         
         //////  termtable: below the frequency spinners  /////
         
-        focusTermTable = new TermTable(new TermTableModel(focusTerms));
-        setupTermTable(focusTermTable);
-        focusTermTable.doubleClickListener = this::pinTerm;
+        docdrivenTermTable = new TermTable(new TermTableModel(docdrivenTerms));
+        setupTermTable(docdrivenTermTable);
+        docdrivenTermTable.doubleClickListener = this::pinTerm;
+        
+        termdrivenTermTable = new TermTable(new TermTableModel(termdrivenTerms));
+        termdrivenTermTable.setupTermTable();
+        
         pinnedTermTable = new TermTable(new TermTableModel(pinnedTerms));
         setupTermTable(pinnedTermTable);
         pinnedTermTable.doubleClickListener = this::unpinTerm;
         
-        termpanel.setPreferredSize(new Dimension(leftwidth,height));
+        JPanel pinnedWrapper = new JPanel(new BorderLayout());
+        pinnedWrapper.add(new JLabel("Pinned terms"), BorderLayout.NORTH);
+        pinnedWrapper.add(pinnedTermTable.top(), BorderLayout.CENTER);
         
-        focusTermTable.top().setPreferredSize(new Dimension(leftwidth,height-220));
-        termpanel.add(focusTermTable.top());
-        pinnedTermTable.top().setPreferredSize(new Dimension(leftwidth,150));
-        termpanel.add(pinnedTermTable.top());
-
+//        JPanel docdrivenWrapper = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        JPanel docdrivenWrapper = new JPanel(new BorderLayout());
+        JPanel topstuff = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        topstuff.add(new JLabel("Docvar-associated terms"));
+        topstuff.add(termlistInfo);
+//        docdrivenWrapper.add(new JLabel("Docvar-associated terms"), BorderLayout.NORTH);
+//        docdrivenWrapper.add(termlistInfo, BorderLayout.NORTH);
+        docdrivenWrapper.add(topstuff, BorderLayout.NORTH);
+        docdrivenWrapper.add(docdrivenTermTable.top(), BorderLayout.CENTER);
+        
+        JPanel termdrivenWrapper = new JPanel(new BorderLayout());
+        termdrivenWrapper.add(new JLabel("Term-associated terms"), BorderLayout.NORTH);
+        termdrivenWrapper.add(termdrivenTermTable.top(), BorderLayout.CENTER);
+        
+//        docdrivenWrapper.setPreferredSize(new Dimension(leftwidth-10,150));
+        termpanel.add(docdrivenWrapper, "docdriven");
+        pinnedWrapper.setPreferredSize(new Dimension(-1, 200));
+        termpanel.add(pinnedWrapper, "pinned");
+//        termdrivenWrapper.setPreferredSize(new Dimension(leftwidth-10,150));
+        termpanel.add(termdrivenWrapper, "termdriven");
         
         //////////////////////////  brush panel  /////////////////////////
         
@@ -341,6 +368,25 @@ public class Main implements QueryReceiver {
         mainFrame.getContentPane().add(termpanel);
         mainFrame.getContentPane().add(bppanel);
         mainFrame.pack();
+	}
+
+	void setupTermfilterSpinners() {
+		tpSpinner = new JSpinner(new SpinnerStuff.MySM());
+        JFormattedTextField tpText = ((JSpinner.DefaultEditor) tpSpinner.getEditor()).getTextField();
+        tpText.setFormatterFactory(new AbstractFormatterFactory() {
+			@Override public AbstractFormatter getFormatter(JFormattedTextField tf) {
+//				return new SpinnerStuff.SimpleFractionFormatter();
+				return new SpinnerStuff.NiceFractionFormatter();
+			}
+        });
+        tpSpinner.setValue(.0005);
+        tpSpinner.setPreferredSize(new Dimension(150,30));
+        tpSpinner.addChangeListener(e -> refreshTermList());
+
+        tcSpinner = new JSpinner(new SpinnerNumberModel(1, 0, 1000, 1));
+        tcSpinner.setPreferredSize(new Dimension(60,30));
+        tcSpinner.setValue(1);
+        tcSpinner.addChangeListener(e -> refreshTermList());
 	}
 	
 	public static void main(String[] args) throws IOException {

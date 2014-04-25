@@ -10,6 +10,14 @@ public class TermVector {
 		map = new HashMap<>();
 	}
 	
+	public double valueSum(Collection<String> terms) {
+		double x = 0;
+		for (String t : terms) {
+			x += value(t);
+		}
+		return x;
+	}
+	
 	public void increment(String term, double value) { 
 		ensure0(term);
 		map.put(term, map.get(term) + value);

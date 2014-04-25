@@ -1,5 +1,6 @@
 package d;
 import java.util.*;
+
 /** yes, it's silly to call it "inverted" but it does make it clear what it is */
 public class InvertedIndex {
 	private HashMap<String,List<Document>> docsByTerm;

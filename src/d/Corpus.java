@@ -3,6 +3,8 @@ package d;
 import java.io.IOException;
 import java.util.*;
 import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.codehaus.jackson.JsonNode;
 import org.codehaus.jackson.JsonProcessingException;
@@ -18,6 +20,8 @@ public class Corpus {
 	DoubleSummaryStatistics xSummary, ySummary;
 	public Levels yLevels;
 	
+	double doclenSumSq = 0;
+	
 	private Corpus() {
 		docsById = new HashMap<>();
 		index = new InvertedIndex();
@@ -25,6 +29,12 @@ public class Corpus {
 	
 	public Collection<Document> allDocs() {
 		return docsById.values();
+	}
+	
+	/** sum_d n_d n_dw ... todo, cache here */ 
+	public double termSumSq(String term) {
+		return index.getMatchingDocs(term).stream().collect(Collectors.summingDouble(
+						d -> d.termVec.totalCount * d.termVec.value(term) ));
 	}
 	
 	public DocSet getDocSet(Collection<String> docids) {
@@ -76,11 +86,14 @@ public class Corpus {
 
 		for (Document d : docsById.values()) {
 			index.add(d);
+			double n = d.termVec.totalCount;
+			doclenSumSq += n*n;
 		}
 		DocSet allds = new DocSet( docsById.values() );
 		globalTerms = allds.terms;
 	}
 
+	/** disjunction query */
 	public DocSet select(List<String> terms) {
 		DocSet ret = new DocSet();
 		for (String term : terms) {
