@@ -22,8 +22,8 @@ public class Analysis {
 	static int VIEW_TOTAL = 20;
 	
 	public static class TermTermAssociations {
-		List<String> queryTerms;
-		Corpus corpus;
+		public List<String> queryTerms;
+		public Corpus corpus;
 		
 		public List<String> topEpmi(int mincount) {
 			final List<String> terms = new ArrayList<>();
@@ -98,7 +98,7 @@ public class Analysis {
 	}
 	/** can use this for term<->docset association */
 	public static class TermvecComparison {
-		TermVector focus, background;
+		public TermVector focus, background;
 		
 		public TermvecComparison(TermVector focus, TermVector bg) {
 			this.focus=focus;
@@ -159,7 +159,7 @@ public class Analysis {
 //		TermVector focus = main.corpus.docsById.get("2000_clinton").termVec;
 		TermvecComparison view = new TermvecComparison(focus, main.corpus.globalTerms);
 		view.topEpmi(1e-5, 10);
-		
+				
 		TermTermAssociations tta = new TermTermAssociations();
 		tta.corpus = main.corpus;
 		tta.queryTerms = termQuery;

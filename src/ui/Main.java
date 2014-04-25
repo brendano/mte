@@ -7,7 +7,11 @@ import java.awt.FlowLayout;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.function.Supplier;
 import java.util.stream.IntStream;
 
 import javax.swing.BorderFactory;
@@ -31,6 +35,7 @@ import org.jdesktop.swingx.MultiSplitPane;
 import util.BasicFileIO;
 import util.JsonUtil;
 import util.U;
+import d.Analysis;
 import d.Analysis.TermvecComparison;
 import d.Corpus;
 import d.DocSet;
@@ -38,6 +43,7 @@ import d.Document;
 import d.Levels;
 import d.NLP;
 import d.TermQuery;
+import d.TermVector;
 import edu.stanford.nlp.util.StringUtils;
 
 interface QueryReceiver {
@@ -53,7 +59,8 @@ public class Main implements QueryReceiver {
 	public List<String> pinnedTerms = new ArrayList<>();
 	public List<String> termdrivenTerms = new ArrayList<>();
 	
-	TermvecComparison fcView;
+	TermvecComparison docvarCompare;
+	TermvecComparison termtermBoolqueryCompare;
 	
 	JFrame mainFrame;
 	TermTable  docdrivenTermTable;
@@ -120,31 +127,37 @@ public class Main implements QueryReceiver {
 	public void receiveQuery(Collection<String> docids) {
 		curDS = corpus.getDocSet(docids);
 		refreshQueryInfo();
-		refreshTermList();
+		refreshDocdrivenTermList();
 	}
 	
-	void refreshTermList() {
-		fcView = new TermvecComparison(curDS.terms, corpus.globalTerms);
+	void refreshDocdrivenTermList() {
+		docvarCompare = new TermvecComparison(curDS.terms, corpus.globalTerms);
 		docdrivenTerms.clear();
-		docdrivenTerms.addAll( fcView.topEpmi(getTermProbThresh(), getTermCountThresh()) );
+		docdrivenTerms.addAll( docvarCompare.topEpmi(getTermProbThresh(), getTermCountThresh()) );
 		docdrivenTermTable.model.fireTableDataChanged();
 		termlistInfo.setText(U.sf("%d/%d terms", docdrivenTerms.size(), curDS.terms.support().size()));
-//		pinnedTermTable.model.fireTableDataChanged();
 		pinnedTermTable.updateCalculations();
-		
 		int effectiveTermcountThresh = (int) Math.floor(getTermProbThresh() * curDS.terms.totalCount);
 //		termcountInfo.setText(effectiveTermcountThresh==0 ? "all terms" : U.sf("count >= %d", effectiveTermcountThresh));
-		
-//		U.p("=== TOP WORDS ===");
-//		for (WeightedTerm t : topTerms) {
-//			U.pf("%-15s || %d vs %d || %.4g\n", 
-//					t.term, 
-//					(int) curDS.terms.value(t.term), (int) corpus.globalTerms.value(t.term),
-//					t.weight);
-//		}
-
 	}
 	
+	void runTermTermQuery(TermQuery tq) {
+		// bool-occur
+		TermVector focus = corpus.select(tq.terms).terms;
+		termtermBoolqueryCompare = new TermvecComparison(focus, corpus.globalTerms);
+		List<String> termResults = termtermBoolqueryCompare.topEpmi(getTermProbThresh(), getTermCountThresh());
+		termdrivenTerms.clear();
+		termdrivenTerms.addAll(termResults);
+		termdrivenTermTable.model.fireTableDataChanged();
+
+		// joint- or cond-occur
+//		Analysis.TermTermAssociations tta = new Analysis.TermTermAssociations();
+//		tta.queryTerms = tq.terms;
+//		tta.corpus = corpus;
+//		List<String> termResults = tta.topEpmi(1);
+	}
+	
+
 	void refreshQueryInfo() {
 		String s = U.sf("Current docvar selection: %s docs, %s wordtoks\n", 
 				GUtil.commaize(curDS.docs().size()), 
@@ -152,45 +165,38 @@ public class Main implements QueryReceiver {
 		queryInfo.setText(s);
 	}
 	
-	/** this feels race condition-y */
 	TermQuery getCurrentTQ() {
-		TermQuery curTQ;
-    	curTQ = new TermQuery(corpus);
-    	for (int row : docdrivenTermTable.table.getSelectedRows()) {
-    		curTQ.terms.add(docdrivenTermTable.getTermAt(row));
-    	}
-    	for (int row : pinnedTermTable.table.getSelectedRows()) {
-    		curTQ.terms.add(pinnedTermTable.getTermAt(row));
-    	}
-    	for (int row : docdrivenTermTable.table.getSelectedRows()) {
-    		curTQ.terms.add(docdrivenTermTable.getTermAt(row));
-    	}
+		TermQuery curTQ = new TermQuery(corpus);
+    	Set<String> selterms = new LinkedHashSet<>();
+    	selterms.addAll(docdrivenTermTable.getSelectedTerms());
+    	selterms.addAll(pinnedTermTable.getSelectedTerms());
+    	curTQ.terms.addAll(selterms);
     	return curTQ;
 	}
 	
-	void runTermQuery() {
+	void runTermdrivenQuery() {
 		TermQuery curTQ = getCurrentTQ();
 		String msg = curTQ.terms.size()==0 ? "No selected terms" 
 				: curTQ.terms.size()+" selected terms: " + StringUtils.join(curTQ.terms, ", ");
 		subqueryInfo.setText(msg);
 		textPanel.show(curTQ.terms, curDS);
 		brushPanel.showTerms(curTQ);
+		runTermTermQuery(curTQ);
 	}
-	
 	
 	/** give this a termlist. it consults the global fcView for the terms' stats. */
 	public class TermTableModel extends AbstractTableModel {
-		List<String> terms;
-		public TermTableModel(List<String> terms) {
-			this.terms = terms;
-		}
+		// these are lazy so can be swapped out or changed without this class needing to know
+		Supplier<List<String>> terms;
+		Supplier<TermvecComparison> comparison;  
+		
 		@Override
 		public String getColumnName(int j) {
 			return (new String[]{ "term", "local","","global", "lift" })[ j ];
 		}
 		@Override
 		public int getRowCount() {
-			return terms.size();
+			return terms.get().size();
 		}
 		@Override
 		public int getColumnCount() {
@@ -198,17 +204,18 @@ public class Main implements QueryReceiver {
 		}
 		@Override
 		public Object getValueAt(int rowIndex, int columnIndex) {
-			String t = terms.get(rowIndex);
-			double epmi = fcView != null ? fcView.epmi(t) : 0;
+			String t = terms.get().get(rowIndex);
+			double epmi = comparison == null || comparison.get()==null ? 0 
+									: comparison.get().epmi(t);
 			switch (columnIndex) {
 			case 0: return t;
 //			case 1: return U.sf("%.0f : %.0f", curDS.terms.value(t.term), corpus.globalTerms.value(t.term));
 			
 //			case 1: return U.sf("%d", (int) curDS.terms.value(t));
-			case 1: return (int) curDS.terms.value(t);
+			case 1: return (int) comparison.get().focus.value(t);
 			case 2: return ":";
 //			case 3: return U.sf("%d", (int) corpus.globalTerms.value(t));
-			case 3: return (int) corpus.globalTerms.value(t);
+			case 3: return (int) comparison.get().background.value(t);
 //			case 4: return epmi > 1 ? U.sf("%.2f", epmi) : U.sf("%.4g", epmi);
 //			case 4: return epmi > .001 ? U.sf("%.3f", epmi) : U.sf("%.4g", epmi);
 			case 4: return epmi;
@@ -234,7 +241,7 @@ public class Main implements QueryReceiver {
 
         tt.table.getSelectionModel().addListSelectionListener(e -> {
         	if (!e.getValueIsAdjusting()) {
-        		runTermQuery(); 
+        		runTermdrivenQuery(); 
     		}});
 	}
 	
@@ -296,45 +303,44 @@ public class Main implements QueryReceiver {
         termfilterPanel.add(tcSpinner);
         
         termlistInfo = new JLabel();
-//        termlistInfo.setPreferredSize(new Dimension(leftwidth,20));
-//        termpanel.add(termlistInfo, "termlistinfo");
         
         //////  termtable: below the frequency spinners  /////
         
-        docdrivenTermTable = new TermTable(new TermTableModel(docdrivenTerms));
+        docdrivenTermTable = new TermTable(new TermTableModel());
+        docdrivenTermTable.model.terms = () -> docdrivenTerms;
+        docdrivenTermTable.model.comparison = () -> docvarCompare;
         setupTermTable(docdrivenTermTable);
         docdrivenTermTable.doubleClickListener = this::pinTerm;
         
-        termdrivenTermTable = new TermTable(new TermTableModel(termdrivenTerms));
+        termdrivenTermTable = new TermTable(new TermTableModel());
+        termdrivenTermTable.model.terms = () -> termdrivenTerms;
+        termdrivenTermTable.model.comparison = () -> termtermBoolqueryCompare;
         termdrivenTermTable.setupTermTable();
         
-        pinnedTermTable = new TermTable(new TermTableModel(pinnedTerms));
+        pinnedTermTable = new TermTable(new TermTableModel());
+        pinnedTermTable.model.terms = () -> pinnedTerms;
+        pinnedTermTable.model.comparison = () -> docvarCompare;
         setupTermTable(pinnedTermTable);
         pinnedTermTable.doubleClickListener = this::unpinTerm;
-        
+
         JPanel pinnedWrapper = new JPanel(new BorderLayout());
         pinnedWrapper.add(new JLabel("Pinned terms"), BorderLayout.NORTH);
         pinnedWrapper.add(pinnedTermTable.top(), BorderLayout.CENTER);
         
-//        JPanel docdrivenWrapper = new JPanel(new FlowLayout(FlowLayout.LEFT));
         JPanel docdrivenWrapper = new JPanel(new BorderLayout());
         JPanel topstuff = new JPanel(new FlowLayout(FlowLayout.LEFT));
         topstuff.add(new JLabel("Docvar-associated terms"));
         topstuff.add(termlistInfo);
-//        docdrivenWrapper.add(new JLabel("Docvar-associated terms"), BorderLayout.NORTH);
-//        docdrivenWrapper.add(termlistInfo, BorderLayout.NORTH);
         docdrivenWrapper.add(topstuff, BorderLayout.NORTH);
         docdrivenWrapper.add(docdrivenTermTable.top(), BorderLayout.CENTER);
-        
+                
         JPanel termdrivenWrapper = new JPanel(new BorderLayout());
         termdrivenWrapper.add(new JLabel("Term-associated terms"), BorderLayout.NORTH);
         termdrivenWrapper.add(termdrivenTermTable.top(), BorderLayout.CENTER);
         
-//        docdrivenWrapper.setPreferredSize(new Dimension(leftwidth-10,150));
         termpanel.add(docdrivenWrapper, "docdriven");
         pinnedWrapper.setPreferredSize(new Dimension(-1, 200));
         termpanel.add(pinnedWrapper, "pinned");
-//        termdrivenWrapper.setPreferredSize(new Dimension(leftwidth-10,150));
         termpanel.add(termdrivenWrapper, "termdriven");
         
         //////////////////////////  brush panel  /////////////////////////
@@ -381,12 +387,12 @@ public class Main implements QueryReceiver {
         });
         tpSpinner.setValue(.0005);
         tpSpinner.setPreferredSize(new Dimension(150,30));
-        tpSpinner.addChangeListener(e -> refreshTermList());
+        tpSpinner.addChangeListener(e -> refreshDocdrivenTermList());
 
         tcSpinner = new JSpinner(new SpinnerNumberModel(1, 0, 1000, 1));
         tcSpinner.setPreferredSize(new Dimension(60,30));
         tcSpinner.setValue(1);
-        tcSpinner.addChangeListener(e -> refreshTermList());
+        tcSpinner.addChangeListener(e -> refreshDocdrivenTermList());
 	}
 	
 	public static void main(String[] args) throws IOException {

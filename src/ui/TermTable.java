@@ -26,6 +26,14 @@ public class TermTable {
 		scrollpane = new JScrollPane(table);
 	}
 	
+	List<String> getSelectedTerms() {
+		List<String> terms = new ArrayList<>();
+    	for (int row : table.getSelectedRows()) {
+    		terms.add(getTermAt(row));
+    	}
+    	return terms;
+	}
+	
 	void setupTermTable() {
 		table.setFillsViewportHeight(true);
 		
