@@ -117,7 +117,7 @@ public class Main implements QueryReceiver {
 ////		da.order = 2;
 ////		da.posnerFilter = false;
 //		
-//		corpus = Corpus.loadXY("/d/bible/by_bookchapter.json.xy");
+//		corpus = Corpus.loadXY("/d/bible/by_bookchapter.json.xy.filtered");
 //		corpus.loadLevels("/d/bible/schema.json");
 //		corpus.runTokenizer(NLP::stanfordTokenize);
 //		NLP.DocAnalyzer da = new NLP.UnigramAnalyzer();
@@ -315,10 +315,10 @@ public class Main implements QueryReceiver {
 //        
         String layoutDef = "(COLUMN pinned termfilter docdriven termdriven)"; 
         MultiSplitLayout.Node modelRoot = MultiSplitLayout.parseModel(layoutDef);
-        MultiSplitPane termpanel = new MultiSplitPane();
-        termpanel.setDividerSize(5);
-        termpanel.getMultiSplitLayout().setModel(modelRoot);
-        termpanel.setPreferredSize(new Dimension(leftwidth,height));
+        MultiSplitPane bigleftpanel = new MultiSplitPane();
+        bigleftpanel.setDividerSize(5);
+        bigleftpanel.getMultiSplitLayout().setModel(modelRoot);
+        bigleftpanel.setPreferredSize(new Dimension(leftwidth,height));
 
         setupTermfilterSpinners();
 
@@ -326,7 +326,7 @@ public class Main implements QueryReceiver {
         termfilterPanel.setLayout(new BoxLayout(termfilterPanel, BoxLayout.X_AXIS));
         termfilterPanel.add(new JLabel("Term Prob >="));
         termfilterPanel.add(tpSpinner);
-        termpanel.add(termfilterPanel, "termfilter");
+        bigleftpanel.add(termfilterPanel, "termfilter");
         
         termfilterPanel.add(new JLabel("Count >="));
         termfilterPanel.add(tcSpinner);
@@ -371,17 +371,19 @@ public class Main implements QueryReceiver {
         termdrivenWrapper.add(termtermDescription, BorderLayout.NORTH);
         termdrivenWrapper.add(termdrivenTermTable.top(), BorderLayout.CENTER);
         
-        termpanel.add(docdrivenWrapper, "docdriven");
+        bigleftpanel.add(docdrivenWrapper, "docdriven");
         pinnedWrapper.setPreferredSize(new Dimension(-1, 200));
-        termpanel.add(pinnedWrapper, "pinned");
-        termpanel.add(termdrivenWrapper, "termdriven");
+        bigleftpanel.add(pinnedWrapper, "pinned");
+        bigleftpanel.add(termdrivenWrapper, "termdriven");
         
         //////////////////////////  right-side panel  /////////////////////////
         
         MultiSplitPane bigrightpanel = makeMSP(
 "(COLUMN (ROW (COLUMN queryinfo subquery) killquery) brushpanel textpanel)");
         bigrightpanel.setDividerSize(3);
-        bigrightpanel.setPreferredSize(new Dimension(rightwidth,height));
+//        bigrightpanel.setPreferredSize(new Dimension(rightwidth,height));
+        bigrightpanel.setPreferredSize(new Dimension(rightwidth,-1));
+        
 //        bppanel.setLayout(new BoxLayout(bppanel,BoxLayout.Y_AXIS));
 
         int killqueryW = 30;
@@ -419,19 +421,21 @@ public class Main implements QueryReceiver {
         bigrightpanel.add(brushPanel, "brushpanel");
         
         textPanel = new TextPanel();
-        textPanel.scrollpane.setPreferredSize(new Dimension(rightwidth,300));
+//        textPanel.scrollpane.setPreferredSize(new Dimension(rightwidth,300));
+        textPanel.scrollpane.setMinimumSize(new Dimension(rightwidth,300));
         bigrightpanel.add(textPanel.scrollpane, "textpanel");
         
         
         MultiSplitPane mainSplit = makeMSP("(ROW bigleft bigright)");
-        mainSplit.add(termpanel,"bigleft");
+        mainSplit.add(bigleftpanel,"bigleft");
         mainSplit.add(bigrightpanel,"bigright");
+        mainSplit.setPreferredSize(new Dimension(leftwidth+rightwidth, height));
         
         mainFrame = new JFrame("Text Explorer Tool");
         mainFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         
         mainFrame.setLayout(new FlowLayout(FlowLayout.CENTER,5,5));
-        mainFrame.setSize(leftwidth+rightwidth, height);
+//        mainFrame.setSize(leftwidth+rightwidth, height);
         mainFrame.add(mainSplit);
         mainFrame.pack();
 
