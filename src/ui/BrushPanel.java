@@ -163,10 +163,12 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 	@Override
 	public void mousePressed(MouseEvent e) {
 		if (mode==Mode.STILL_BRUSH && !brush.getRegion().contains(e.getPoint())) {
+			U.p("clearing");
 			clearSelection();
 			setMode(Mode.NO_BRUSH);
 			brush = null;
 			repaint();
+			queryReceiver.receiveQuery(new ArrayList<>());
 		}
 	}
 

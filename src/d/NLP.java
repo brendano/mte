@@ -95,7 +95,7 @@ public class NLP {
 					String s = inds.stream()
 							.map(j -> doc.tokens.get(j).text.toLowerCase())
 							.collect(Collectors.joining("_"));
-
+					
 					if (posnerFilter) {
 						Token t = doc.tokens.get(inds.get(0));
 						assert t.pos != null && t.ner != null : "posFilter=true requires POS&NER preproc.";

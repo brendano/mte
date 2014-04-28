@@ -5,6 +5,8 @@ import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.FileNotFoundException;
@@ -90,7 +92,7 @@ public class Main implements QueryReceiver {
 	JSpinner tcSpinner;
 	JLabel tcInfo;
 	JLabel termtermDescription;
-	private JButton killDocvarQuery;
+//	private JButton killDocvarQuery;
 	
 	public void initData() throws JsonProcessingException, IOException {
 		
@@ -131,7 +133,6 @@ public class Main implements QueryReceiver {
 //      brushPanel.maxUserY = -brushPanel.minUserY;
 	}
 	
-
 	double getTermProbThresh() {
 		return (double) tpSpinner.getValue();
 //		return Double.parseDouble((String) termProbThreshSpinner.getValue());
@@ -146,6 +147,11 @@ public class Main implements QueryReceiver {
 		curDS = corpus.getDocSet(docids);
 		refreshQueryInfo();
 		refreshDocdrivenTermList();
+		refreshTextPanel();
+	}
+
+	void refreshTextPanel() {
+		textPanel.show(getCurrentTQ().terms, curDS);
 	}
 	
 	void refreshDocdrivenTermList() {
@@ -155,7 +161,7 @@ public class Main implements QueryReceiver {
 		docdrivenTermTable.model.fireTableDataChanged();
 		termlistInfo.setText(U.sf("%d/%d terms", docdrivenTerms.size(), curDS.terms.support().size()));
 		pinnedTermTable.updateCalculations();
-		int effectiveTermcountThresh = (int) Math.floor(getTermProbThresh() * curDS.terms.totalCount);
+//		int effectiveTermcountThresh = (int) Math.floor(getTermProbThresh() * curDS.terms.totalCount);
 //		termcountInfo.setText(effectiveTermcountThresh==0 ? "all terms" : U.sf("count >= %d", effectiveTermcountThresh));
 	}
 	
@@ -180,7 +186,7 @@ public class Main implements QueryReceiver {
 	
 
 	void refreshQueryInfo() {
-		String s = U.sf("Current docvar selection: %s docs, %s wordtoks\n", 
+		String s = U.sf("Docvar selection: %s docs, %s wordtoks\n", 
 				GUtil.commaize(curDS.docs().size()), 
 				GUtil.commaize((int)curDS.terms.totalCount));
 		queryInfo.setText(s);
@@ -257,7 +263,7 @@ public class Main implements QueryReceiver {
 		String msg = curTQ.terms.size()==0 ? "No selected terms" 
 				: curTQ.terms.size()+" selected terms: " + StringUtils.join(curTQ.terms, ", ");
 		subqueryInfo.setText(msg);
-		textPanel.show(curTQ.terms, curDS);
+		refreshTextPanel();
 		brushPanel.showTerms(curTQ);
 		runTermTermQuery(curTQ);
 	}
@@ -381,26 +387,26 @@ public class Main implements QueryReceiver {
         int killqueryW = 30;
         queryInfo = new JLabel();
         queryInfo.setPreferredSize(new Dimension(rightwidth-killqueryW,20));
-        killDocvarQuery = new JButton("x");
+//        killDocvarQuery = new JButton("x");
 //        killDocvarQuery = createSimpleButton("[x]");
-        killDocvarQuery.setPreferredSize(new Dimension(20,20));
+//        killDocvarQuery.setPreferredSize(new Dimension(20,20));
         
         subqueryInfo = new JLabel();
         subqueryInfo.setPreferredSize(new Dimension(rightwidth-killqueryW,20));
 
         bigrightpanel.add(queryInfo, "queryinfo");
-        JPanel tmp = new JPanel() {{
-        	setLayout(new FlowLayout(FlowLayout.LEFT,0,0));
-        	add(killDocvarQuery);
-        }};
-        bigrightpanel.add(tmp, "killquery");
         bigrightpanel.add(subqueryInfo, "subquery");
-        
-        killDocvarQuery.addMouseListener(new MouseAdapter() {
-        	@Override public void mouseClicked(MouseEvent e) {
-        		U.p(e);
-        	}
-        });
+
+//        JPanel tmp = new JPanel() {{
+//        	setLayout(new FlowLayout(FlowLayout.LEFT,0,0));
+//        	add(killDocvarQuery);
+//        }};
+//        bigrightpanel.add(tmp, "killquery");
+//        killDocvarQuery.addActionListener(new ActionListener() {
+//			@Override public void actionPerformed(ActionEvent e) {
+//				U.p(e);
+//			}
+//        });
         
         brushPanel = new BrushPanel(this, corpus.allDocs());
         brushPanel.yLevels = corpus.yLevels;
