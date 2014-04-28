@@ -20,8 +20,11 @@ public class Levels {
 		for (JsonNode jj : levelsinfo) {
 			Level lev = new Level();
 			lev.number = jj.get("number").asInt();
-			lev.code = jj.get("code").asText();
-			lev.name = jj.has("name") ? jj.get("name").asText() : lev.code;
+			lev.code = jj.has("code") ? jj.get("code").asText() : null;
+			lev.name = jj.has("name") ? jj.get("name").asText() : null;
+			if (lev.code==null && lev.name!=null) lev.code = lev.name;
+			else if (lev.code!=null && lev.name==null) lev.name=lev.code;
+			else assert false : "need either code or name for every level";
 			code2level.put(lev.code, lev);
 			num2level.put(lev.number, lev);
 		}

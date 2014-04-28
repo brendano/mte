@@ -142,7 +142,6 @@ public class Analysis {
 				if (++j>VIEW_TOTAL) break;
 				String w = terms.get(i);
 				U.pf("%5d: %20s %5.3f %4d:%-4d\n", j, terms.get(i), epmis.get(i), (int) focus.value(w), (int) background.value(w) );
-				
 			}
 
 			return ret;

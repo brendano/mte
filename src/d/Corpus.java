@@ -1,5 +1,6 @@
 package d;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.*;
 import java.util.function.Function;
@@ -25,6 +26,11 @@ public class Corpus {
 	private Corpus() {
 		docsById = new HashMap<>();
 		index = new InvertedIndex();
+	}
+	
+	public void loadLevels(String filename) throws FileNotFoundException {
+		yLevels = new Levels();
+		yLevels.loadJSON(JsonUtil.readJsonNX( BasicFileIO.readFile(filename) ));
 	}
 	
 	public Collection<Document> allDocs() {

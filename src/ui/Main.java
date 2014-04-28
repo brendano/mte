@@ -2,9 +2,12 @@ package ui;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -24,9 +27,12 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JSpinner;
+import javax.swing.JTable;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.SwingUtilities;
 import javax.swing.table.AbstractTableModel;
+import javax.swing.table.DefaultTableCellRenderer;
+import javax.swing.table.TableCellRenderer;
 
 import org.codehaus.jackson.JsonProcessingException;
 import org.jdesktop.swingx.MultiSplitLayout;
@@ -76,23 +82,19 @@ public class Main implements QueryReceiver {
 	JLabel tcInfo;
 	
 	public void initData() throws JsonProcessingException, IOException {
-//		pinnedTerms.add("crime");
-//		pinnedTerms.add("soviet");
+		
 		corpus = Corpus.loadXY("/d/sotu/sotu.xy");
 		corpus.loadNLP("/d/sotu/sotu.ner");
-		corpus.yLevels = new Levels();
-		corpus.yLevels.loadJSON(JsonUtil.readJsonNX( BasicFileIO.readFile("/d/sotu/schema.json")));
+		corpus.loadLevels("/d/sotu/schema.json");
+		NLP.NgramAnalyzer da = new NLP.NgramAnalyzer() {{ order=5; posnerFilter=true; }};
 		
 //		corpus = Corpus.loadXY("/d/acl/just_meta.xy");
 ////		corpus.runTokenizer(NLP::simpleTokenize);
 ////		corpus.runTokenizer(NLP::stanfordTokenize);
 //		corpus.loadNLP("/d/acl/just_meta.ner");
-//		corpus.yLevels = new Levels();
-//		corpus.yLevels.loadJSON(JsonUtil.readJsonNX( BasicFileIO.readFile("/d/acl/schema.json")));
+//		corpus.loadLevels("/d/acl/schema.json");
+//		NLP.NgramAnalyzer da = new NLP.NgramAnalyzer() {{ order=5; posnerFilter=true; }};
 
-		NLP.NgramAnalyzer da = new NLP.NgramAnalyzer();
-		da.order = 5;
-		da.posnerFilter = true;
 
 //		corpus = Corpus.loadXY("/d/twi/geo2/data/v8/medsamp.xy");
 ////		corpus = Corpus.loadXY("/d/twi/geo2/data/v8/smalltweets2.sample.xy");
@@ -102,6 +104,11 @@ public class Main implements QueryReceiver {
 ////		da.order = 2;
 ////		da.posnerFilter = false;
 //		
+//		corpus = Corpus.loadXY("/d/bible/by_bookchapter.json.xy");
+//		corpus.loadLevels("/d/bible/schema.json");
+//		corpus.runTokenizer(NLP::stanfordTokenize);
+//		NLP.DocAnalyzer da = new NLP.UnigramAnalyzer();
+		
 		for (Document doc : corpus.docsById.values()) {
 			NLP.analyzeDocument(da, doc);	
 		}
@@ -109,8 +116,8 @@ public class Main implements QueryReceiver {
 	}
 
 	void uiOverrides() {
-      brushPanel.minUserY = -2;
-      brushPanel.maxUserY = -brushPanel.minUserY;
+//      brushPanel.minUserY = -2;
+//      brushPanel.maxUserY = -brushPanel.minUserY;
 	}
 	
 
@@ -174,16 +181,6 @@ public class Main implements QueryReceiver {
     	return curTQ;
 	}
 	
-	void runTermdrivenQuery() {
-		TermQuery curTQ = getCurrentTQ();
-		String msg = curTQ.terms.size()==0 ? "No selected terms" 
-				: curTQ.terms.size()+" selected terms: " + StringUtils.join(curTQ.terms, ", ");
-		subqueryInfo.setText(msg);
-		textPanel.show(curTQ.terms, curDS);
-		brushPanel.showTerms(curTQ);
-		runTermTermQuery(curTQ);
-	}
-	
 	/** give this a termlist. it consults the global fcView for the terms' stats. */
 	public class TermTableModel extends AbstractTableModel {
 		// these are lazy so can be swapped out or changed without this class needing to know
@@ -233,17 +230,25 @@ public class Main implements QueryReceiver {
 			}
 			assert false; return null;
 		}
-		
 	}
-	
-	void setupTermTable(final TermTable tt) {
-		tt.setupTermTable();
-
+	void addTermdriverAction(final TermTable tt) {
         tt.table.getSelectionModel().addListSelectionListener(e -> {
         	if (!e.getValueIsAdjusting()) {
         		runTermdrivenQuery(); 
     		}});
 	}
+	
+	void runTermdrivenQuery() {
+		TermQuery curTQ = getCurrentTQ();
+		String msg = curTQ.terms.size()==0 ? "No selected terms" 
+				: curTQ.terms.size()+" selected terms: " + StringUtils.join(curTQ.terms, ", ");
+		subqueryInfo.setText(msg);
+		textPanel.show(curTQ.terms, curDS);
+		brushPanel.showTerms(curTQ);
+		runTermTermQuery(curTQ);
+	}
+	
+
 	
 	void pinTerm(String term) { 
 		pinnedTerms.add(term);
@@ -309,18 +314,21 @@ public class Main implements QueryReceiver {
         docdrivenTermTable = new TermTable(new TermTableModel());
         docdrivenTermTable.model.terms = () -> docdrivenTerms;
         docdrivenTermTable.model.comparison = () -> docvarCompare;
-        setupTermTable(docdrivenTermTable);
+        docdrivenTermTable.setupTermTable();
+		addTermdriverAction(docdrivenTermTable);
         docdrivenTermTable.doubleClickListener = this::pinTerm;
         
         termdrivenTermTable = new TermTable(new TermTableModel());
         termdrivenTermTable.model.terms = () -> termdrivenTerms;
         termdrivenTermTable.model.comparison = () -> termtermBoolqueryCompare;
         termdrivenTermTable.setupTermTable();
+        termdrivenTermTable.doubleClickListener = this::pinTerm;
         
         pinnedTermTable = new TermTable(new TermTableModel());
         pinnedTermTable.model.terms = () -> pinnedTerms;
         pinnedTermTable.model.comparison = () -> docvarCompare;
-        setupTermTable(pinnedTermTable);
+        pinnedTermTable.setupTermTable();
+        addTermdriverAction(pinnedTermTable);
         pinnedTermTable.doubleClickListener = this::unpinTerm;
 
         JPanel pinnedWrapper = new JPanel(new BorderLayout());
