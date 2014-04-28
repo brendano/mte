@@ -7,6 +7,9 @@ import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
+import java.awt.event.ComponentListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.FileNotFoundException;
@@ -316,9 +319,10 @@ public class Main implements QueryReceiver {
         String layoutDef = "(COLUMN pinned termfilter docdriven termdriven)"; 
         MultiSplitLayout.Node modelRoot = MultiSplitLayout.parseModel(layoutDef);
         MultiSplitPane bigleftpanel = new MultiSplitPane();
-        bigleftpanel.setDividerSize(5);
+        bigleftpanel.setDividerSize(3);
         bigleftpanel.getMultiSplitLayout().setModel(modelRoot);
-        bigleftpanel.setPreferredSize(new Dimension(leftwidth,height));
+        bigleftpanel.setMinimumSize(new Dimension(leftwidth,height));
+        
 
         setupTermfilterSpinners();
 
@@ -370,6 +374,7 @@ public class Main implements QueryReceiver {
         termtermDescription = new JLabel("Term-associated terms");
         termdrivenWrapper.add(termtermDescription, BorderLayout.NORTH);
         termdrivenWrapper.add(termdrivenTermTable.top(), BorderLayout.CENTER);
+        termdrivenWrapper.setPreferredSize(new Dimension(-1,150));
         
         bigleftpanel.add(docdrivenWrapper, "docdriven");
         pinnedWrapper.setPreferredSize(new Dimension(-1, 200));
@@ -381,17 +386,14 @@ public class Main implements QueryReceiver {
         MultiSplitPane bigrightpanel = makeMSP(
 "(COLUMN (ROW (COLUMN queryinfo subquery) killquery) brushpanel textpanel)");
         bigrightpanel.setDividerSize(3);
-//        bigrightpanel.setPreferredSize(new Dimension(rightwidth,height));
-        bigrightpanel.setPreferredSize(new Dimension(rightwidth,-1));
-        
+        bigrightpanel.setMinimumSize(new Dimension(rightwidth,height));
+
+
 //        bppanel.setLayout(new BoxLayout(bppanel,BoxLayout.Y_AXIS));
 
         int killqueryW = 30;
         queryInfo = new JLabel();
         queryInfo.setPreferredSize(new Dimension(rightwidth-killqueryW,20));
-//        killDocvarQuery = new JButton("x");
-//        killDocvarQuery = createSimpleButton("[x]");
-//        killDocvarQuery.setPreferredSize(new Dimension(20,20));
         
         subqueryInfo = new JLabel();
         subqueryInfo.setPreferredSize(new Dimension(rightwidth-killqueryW,20));
@@ -399,22 +401,11 @@ public class Main implements QueryReceiver {
         bigrightpanel.add(queryInfo, "queryinfo");
         bigrightpanel.add(subqueryInfo, "subquery");
 
-//        JPanel tmp = new JPanel() {{
-//        	setLayout(new FlowLayout(FlowLayout.LEFT,0,0));
-//        	add(killDocvarQuery);
-//        }};
-//        bigrightpanel.add(tmp, "killquery");
-//        killDocvarQuery.addActionListener(new ActionListener() {
-//			@Override public void actionPerformed(ActionEvent e) {
-//				U.p(e);
-//			}
-//        });
-        
         brushPanel = new BrushPanel(this, corpus.allDocs());
         brushPanel.yLevels = corpus.yLevels;
         brushPanel.setOpaque(true);
         brushPanel.setBackground(Color.white);
-        brushPanel.setMySize(rightwidth,250);
+        brushPanel.setMySize(rightwidth-10,250);
         brushPanel.setBorder(BorderFactory.createLineBorder(Color.black));
         brushPanel.setDefaultXYLim(corpus);
         
@@ -422,24 +413,39 @@ public class Main implements QueryReceiver {
         
         textPanel = new TextPanel();
 //        textPanel.scrollpane.setPreferredSize(new Dimension(rightwidth,300));
-        textPanel.scrollpane.setMinimumSize(new Dimension(rightwidth,300));
+        textPanel.scrollpane.setMinimumSize(new Dimension(rightwidth-10,300));
         bigrightpanel.add(textPanel.scrollpane, "textpanel");
         
         
-        MultiSplitPane mainSplit = makeMSP("(ROW bigleft bigright)");
+        MultiSplitPane mainSplit = makeMSP("(COLUMN t (ROW l bigleft bigright r) b)");
         mainSplit.add(bigleftpanel,"bigleft");
         mainSplit.add(bigrightpanel,"bigright");
-        mainSplit.setPreferredSize(new Dimension(leftwidth+rightwidth, height));
+//        mainSplit.setPreferredSize(new Dimension(leftwidth+rightwidth, height));
         
+        for (String s : new String[]{"t","b","l","r"})
+        	mainSplit.add(new JPanel(){{
+        		setMaximumSize(new Dimension(0,0));
+        		setMinimumSize(new Dimension(0,0));}}, s);
+
         mainFrame = new JFrame("Text Explorer Tool");
         mainFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         
-        mainFrame.setLayout(new FlowLayout(FlowLayout.CENTER,5,5));
-//        mainFrame.setSize(leftwidth+rightwidth, height);
-        mainFrame.add(mainSplit);
+        mainFrame.setLayout(new BorderLayout());
+        mainFrame.setSize(leftwidth+rightwidth+10, height);
+        mainFrame.add(wrapWithPadding(mainSplit,30),BorderLayout.CENTER);
+        mainFrame.add(mainSplit, BorderLayout.CENTER);
         mainFrame.pack();
 
         ToolTipManager.sharedInstance().setDismissDelay((int) 1e6);
+	}
+	
+	static JPanel wrapWithPadding(JComponent comp, int mar) {
+//		JPanel tmp = new JPanel(new FlowLayout(FlowLayout.CENTER,mar,mar));
+		JPanel tmp = new JPanel();
+		tmp.setBorder(BorderFactory.createEmptyBorder(mar,mar,mar,mar));
+		tmp.setLayout(new BorderLayout());
+        tmp.add(comp, BorderLayout.CENTER);
+        return tmp;
 	}
 	
 	private static JButton createSimpleButton(String text) {
