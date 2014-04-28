@@ -5,6 +5,8 @@ import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.text.DecimalFormat;
@@ -15,10 +17,12 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
+import javax.swing.JButton;
 import javax.swing.JComponent;
 import javax.swing.JFormattedTextField;
 import javax.swing.JFormattedTextField.AbstractFormatter;
@@ -30,6 +34,11 @@ import javax.swing.JSpinner;
 import javax.swing.JTable;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.SwingUtilities;
+import javax.swing.ToolTipManager;
+import javax.swing.border.Border;
+import javax.swing.border.CompoundBorder;
+import javax.swing.border.EmptyBorder;
+import javax.swing.border.LineBorder;
 import javax.swing.table.AbstractTableModel;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.TableCellRenderer;
@@ -80,6 +89,8 @@ public class Main implements QueryReceiver {
 	JSpinner tpSpinner;
 	JSpinner tcSpinner;
 	JLabel tcInfo;
+	JLabel termtermDescription;
+	private JButton killDocvarQuery;
 	
 	public void initData() throws JsonProcessingException, IOException {
 		
@@ -153,9 +164,12 @@ public class Main implements QueryReceiver {
 		TermVector focus = corpus.select(tq.terms).terms;
 		termtermBoolqueryCompare = new TermvecComparison(focus, corpus.globalTerms);
 		List<String> termResults = termtermBoolqueryCompare.topEpmi(getTermProbThresh(), getTermCountThresh());
-		termdrivenTerms.clear();
-		termdrivenTerms.addAll(termResults);
+		termdrivenTerms = termResults;
 		termdrivenTermTable.model.fireTableDataChanged();
+		String queryterms = tq.terms.stream().collect(Collectors.joining(", "));
+		String queryinfo = U.sf("%d %s: %s", tq.terms.size(), tq.terms.size()==1 ? "term" : "terms", queryterms);
+		termtermDescription.setText(U.sf("Terms most associated with %s", queryinfo));
+		termtermDescription.setToolTipText(queryinfo);
 
 		// joint- or cond-occur
 //		Analysis.TermTermAssociations tta = new Analysis.TermTermAssociations();
@@ -275,12 +289,16 @@ public class Main implements QueryReceiver {
 		top.add(internal);
 		return top;
 	}
+	static MultiSplitPane makeMSP(String format) {
+        MultiSplitLayout.Node modelRoot = MultiSplitLayout.parseModel(format);
+        MultiSplitPane msp = new MultiSplitPane();
+        msp.getMultiSplitLayout().setModel(modelRoot);
+        return msp;
+	}
 
 	void setupUI() {
         int leftwidth = 365-5, rightwidth=430-5, height=550;
 
-        mainFrame = new JFrame("Text Explorer Tool");
-        mainFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
         
         /////////////////  termpanel  ///////////////////
@@ -343,7 +361,8 @@ public class Main implements QueryReceiver {
         docdrivenWrapper.add(docdrivenTermTable.top(), BorderLayout.CENTER);
                 
         JPanel termdrivenWrapper = new JPanel(new BorderLayout());
-        termdrivenWrapper.add(new JLabel("Term-associated terms"), BorderLayout.NORTH);
+        termtermDescription = new JLabel("Term-associated terms");
+        termdrivenWrapper.add(termtermDescription, BorderLayout.NORTH);
         termdrivenWrapper.add(termdrivenTermTable.top(), BorderLayout.CENTER);
         
         termpanel.add(docdrivenWrapper, "docdriven");
@@ -351,18 +370,37 @@ public class Main implements QueryReceiver {
         termpanel.add(pinnedWrapper, "pinned");
         termpanel.add(termdrivenWrapper, "termdriven");
         
-        //////////////////////////  brush panel  /////////////////////////
+        //////////////////////////  right-side panel  /////////////////////////
         
-        JPanel bppanel = new JPanel();
-        bppanel.setPreferredSize(new Dimension(rightwidth,height));
-        bppanel.setLayout(new BoxLayout(bppanel,BoxLayout.Y_AXIS));
+        MultiSplitPane bigrightpanel = makeMSP(
+"(COLUMN (ROW (COLUMN queryinfo subquery) killquery) brushpanel textpanel)");
+        bigrightpanel.setDividerSize(3);
+        bigrightpanel.setPreferredSize(new Dimension(rightwidth,height));
+//        bppanel.setLayout(new BoxLayout(bppanel,BoxLayout.Y_AXIS));
 
+        int killqueryW = 30;
         queryInfo = new JLabel();
-        queryInfo.setPreferredSize(new Dimension(300,20));
-        bppanel.add(queryInfo);
+        queryInfo.setPreferredSize(new Dimension(rightwidth-killqueryW,20));
+        killDocvarQuery = new JButton("x");
+//        killDocvarQuery = createSimpleButton("[x]");
+        killDocvarQuery.setPreferredSize(new Dimension(20,20));
+        
         subqueryInfo = new JLabel();
-        subqueryInfo.setPreferredSize(new Dimension(300,20));
-        bppanel.add(subqueryInfo);
+        subqueryInfo.setPreferredSize(new Dimension(rightwidth-killqueryW,20));
+
+        bigrightpanel.add(queryInfo, "queryinfo");
+        JPanel tmp = new JPanel() {{
+        	setLayout(new FlowLayout(FlowLayout.LEFT,0,0));
+        	add(killDocvarQuery);
+        }};
+        bigrightpanel.add(tmp, "killquery");
+        bigrightpanel.add(subqueryInfo, "subquery");
+        
+        killDocvarQuery.addMouseListener(new MouseAdapter() {
+        	@Override public void mouseClicked(MouseEvent e) {
+        		U.p(e);
+        	}
+        });
         
         brushPanel = new BrushPanel(this, corpus.allDocs());
         brushPanel.yLevels = corpus.yLevels;
@@ -371,18 +409,40 @@ public class Main implements QueryReceiver {
         brushPanel.setMySize(rightwidth,250);
         brushPanel.setBorder(BorderFactory.createLineBorder(Color.black));
         brushPanel.setDefaultXYLim(corpus);
-        bppanel.add(brushPanel);
+        
+        bigrightpanel.add(brushPanel, "brushpanel");
         
         textPanel = new TextPanel();
         textPanel.scrollpane.setPreferredSize(new Dimension(rightwidth,300));
-        bppanel.add(textPanel.scrollpane);
+        bigrightpanel.add(textPanel.scrollpane, "textpanel");
         
-        mainFrame.setLayout(new FlowLayout());
+        
+        MultiSplitPane mainSplit = makeMSP("(ROW bigleft bigright)");
+        mainSplit.add(termpanel,"bigleft");
+        mainSplit.add(bigrightpanel,"bigright");
+        
+        mainFrame = new JFrame("Text Explorer Tool");
+        mainFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        
+        mainFrame.setLayout(new FlowLayout(FlowLayout.CENTER,5,5));
         mainFrame.setSize(leftwidth+rightwidth, height);
-        mainFrame.getContentPane().add(termpanel);
-        mainFrame.getContentPane().add(bppanel);
+        mainFrame.add(mainSplit);
         mainFrame.pack();
+
+        ToolTipManager.sharedInstance().setDismissDelay((int) 1e6);
 	}
+	
+	private static JButton createSimpleButton(String text) {
+		  JButton button = new JButton(text);
+		  button.setForeground(Color.BLACK);
+		  button.setBackground(Color.WHITE);
+		  Border line = new LineBorder(Color.BLACK);
+		  Border margin = new EmptyBorder(1,1,1,1);
+		  Border compound = new CompoundBorder(line, margin);
+		  button.setBorder(compound);
+		  return button;
+		}
+
 
 	void setupTermfilterSpinners() {
 		tpSpinner = new JSpinner(new SpinnerStuff.MySM());

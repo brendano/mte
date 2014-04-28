@@ -31,31 +31,6 @@ import d.Levels.Level;
 import d.TermQuery;
 import util.U;
 
-/** selector thingy */
-class Brush {
-	int x1=-1, y1=-1;
-	int x2=-1, y2=-1;
-	
-	// info for drag movement
-	Point initialMousePosition;
-	int initx1=-1,initx2=-1,inity1=-1,inity2=-1;
-	
-	Brush(int x, int y) {
-		x1=x2=x;
-		y1=y2=y;
-	}
-	
-	Rectangle getRegion() {
-		return new Rectangle(Math.min(x1,x2),Math.min(y1,y2), 
-				Math.abs(x2-x1), Math.abs(y2-y1));
-	}
-	
-	void storeCurrentPositionAsInitial() {
-		initx1=x1; initx2=x2; inity1=y1; inity2=y2; 
-	}
-	
-}
-
 @SuppressWarnings("serial")
 public class BrushPanel extends JPanel implements MouseListener, MouseMotionListener {
 	
@@ -437,3 +412,30 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 	}
 
 }
+
+
+/** selector thingy */
+class Brush {
+	int x1=-1, y1=-1;
+	int x2=-1, y2=-1;
+	
+	// info for drag movement
+	Point initialMousePosition;
+	int initx1=-1,initx2=-1,inity1=-1,inity2=-1;
+	
+	Brush(int x, int y) {
+		x1=x2=x;
+		y1=y2=y;
+	}
+	
+	Rectangle getRegion() {
+		return new Rectangle(Math.min(x1,x2),Math.min(y1,y2), 
+				Math.abs(x2-x1), Math.abs(y2-y1));
+	}
+	
+	void storeCurrentPositionAsInitial() {
+		initx1=x1; initx2=x2; inity1=y1; inity2=y2; 
+	}
+	
+}
+
