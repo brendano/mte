@@ -104,6 +104,11 @@ public class Main implements QueryReceiver {
 		corpus.loadLevels("/d/sotu/schema.json");
 		NLP.NgramAnalyzer da = new NLP.NgramAnalyzer() {{ order=5; posnerFilter=true; }};
 		
+//		corpus = Corpus.loadXY("/d/reviews_bryan/ALLnyc.Menu.jsonxy");
+//		corpus.runTokenizer(NLP::simpleTokenize);
+////		corpus.runTokenizer(NLP::stanfordTokenize);
+//		NLP.NgramAnalyzer da = new NLP.NgramAnalyzer() {{ order=2; posnerFilter=false; }};
+		
 //		corpus = Corpus.loadXY("/d/acl/just_meta.xy");
 ////		corpus.runTokenizer(NLP::simpleTokenize);
 ////		corpus.runTokenizer(NLP::stanfordTokenize);
@@ -387,6 +392,8 @@ public class Main implements QueryReceiver {
         bigrightpanel.setDividerSize(3);
         bigrightpanel.setMinimumSize(new Dimension(rightwidth,height));
 
+//        U.p(bigrightpanel.getMultiSplitLayout().getModel().
+        
         int killqueryW = 30;
         queryInfo = new JLabel();
         queryInfo.setPreferredSize(new Dimension(rightwidth-killqueryW,20));
@@ -430,9 +437,10 @@ public class Main implements QueryReceiver {
         mainFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         
         mainFrame.setLayout(new BorderLayout());
-        mainFrame.setSize(leftwidth+rightwidth+10, height);
         mainFrame.add(wrapWithPadding(mainSplit,30),BorderLayout.CENTER);
         mainFrame.add(mainSplit, BorderLayout.CENTER);
+        int totw=leftwidth+rightwidth+100, toth=height+100;
+        mainFrame.setSize(totw,toth);
         mainFrame.pack();
 
         ToolTipManager.sharedInstance().setDismissDelay((int) 1e6);

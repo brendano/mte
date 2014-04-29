@@ -1,5 +1,6 @@
 package ui;
 
+import java.awt.Dimension;
 import java.awt.Graphics2D;
 import java.awt.geom.Ellipse2D;
 import java.awt.geom.Rectangle2D;
@@ -124,6 +125,10 @@ public class GUtil {
 	public static String commaize(double x) {
 		if (Math.abs(x) < 1e4) return U.sf("%f", x);
 		return NumberFormat.getNumberInstance(Locale.US).format(x);	
+	}
+	
+	public static double getRenderedTextWidth(Graphics2D g, String text) { 
+		return g.getFontMetrics().stringWidth(text);
 	}
 	
 }

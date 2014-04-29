@@ -136,13 +136,13 @@ public class Analysis {
 				ret.add(terms.get(i));
 			}
 			
-			U.p("\nepmi");
-			int j=-1;
-			for (int i : inds) {
-				if (++j>VIEW_TOTAL) break;
-				String w = terms.get(i);
-				U.pf("%5d: %20s %5.3f %4d:%-4d\n", j, terms.get(i), epmis.get(i), (int) focus.value(w), (int) background.value(w) );
-			}
+//			U.p("\nepmi");
+//			int j=-1;
+//			for (int i : inds) {
+//				if (++j>VIEW_TOTAL) break;
+//				String w = terms.get(i);
+//				U.pf("%5d: %20s %5.3f %4d:%-4d\n", j, terms.get(i), epmis.get(i), (int) focus.value(w), (int) background.value(w) );
+//			}
 
 			return ret;
 		}
