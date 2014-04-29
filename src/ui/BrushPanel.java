@@ -8,6 +8,8 @@ import java.awt.Graphics2D;
 import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.RenderingHints;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
 import java.awt.event.KeyListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
@@ -76,14 +78,16 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 		}
 	}
 
-	public void setMySize(int w, int h) {
-        setPreferredSize(new Dimension(w,h));
+	private void setPhysDimsToCurrentSize() {
+		setMySize(getWidth(), getHeight());
+	}
+	private void setMySize(int w, int h) {
         // tricky: y=0 is top, y=high is bottom
         minPhysX = marLeft;
         minPhysY = marTop;
         maxPhysX = w-marRight;
         maxPhysY = h-marBottom;
-        U.pf("xs %s %s || ys %s %s\n", minPhysX,maxPhysX, minPhysY, maxPhysY);
+        U.pf("BrushPanel set to: xs %s %s || ys %s %s\n", minPhysX,maxPhysX, minPhysY, maxPhysY);
 	}
 
 	/** user coordinates from physical (UI library) coordinates */
@@ -153,7 +157,14 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 			points.add(p);
 			pointsByDocid.put(d.docid, p);
 		}
-		
+
+		addComponentListener(new ResizerHandler());
+	}
+	class ResizerHandler extends ComponentAdapter {
+		public void componentResized(ComponentEvent e) {
+			BrushPanel bp = ((BrushPanel) e.getComponent());
+			bp.setPhysDimsToCurrentSize();
+		}
 	}
 	
 	@Override
@@ -390,11 +401,11 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 	double ytickDelta() {
 		return 1;
 	}
-	double roundup(double x, double d) {
-		return Math.ceil(x/d)*d;
+	double roundup(double x, double granularity) {
+		return Math.ceil(x/granularity)*granularity;
 	}
-	double rounddown(double x, double d) {
-		return Math.floor(x/d)*d;
+	double rounddown(double x, double granularity) {
+		return Math.floor(x/granularity)*granularity;
 	}
 	static void drawRect(Graphics2D g, double x, double y, double w, double h) {
 		g.drawRect((int)x,(int)y,(int)w,(int)h);

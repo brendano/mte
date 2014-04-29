@@ -8,6 +8,7 @@ import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextPane;
 import javax.swing.event.ListSelectionListener;
+import javax.swing.text.DefaultCaret;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Ordering;
@@ -33,6 +34,9 @@ public class TextPanel  {
         area.setEditable(false);
         area.setText("");
         scrollpane = new JScrollPane(area);
+        // http://stackoverflow.com/questions/3972337/java-swing-jtextarea-in-a-jscrollpane-how-to-prevent-auto-scroll
+        DefaultCaret caret = (DefaultCaret)area.getCaret();
+        caret.setUpdatePolicy(DefaultCaret.NEVER_UPDATE);
 	}
 	
 	public void show(Collection<String> terms, DocSet docs) {

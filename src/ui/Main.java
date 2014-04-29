@@ -323,7 +323,6 @@ public class Main implements QueryReceiver {
         bigleftpanel.getMultiSplitLayout().setModel(modelRoot);
         bigleftpanel.setMinimumSize(new Dimension(leftwidth,height));
         
-
         setupTermfilterSpinners();
 
         JPanel termfilterPanel = new JPanel();
@@ -388,9 +387,6 @@ public class Main implements QueryReceiver {
         bigrightpanel.setDividerSize(3);
         bigrightpanel.setMinimumSize(new Dimension(rightwidth,height));
 
-
-//        bppanel.setLayout(new BoxLayout(bppanel,BoxLayout.Y_AXIS));
-
         int killqueryW = 30;
         queryInfo = new JLabel();
         queryInfo.setPreferredSize(new Dimension(rightwidth-killqueryW,20));
@@ -405,17 +401,15 @@ public class Main implements QueryReceiver {
         brushPanel.yLevels = corpus.yLevels;
         brushPanel.setOpaque(true);
         brushPanel.setBackground(Color.white);
-        brushPanel.setMySize(rightwidth-10,250);
+        brushPanel.setPreferredSize(new Dimension(rightwidth, 250));
         brushPanel.setBorder(BorderFactory.createLineBorder(Color.black));
         brushPanel.setDefaultXYLim(corpus);
         
         bigrightpanel.add(brushPanel, "brushpanel");
-        
+
         textPanel = new TextPanel();
-//        textPanel.scrollpane.setPreferredSize(new Dimension(rightwidth,300));
         textPanel.scrollpane.setMinimumSize(new Dimension(rightwidth-10,300));
         bigrightpanel.add(textPanel.scrollpane, "textpanel");
-        
         
         MultiSplitPane mainSplit = makeMSP("(COLUMN t (ROW l bigleft bigright r) b)");
         mainSplit.add(bigleftpanel,"bigleft");
@@ -425,7 +419,12 @@ public class Main implements QueryReceiver {
         for (String s : new String[]{"t","b","l","r"})
         	mainSplit.add(new JPanel(){{
         		setMaximumSize(new Dimension(0,0));
-        		setMinimumSize(new Dimension(0,0));}}, s);
+        		setPreferredSize(new Dimension(0,0));
+        		setMinimumSize(new Dimension(0,0));
+        	}
+//        	@Override public Dimension getSize() { return new Dimension(0,0); }
+//        	@Override public Dimension getPreferredSize() { return new Dimension(0,0); }
+        	}, s);
 
         mainFrame = new JFrame("Text Explorer Tool");
         mainFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
