@@ -20,6 +20,7 @@ import util.U;
 
 public class Analysis {
 	static int VIEW_TOTAL = 20;
+	static boolean VERBOSE = false;
 	
 	public static class TermTermAssociations {
 		public List<String> queryTerms;
@@ -64,17 +65,19 @@ public class Analysis {
 					.thenComparing((Integer i) -> terms.get(i))
 			);
 			
-			double condoccurZ = condoccurNormalizer(docSupp, queryTerms);
-			int j=-1;
-			for (int i : inds) {
-				if (++j>VIEW_TOTAL) break;
-				String w = terms.get(i);
-				U.pf("%5d: %25s %6s %6.0f %8.3f %8.3f %8.3f\n", j, w,
-						corpus.globalTerms.value(w),
-						candInnerProducts.value(w), leftratios.get(i),
-						leftratios.get(i)*jointoccurNormalizer(numtokQueryTermsTotal),
-						leftratios.get(i)*condoccurZ
-						);
+			if (VERBOSE) {
+				double condoccurZ = condoccurNormalizer(docSupp, queryTerms);
+				int j=-1;
+				for (int i : inds) {
+					if (++j>VIEW_TOTAL) break;
+					String w = terms.get(i);
+					U.pf("%5d: %25s %6s %6.0f %8.3f %8.3f %8.3f\n", j, w,
+							corpus.globalTerms.value(w),
+							candInnerProducts.value(w), leftratios.get(i),
+							leftratios.get(i)*jointoccurNormalizer(numtokQueryTermsTotal),
+							leftratios.get(i)*condoccurZ
+							);
+				}
 			}
 			return null;
 		}
@@ -136,19 +139,22 @@ public class Analysis {
 				ret.add(terms.get(i));
 			}
 			
-//			U.p("\nepmi");
-//			int j=-1;
-//			for (int i : inds) {
-//				if (++j>VIEW_TOTAL) break;
-//				String w = terms.get(i);
-//				U.pf("%5d: %20s %5.3f %4d:%-4d\n", j, terms.get(i), epmis.get(i), (int) focus.value(w), (int) background.value(w) );
-//			}
+			if (VERBOSE) {
+				U.p("\nepmi");
+				int j=-1;
+				for (int i : inds) {
+					if (++j>VIEW_TOTAL) break;
+					String w = terms.get(i);
+					U.pf("%5d: %20s %5.3f %4d:%-4d\n", j, terms.get(i), epmis.get(i), (int) focus.value(w), (int) background.value(w) );
+				}	
+			}
 
 			return ret;
 		}
 	}
 	
 	public static void main(String[] args) throws JsonProcessingException, IOException {
+		VERBOSE = true;
 		final Main main = new Main();
 		main.initData();
 		List<String> termQuery = Lists.newArrayList(args);

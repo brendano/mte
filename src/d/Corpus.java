@@ -83,6 +83,15 @@ public class Corpus {
 			docsById.get(docid).loadFromNLP(jdoc);
 		}
 	}
+	public void indicatorize() {
+		for (Document d : docsById.values()) {
+			TermVector newvec = new TermVector();
+			for (String w : d.termVec.support()) {
+				newvec.increment(w);
+			}
+			d.termVec = newvec;
+		}
+	}
 	public void finalizeIndexing() {
 //		xSummary = docsById.values().stream().mapToDouble(d->d.x).summaryStatistics();
 //		ySummary = docsById.values().stream().mapToDouble(d->d.y).summaryStatistics();

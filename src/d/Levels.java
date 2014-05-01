@@ -24,7 +24,7 @@ public class Levels {
 			lev.name = jj.has("name") ? jj.get("name").asText() : null;
 			if (lev.code==null && lev.name!=null) lev.code = lev.name;
 			else if (lev.code!=null && lev.name==null) lev.name=lev.code;
-			else assert false : "need either code or name for every level";
+			else if (lev.code==null && lev.name==null) assert false : "need either code or name for every level";
 			code2level.put(lev.code, lev);
 			num2level.put(lev.number, lev);
 		}

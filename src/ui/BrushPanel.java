@@ -32,6 +32,7 @@ import d.Levels;
 import d.Levels.Level;
 import d.TermQuery;
 import util.U;
+import java.util.Comparator;
 
 @SuppressWarnings("serial")
 public class BrushPanel extends JPanel implements MouseListener, MouseMotionListener {
@@ -58,6 +59,8 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 	List<MyPoint> points;
 	Map<String,MyPoint> pointsByDocid;
 	QueryReceiver queryReceiver;
+	
+	Color BRUSH_COLOR = new Color(61,56,240);
 	
 	public Levels yLevels;
 
@@ -273,10 +276,18 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 		super.paintComponent(_g);
 		
 		drawAxes(g);
-
+		
+		Collections.sort(points, Comparator
+				.comparingInt((MyPoint p) -> p.isTermquery1Selected ? 1:0)
+				.thenComparingInt((MyPoint p) -> p.isDocquerySelected ? 1:0)
+				);
+		
 		for (int i=0; i<points.size(); i++) {
 			MyPoint mp = points.get(i);
-			Color c = mp.isDocquerySelected ? Color.blue : Color.black;
+			U.p(mp.isTermquery1Selected);
+			Color c = mp.isTermquery1Selected ? Color.red :
+							mp.isDocquerySelected ? Color.black : 
+							Color.gray;
 			g.setColor(c);
 			Point p = mp.physPoint();
 			if (mp.isTermquery1Selected) {
@@ -387,19 +398,27 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 		return maxUserX;
 	}
 	double xtickDelta() {
-		return 1;
+		double range = xtickMax() - xtickMin();
+		double d1 = range/32;
+		return Math.round(d1);
+//		return 1;
 	}
 	double xlabelDelta() {
-		return 4;
+		double range = xtickMax() - xtickMin();
+		double d1 = range/8;
+		return Math.round(d1);
 	}
 	double ytickMin() {
-		return roundup(minUserY, ytickDelta());
+		return minUserY;
+//		return roundup(minUserY, ytickDelta());
 	}
 	double ytickMax() {
-		return rounddown(maxUserY, ytickDelta());
+		return maxUserY;
+//		return rounddown(maxUserY, ytickDelta());
 	}
 	double ytickDelta() {
-		return 1;
+		double range = ytickMax() - ytickMin();
+		return Math.round(range/8);
 	}
 	double roundup(double x, double granularity) {
 		return Math.ceil(x/granularity)*granularity;
@@ -414,7 +433,7 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 	void renderBrush(Graphics2D g) {
 		if (mode==Mode.NO_BRUSH) return;
 		assert brush != null;
-		g.setColor(Color.gray);
+		g.setColor(BRUSH_COLOR);
 		g.setStroke(new BasicStroke(3));
 		Rectangle r = brush.getRegion();
     	g.drawRect(r.x, r.y, r.width, r.height);

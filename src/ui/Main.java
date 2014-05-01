@@ -97,12 +97,20 @@ public class Main implements QueryReceiver {
 	JLabel termtermDescription;
 //	private JButton killDocvarQuery;
 	
+	Supplier<Void> afteranalysisCallback = () -> null;
+	Supplier<Void> uiOverridesCallback = () -> null;
+
 	public void initData() throws JsonProcessingException, IOException {
 		
-		corpus = Corpus.loadXY("/d/sotu/sotu.xy");
-		corpus.loadNLP("/d/sotu/sotu.ner");
-		corpus.loadLevels("/d/sotu/schema.json");
-		NLP.NgramAnalyzer da = new NLP.NgramAnalyzer() {{ order=5; posnerFilter=true; }};
+//		corpus = Corpus.loadXY("/d/sotu/sotu.xy");
+//		corpus.loadNLP("/d/sotu/sotu.ner");
+//		corpus.loadLevels("/d/sotu/schema.json");
+//		NLP.NgramAnalyzer da = new NLP.NgramAnalyzer() {{ order=5; stopwordFilter=true; posnerFilter=true; }};
+//		uiOverridesCallback = () -> {
+//	      brushPanel.minUserY = -2;
+//	      brushPanel.maxUserY = -brushPanel.minUserY;
+//	      return null;
+//		};
 		
 //		corpus = Corpus.loadXY("/d/reviews_bryan/ALLnyc.Menu.jsonxy");
 //		corpus.runTokenizer(NLP::simpleTokenize);
@@ -114,31 +122,41 @@ public class Main implements QueryReceiver {
 ////		corpus.runTokenizer(NLP::stanfordTokenize);
 //		corpus.loadNLP("/d/acl/just_meta.ner");
 //		corpus.loadLevels("/d/acl/schema.json");
-//		NLP.NgramAnalyzer da = new NLP.NgramAnalyzer() {{ order=5; posnerFilter=true; }};
+//		NLP.NgramAnalyzer da = new NLP.NgramAnalyzer() {{
+//			order=3; posnerFilter=true; stopwordFilter=true;
+//		}};
+////		afteranalysisCallback = () -> { corpus.indicatorize(); return null; };
 
 
-//		corpus = Corpus.loadXY("/d/twi/geo2/data/v8/medsamp.xy");
-////		corpus = Corpus.loadXY("/d/twi/geo2/data/v8/smalltweets2.sample.xy");
+//		corpus = Corpus.loadXY("/d/twi/geo2/data/v8/smalltweets2.sample.sort_by_user.useragg.xy.samp2k");
+////		corpus = Corpus.loadXY("/d/twi/geo2/data/v8/smalltweets2.sample.sort_by_user.useragg.xy.samp100");
 //		corpus.runTokenizer(NLP::simpleTokenize);
 //		NLP.DocAnalyzer da = new NLP.UnigramAnalyzer();
 ////		NLP.NgramAnalyzer da = new NLP.NgramAnalyzer();
 ////		da.order = 2;
 ////		da.posnerFilter = false;
-//		
-//		corpus = Corpus.loadXY("/d/bible/by_bookchapter.json.xy.filtered");
-//		corpus.loadLevels("/d/bible/schema.json");
-//		corpus.runTokenizer(NLP::stanfordTokenize);
-//		NLP.DocAnalyzer da = new NLP.UnigramAnalyzer();
-		
+//		afteranalysisCallback = () -> { corpus.indicatorize(); return null; };
+
+
+		corpus = Corpus.loadXY("/d/bible/by_bookchapter.json.xy.filtered");
+		corpus.loadLevels("/d/bible/schema.json");
+		corpus.runTokenizer(NLP::stanfordTokenize);
+		NLP.DocAnalyzer da = new NLP.UnigramAnalyzer();
+		uiOverridesCallback = () -> { 
+		      brushPanel.minUserY = -1;
+		      brushPanel.maxUserY = 66;
+		      return null;
+		};
+
 		for (Document doc : corpus.docsById.values()) {
 			NLP.analyzeDocument(da, doc);	
 		}
+		afteranalysisCallback.get();
 		corpus.finalizeIndexing();
 	}
 
 	void uiOverrides() {
-//      brushPanel.minUserY = -2;
-//      brushPanel.maxUserY = -brushPanel.minUserY;
+		uiOverridesCallback.get();
 	}
 	
 	double getTermProbThresh() {

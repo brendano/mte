@@ -78,24 +78,36 @@ public class NLP {
 		}
 	}
 	
+	static boolean isStopword(String w) {
+		return w.toLowerCase().matches("^(the|that|a|an|on|of|to|and|but|as|for|-|--|\\.|,|:|;|from|in|with|by)$");
+	}
+	
 	public static class NgramAnalyzer implements DocAnalyzer {
 		public int order = 1;
 		public boolean posnerFilter = false;
+		public boolean stopwordFilter = false;
 		
 		public List<TermInstance> analyze(Document doc) {
 			List<TermInstance> ret = new ArrayList<>();
 			for (int i=0; i<doc.tokens.size(); i++) {
-				Token tok = doc.tokens.get(i);
-				TermInstance ti = new TermInstance(tok.text.toLowerCase(), Lists.newArrayList(i));
-				ret.add(ti);
 				for (int k=1; k<=order; k++) {
-					if (i+k >= doc.tokens.size()) continue;
-					List<Integer> inds =GUtil.intRangeList(i,i+k+1);
+					int lastIndex = i+k-1;
+					if (lastIndex >= doc.tokens.size()) continue;
+					List<Integer> inds =GUtil.intRangeList(i,i+k);
 
 					String s = inds.stream()
 							.map(j -> doc.tokens.get(j).text.toLowerCase())
 							.collect(Collectors.joining("_"));
 					
+					if (stopwordFilter) {
+//						U.p(k);
+//						U.p("---- "+s + " || " + doc.tokens.get(inds.get(0)));
+						if (isStopword(doc.tokens.get(i).text) || 
+								isStopword(doc.tokens.get(lastIndex).text)) {
+//							U.p("STOP " + s);
+							continue;
+						}
+					}
 					if (posnerFilter) {
 						Token t = doc.tokens.get(inds.get(0));
 						assert t.pos != null && t.ner != null : "posFilter=true requires POS&NER preproc.";
