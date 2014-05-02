@@ -49,7 +49,7 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 	double maxPhysX = -1;
 	double maxPhysY = -1;
 	
-	int marLeft = 65;
+	int marLeft = 100;
 	int marBottom = 50;
 	int marTop = 20;
 	int marRight = 20;
