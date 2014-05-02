@@ -14,6 +14,7 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
+import javax.swing.JComponent;
 import javax.swing.JEditorPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
@@ -74,6 +75,8 @@ public class TextPanel  {
         caret.setUpdatePolicy(DefaultCaret.NEVER_UPDATE);
         
 	}
+	
+	public JComponent top() { return scrollpane; }
 	
 	static Font NORMAL_FONT, BOLD_FONT;
 	
@@ -165,8 +168,7 @@ public class TextPanel  {
 			g.setClip(0,0,rawarea.getWidth(),MAX_VIRT_HEIGHT);
 		}
 		double newsize = cury+lineSpacing*3;
-		U.p("new size " + newsize);
-		rawarea.setPreferredSize(new Dimension(rawarea.getWidth(), (int) (newsize)));
+		rawarea.setPreferredSize(new Dimension(rawarea.getWidth(), (int) newsize));
 		rawarea.setSize(new Dimension(rawarea.getWidth(), (int) (newsize)));
 	}
 	
@@ -216,7 +218,6 @@ public class TextPanel  {
 			.collect(Collectors.joining(joiner));
 	}
 	public void show(Collection<String> terms, DocSet docs) {
-		U.p("UPDATE DOCS");
 		doclist = new ArrayList<>(docs.docs());
 		Collections.sort(doclist, Ordering.natural().onResultOf(d -> d.docid));
 		termset = new HashSet<>(terms);

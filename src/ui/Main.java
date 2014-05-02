@@ -52,6 +52,10 @@ import org.codehaus.jackson.JsonProcessingException;
 import org.jdesktop.swingx.MultiSplitLayout;
 import org.jdesktop.swingx.MultiSplitPane;
 
+import bibliothek.gui.DockController;
+import bibliothek.gui.dock.DefaultDockable;
+import bibliothek.gui.dock.SplitDockStation;
+import bibliothek.gui.dock.station.split.SplitDockGrid;
 import util.BasicFileIO;
 import util.JsonUtil;
 import util.U;
@@ -88,7 +92,7 @@ public class Main implements QueryReceiver {
 	TermTable  termdrivenTermTable;
 	BrushPanel brushPanel;
 	TextPanel textPanel;
-	JLabel queryInfo;
+	JLabel mainqueryInfo;
 	JLabel subqueryInfo;
 	JLabel termlistInfo;
 	JSpinner tpSpinner;
@@ -102,15 +106,17 @@ public class Main implements QueryReceiver {
 
 	public void initData() throws JsonProcessingException, IOException {
 		
-//		corpus = Corpus.loadXY("/d/sotu/sotu.xy");
-//		corpus.loadNLP("/d/sotu/sotu.ner");
-//		corpus.loadLevels("/d/sotu/schema.json");
+		corpus = Corpus.loadXY("/d/sotu/sotu.xy");
+		corpus.loadNLP("/d/sotu/sotu.ner");
+		corpus.loadLevels("/d/sotu/schema.json");
+		NLP.DocAnalyzer da = new NLP.UnigramAnalyzer();
+//		NLP.NgramAnalyzer da = new NLP.NgramAnalyzer() {{ order=1; stopwordFilter=true; posnerFilter=true; }};
 //		NLP.NgramAnalyzer da = new NLP.NgramAnalyzer() {{ order=5; stopwordFilter=true; posnerFilter=true; }};
-//		uiOverridesCallback = () -> {
-//	      brushPanel.minUserY = -2;
-//	      brushPanel.maxUserY = -brushPanel.minUserY;
-//	      return null;
-//		};
+		uiOverridesCallback = () -> {
+	      brushPanel.minUserY = -2;
+	      brushPanel.maxUserY = -brushPanel.minUserY;
+	      return null;
+		};
 		
 //		corpus = Corpus.loadXY("/d/reviews_bryan/ALLnyc.Menu.jsonxy");
 //		corpus.runTokenizer(NLP::simpleTokenize);
@@ -138,15 +144,15 @@ public class Main implements QueryReceiver {
 //		afteranalysisCallback = () -> { corpus.indicatorize(); return null; };
 
 
-		corpus = Corpus.loadXY("/d/bible/by_bookchapter.json.xy.filtered");
-		corpus.loadLevels("/d/bible/schema.json");
-		corpus.runTokenizer(NLP::stanfordTokenize);
-		NLP.DocAnalyzer da = new NLP.UnigramAnalyzer();
-		uiOverridesCallback = () -> { 
-		      brushPanel.minUserY = -1;
-		      brushPanel.maxUserY = 66;
-		      return null;
-		};
+//		corpus = Corpus.loadXY("/d/bible/by_bookchapter.json.xy.filtered");
+//		corpus.loadLevels("/d/bible/schema.json");
+//		corpus.runTokenizer(NLP::stanfordTokenize);
+//		NLP.DocAnalyzer da = new NLP.UnigramAnalyzer();
+//		uiOverridesCallback = () -> { 
+//		      brushPanel.minUserY = -1;
+//		      brushPanel.maxUserY = 66;
+//		      return null;
+//		};
 
 		for (Document doc : corpus.docsById.values()) {
 			NLP.analyzeDocument(da, doc);	
@@ -161,10 +167,8 @@ public class Main implements QueryReceiver {
 	
 	double getTermProbThresh() {
 		return (double) tpSpinner.getValue();
-//		return Double.parseDouble((String) termProbThreshSpinner.getValue());
 	}
 	int getTermCountThresh() {
-//		return 1;
 		return (int) tcSpinner.getValue();
 	}
 	
@@ -215,7 +219,7 @@ public class Main implements QueryReceiver {
 		String s = U.sf("Docvar selection: %s docs, %s wordtoks\n", 
 				GUtil.commaize(curDS.docs().size()), 
 				GUtil.commaize((int)curDS.terms.totalCount));
-		queryInfo.setText(s);
+		mainqueryInfo.setText(s);
 	}
 	
 	TermQuery getCurrentTQ() {
@@ -328,23 +332,12 @@ public class Main implements QueryReceiver {
         return msp;
 	}
 
+	
+	
 	void setupUI() {
-        int leftwidth = 365-5, rightwidth=430-5, height=550;
-
-
+//        int leftwidth = 365-5, rightwidth=430-5, height=550;
         
         /////////////////  termpanel  ///////////////////
-        
-//        JPanel termpanel = new JPanel();
-//        termpanel.setLayout(new FlowLayout());
-//        termpanel.setPreferredSize(new Dimension(leftwidth,height));
-//        
-        String layoutDef = "(COLUMN pinned termfilter docdriven termdriven)"; 
-        MultiSplitLayout.Node modelRoot = MultiSplitLayout.parseModel(layoutDef);
-        MultiSplitPane bigleftpanel = new MultiSplitPane();
-        bigleftpanel.setDividerSize(3);
-        bigleftpanel.getMultiSplitLayout().setModel(modelRoot);
-        bigleftpanel.setMinimumSize(new Dimension(leftwidth,height));
         
         setupTermfilterSpinners();
 
@@ -352,7 +345,6 @@ public class Main implements QueryReceiver {
         termfilterPanel.setLayout(new BoxLayout(termfilterPanel, BoxLayout.X_AXIS));
         termfilterPanel.add(new JLabel("Term Prob >="));
         termfilterPanel.add(tpSpinner);
-        bigleftpanel.add(termfilterPanel, "termfilter");
         
         termfilterPanel.add(new JLabel("Count >="));
         termfilterPanel.add(tcSpinner);
@@ -382,84 +374,66 @@ public class Main implements QueryReceiver {
         pinnedTermTable.doubleClickListener = this::unpinTerm;
 
         JPanel pinnedWrapper = new JPanel(new BorderLayout());
-        pinnedWrapper.add(new JLabel("Pinned terms"), BorderLayout.NORTH);
+//        pinnedWrapper.add(new JLabel("Pinned terms"), BorderLayout.NORTH);
         pinnedWrapper.add(pinnedTermTable.top(), BorderLayout.CENTER);
         
         JPanel docdrivenWrapper = new JPanel(new BorderLayout());
         JPanel topstuff = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        topstuff.add(new JLabel("Docvar-associated terms"));
+//        topstuff.add(new JLabel("Docvar-associated terms"));
         topstuff.add(termlistInfo);
         docdrivenWrapper.add(topstuff, BorderLayout.NORTH);
         docdrivenWrapper.add(docdrivenTermTable.top(), BorderLayout.CENTER);
                 
         JPanel termdrivenWrapper = new JPanel(new BorderLayout());
-        termtermDescription = new JLabel("Term-associated terms");
+        termtermDescription = new JLabel("");
         termdrivenWrapper.add(termtermDescription, BorderLayout.NORTH);
         termdrivenWrapper.add(termdrivenTermTable.top(), BorderLayout.CENTER);
-        termdrivenWrapper.setPreferredSize(new Dimension(-1,150));
+//        termdrivenWrapper.setPreferredSize(new Dimension(-1,150));
         
-        bigleftpanel.add(docdrivenWrapper, "docdriven");
-        pinnedWrapper.setPreferredSize(new Dimension(-1, 200));
-        bigleftpanel.add(pinnedWrapper, "pinned");
-        bigleftpanel.add(termdrivenWrapper, "termdriven");
+//        pinnedWrapper.setPreferredSize(new Dimension(-1, 200));
         
         //////////////////////////  right-side panel  /////////////////////////
         
-        MultiSplitPane bigrightpanel = makeMSP(
-"(COLUMN (ROW (COLUMN queryinfo subquery) killquery) brushpanel textpanel)");
-        bigrightpanel.setDividerSize(3);
-        bigrightpanel.setMinimumSize(new Dimension(rightwidth,height));
-
-//        U.p(bigrightpanel.getMultiSplitLayout().getModel().
-        
-        int killqueryW = 30;
-        queryInfo = new JLabel();
-        queryInfo.setPreferredSize(new Dimension(rightwidth-killqueryW,20));
-        
+        mainqueryInfo = new JLabel();
+//        queryInfo.setPreferredSize(new Dimension(rightwidth-killqueryW,20));
         subqueryInfo = new JLabel();
-        subqueryInfo.setPreferredSize(new Dimension(rightwidth-killqueryW,20));
-
-        bigrightpanel.add(queryInfo, "queryinfo");
-        bigrightpanel.add(subqueryInfo, "subquery");
+//        subqueryInfo.setPreferredSize(new Dimension(rightwidth-killqueryW,20));
+        JPanel queryInfo = new JPanel() {{ add(mainqueryInfo); add(subqueryInfo); }};
 
         brushPanel = new BrushPanel(this, corpus.allDocs());
         brushPanel.yLevels = corpus.yLevels;
         brushPanel.setOpaque(true);
         brushPanel.setBackground(Color.white);
-        brushPanel.setPreferredSize(new Dimension(rightwidth, 250));
+//        brushPanel.setPreferredSize(new Dimension(rightwidth, 250));
         brushPanel.setBorder(BorderFactory.createLineBorder(Color.black));
         brushPanel.setDefaultXYLim(corpus);
         
-        bigrightpanel.add(brushPanel, "brushpanel");
-
         textPanel = new TextPanel();
-        textPanel.scrollpane.setMinimumSize(new Dimension(rightwidth-10,300));
-        bigrightpanel.add(textPanel.scrollpane, "textpanel");
+//        textPanel.scrollpane.setMinimumSize(new Dimension(rightwidth-10,300));
         
-        MultiSplitPane mainSplit = makeMSP("(COLUMN t (ROW l bigleft bigright r) b)");
-        mainSplit.add(bigleftpanel,"bigleft");
-        mainSplit.add(bigrightpanel,"bigright");
-//        mainSplit.setPreferredSize(new Dimension(leftwidth+rightwidth, height));
-        
-        for (String s : new String[]{"t","b","l","r"})
-        	mainSplit.add(new JPanel(){{
-        		setMaximumSize(new Dimension(0,0));
-        		setPreferredSize(new Dimension(0,0));
-        		setMinimumSize(new Dimension(0,0));
-        	}
-//        	@Override public Dimension getSize() { return new Dimension(0,0); }
-//        	@Override public Dimension getPreferredSize() { return new Dimension(0,0); }
-        	}, s);
+		DockController controller = new DockController();
+		SplitDockStation station = new SplitDockStation();
+		controller.add(station);
+
+		SplitDockGrid grid = new SplitDockGrid();
+
+//		grid.addDockable(0,0, 1,1, new DefaultDockable("BLABLA") {{ }});
+
+		grid.addDockable(0,0,   1,10, new DefaultDockable("Pinned terms") {{ add(pinnedWrapper); }});
+		grid.addDockable(0,10, 1,20, new DefaultDockable("Covariate-associated terms") {{ add(docdrivenWrapper); }});
+		grid.addDockable(0,30, 1,20, new DefaultDockable("Term-associated terms") {{ add(termdrivenWrapper); }});
+		
+		grid.addDockable(1,0, 1,5, new DefaultDockable("Query info") {{ add(queryInfo); }});
+//		grid.addDockable(1,5, 1,5, new DefaultDockable("qi2") {{ add(subqueryInfo); }});
+		grid.addDockable(1,10, 1,15, new DefaultDockable("Covariate view") {{ add(brushPanel); }});
+		grid.addDockable(1,25, 1,20, new DefaultDockable("Text view") {{ add(textPanel.top()); }});
+		
+		station.dropTree(grid.toTree());
 
         mainFrame = new JFrame("Text Explorer Tool");
+		mainFrame.add(station.getComponent());
+		mainFrame.setBounds(20,20, 800,600);
         mainFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        
-        mainFrame.setLayout(new BorderLayout());
-        mainFrame.add(wrapWithPadding(mainSplit,30),BorderLayout.CENTER);
-        mainFrame.add(mainSplit, BorderLayout.CENTER);
-        int totw=leftwidth+rightwidth+100, toth=height+100;
-        mainFrame.setSize(totw,toth);
-        mainFrame.pack();
 
         ToolTipManager.sharedInstance().setDismissDelay((int) 1e6);
 	}

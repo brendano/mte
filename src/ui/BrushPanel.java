@@ -177,7 +177,6 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 	@Override
 	public void mousePressed(MouseEvent e) {
 		if (mode==Mode.STILL_BRUSH && !brush.getRegion().contains(e.getPoint())) {
-			U.p("clearing");
 			clearSelection();
 			setMode(Mode.NO_BRUSH);
 			brush = null;
@@ -284,7 +283,6 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 		
 		for (int i=0; i<points.size(); i++) {
 			MyPoint mp = points.get(i);
-			U.p(mp.isTermquery1Selected);
 			Color c = mp.isTermquery1Selected ? Color.red :
 							mp.isDocquerySelected ? Color.black : 
 							Color.gray;
