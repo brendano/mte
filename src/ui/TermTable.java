@@ -74,8 +74,6 @@ public class TermTable {
 					// seems to use -1 if not a row
 					return;
 				}
-				U.p("is selected? " + table.getSelectionModel().isSelectedIndex(row));
-
 				if (e.getClickCount()==1) {
 					//					if (!table.getSelectionModel().isSelectedIndex(row)) {
 					//						table.getSelectionModel().removeIndexInterval(row,row);	

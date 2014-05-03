@@ -67,16 +67,18 @@ public class TextPanel  {
 	public JComponent top() { return scrollpane; }
 	
 	static Font NORMAL_FONT, BOLD_FONT;
-	static int fontHeight;
+	int fontHeight = 18;
+	
 	static { 
 		NORMAL_FONT = new Font("Times", Font.PLAIN, 16);
 		BOLD_FONT = new Font("Times", Font.BOLD, 16);
 //		fontHeight = new JLabel(""){{ setFont(BOLD_FONT); }}.getGraphics().getFontMetrics().getHeight();
-		fontHeight = 20;
 	}
+	
 	
 	class DocView extends JPanel {
 		DocView(Document doc, List<WithinDocHit> hits) {
+			setBackground(Color.white);
 			setLayout(new BoxLayout(this,BoxLayout.Y_AXIS));
 			add(new JLabel(doc.docid));
 			for (WithinDocHit h : hits) {
@@ -88,72 +90,39 @@ public class TextPanel  {
 	}
 	class HitView extends JPanel {
 		String hitstr,leftstr,rightstr;
-		JLabel leftContext,hitTerm,rightContext;
+
 		HitView(Document d, WithinDocHit h) {
 			setLayout(null);
+			setBackground(Color.white);
 			hitstr = join(d, h.termStart,h.termEnd, " ");
 			leftstr = join(d, Math.max(h.termStart-50, 0), h.termStart, " ") + " ";
 			rightstr = " " + join(d, h.termEnd, Math.min(h.termEnd+50,d.tokens.size()), " ");
-			hitTerm = new JLabel(hitstr,SwingConstants.CENTER);
-			leftContext = new JLabel(leftstr,SwingConstants.RIGHT);
-			rightContext = new JLabel(rightstr,SwingConstants.LEFT);
-			hitTerm.setFont(BOLD_FONT);
-			leftContext.setFont(NORMAL_FONT);
-			rightContext.setFont(NORMAL_FONT);
-			hitTerm.setBackground(Color.white);
-			leftContext.setBackground(Color.white);
-			rightContext.setBackground(Color.white);
-			hitTerm.setAlignmentX((float) 0.5);
-			leftContext.setAlignmentX(1);
-			rightContext.setAlignmentX(0);
-			add(leftContext);add(hitTerm);add(rightContext);
 			setPreferredSize(new Dimension(200, fontHeight));
 		}
 
 		@Override
 		public void paintComponent(Graphics _g) {
-			// sneak in child positioning before continuing the painting process.
-			// http://docs.oracle.com/javase/tutorial/uiswing/painting/closer.html says that the paintComponent() cascade is top down, so we should get called before our children.
 			Graphics2D g = (Graphics2D) _g;
-			double height = g.getFontMetrics(BOLD_FONT).getStringBounds("X|gyjpI",g).getHeight();
+			Function<String,Double> twCalc = (String s) -> (double) g.getFontMetrics(NORMAL_FONT).getStringBounds(s,g).getWidth(); 
+			Function<String,Double> twBoldCalc = (String s) -> (double) g.getFontMetrics(BOLD_FONT).getStringBounds(s,g).getWidth();
+			
 			double withindocLeftMargin = 30;
 			double withindocRightMargin = 30;
 			double withindocWidth = scrollpane.getWidth() - withindocLeftMargin - withindocRightMargin;
-			Function<String,Double> twBoldCalc = (String s) -> (double) g.getFontMetrics(BOLD_FONT).getStringBounds(s,g).getWidth();
+			double height = fontHeight;
+			double cury = fontHeight-5;
+			g.setClip((int)withindocLeftMargin, 0, (int) withindocWidth, (int) height);
+
 			double hittermWidth = twBoldCalc.apply(hitstr);
 			double hittermLeft = withindocLeftMargin + withindocWidth/2 - hittermWidth/2;
 			double hittermRight = hittermLeft + hittermWidth;
-			U.pf("%s %s %s %s %s\n", height, withindocWidth, hittermWidth, hittermLeft, hittermRight);
-			hitTerm.setBounds((int) hittermLeft,0, (int) hittermWidth, (int) height);
-			leftContext.setBounds(0,0, (int) hittermLeft, (int) height);
-			rightContext.setBounds((int) hittermRight,0, (int) (scrollpane.getWidth()-withindocRightMargin-hittermRight), (int) height);
-			
-			super.paintComponent(_g);
+			g.setFont(NORMAL_FONT);
+			g.drawString(leftstr, (int) (hittermLeft - twCalc.apply(leftstr)), (int) cury);
+			g.drawString(rightstr, (int) hittermRight, (int) cury);
+			g.setFont(BOLD_FONT);
+			g.drawString(hitstr, (int) hittermLeft, (int) cury);
+			g.setFont(NORMAL_FONT);
 		}
-
-//		@Override
-//		public void paintComponent(Graphics _g) {
-//			Graphics2D g = (Graphics2D) _g;
-//			Function<String,Double> twCalc = (String s) -> (double) g.getFontMetrics(NORMAL_FONT).getStringBounds(s,g).getWidth(); 
-//			Function<String,Double> twBoldCalc = (String s) -> (double) g.getFontMetrics(BOLD_FONT).getStringBounds(s,g).getWidth();
-//			
-//			double withindocLeftMargin = 30;
-//			double withindocRightMargin = 30;
-//			double withindocWidth = scrollpane.getWidth() - withindocLeftMargin - withindocRightMargin;
-//			double height = 20;
-//			double cury = 0;
-//			JLabel x =null; x.getAli
-//			g.setClip((int)withindocLeftMargin, 0, (int) withindocWidth, (int) height);
-//
-//			double hittermLeft = withindocLeftMargin + withindocWidth/2 - hittermWidth/2;
-//			double hittermRight = hittermLeft + hittermWidth;
-//			g.setFont(NORMAL_FONT);
-//			g.drawString(leftstr, (int) (hittermLeft - twCalc.apply(leftstr)), (int) cury);
-//			g.drawString(rightstr, (int) hittermRight, (int) cury);
-//			g.setFont(BOLD_FONT);
-//			g.drawString(hitTerm, (int) hittermLeft, (int) cury);
-//			g.setFont(NORMAL_FONT);
-//		}
 	}
 	
 	void buildViews() {
