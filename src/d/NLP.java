@@ -5,6 +5,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import ui.GUtil;
+import util.Arr;
 import util.U;
 
 import com.google.common.collect.Lists;
@@ -93,7 +94,7 @@ public class NLP {
 				for (int k=1; k<=order; k++) {
 					int lastIndex = i+k-1;
 					if (lastIndex >= doc.tokens.size()) continue;
-					List<Integer> inds =GUtil.intRangeList(i,i+k);
+					List<Integer> inds = Arr.rangeIntList(i,i+k);
 
 					String s = inds.stream()
 							.map(j -> doc.tokens.get(j).text.toLowerCase())

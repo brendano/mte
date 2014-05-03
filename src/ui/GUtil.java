@@ -109,15 +109,6 @@ public class GUtil {
 //		U.p(logGrid1s( Double.parseDouble(args[0]), Double.parseDouble(args[1]) ));
 //	}
 	
-	public static List<Integer> intRangeList(int start, int end) {
-		assert start <= end;
-		List<Integer> ret = new ArrayList<>();
-		for (int i=start; i<end; i++) {
-			ret.add(i);
-		}
-		return ret;
-	}
-	
 	public static String commaize(int x) {
 		if (Math.abs(x) < 1e4) return U.sf("%d", x);
 		return NumberFormat.getNumberInstance(Locale.US).format(x);	

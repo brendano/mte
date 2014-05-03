@@ -22,7 +22,6 @@ public class TermTable {
 
 	public JComponent top() { return scrollpane; }
 
-	@SuppressWarnings("serial")
 	public TermTable(Main.TermTableModel ttm) {
 		model = ttm;
 		table = new JTable(model); 

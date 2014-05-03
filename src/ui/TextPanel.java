@@ -40,8 +40,6 @@ import d.TermInstance;
 import edu.stanford.nlp.util.Sets;
 
 public class TextPanel  {
-//	JTextPane area;
-	JEditorPane area;
 	RawTextPanel rawarea;
 	JScrollPane scrollpane;
 	BufferedImage textbuffer;
@@ -50,30 +48,13 @@ public class TextPanel  {
 	private Set<String> termset;
 	private List<Document> doclist;
 
-	@SuppressWarnings("serial")
 	public TextPanel() {
-//		area = new JTextArea();
-		area = new JEditorPane("text/html","");
-        area.setEditable(false);
-        area.setText("");
-
-//        rawarea = new JPanel() {
-//        	@Override
-//        	public void paintComponent(Graphics g) {
-//        		paintRawarea(this, (Graphics2D) g);
-//        	}
-//        };
-
         rawarea = new RawTextPanel();
         rawarea.setBackground(Color.white);
         rawarea.setFont(NORMAL_FONT);
 
         scrollpane = new JScrollPane(rawarea);
         scrollpane.setViewportView(rawarea);
-        // http://stackoverflow.com/questions/3972337/java-swing-jtextarea-in-a-jscrollpane-how-to-prevent-auto-scroll
-        DefaultCaret caret = (DefaultCaret)area.getCaret();
-        caret.setUpdatePolicy(DefaultCaret.NEVER_UPDATE);
-        
 	}
 	
 	public JComponent top() { return scrollpane; }
@@ -127,7 +108,6 @@ public class TextPanel  {
 		Function<String,Double> twCalc = (String s) -> (double) g.getFontMetrics(NORMAL_FONT).getStringBounds(s,g).getWidth(); 
 		Function<String,Double> twBoldCalc = (String s) -> (double) g.getFontMetrics(BOLD_FONT).getStringBounds(s,g).getWidth();
 		
-		
 //		double cury = docSpacing;
 		double cury = 0;
 		for (Document d : doclist) {
@@ -145,12 +125,6 @@ public class TextPanel  {
 			for (WithinDocHit h : hits) {
 				String hitTerm = join(d, h.termStart,h.termEnd, " ");
 				double hittermWidth = twBoldCalc.apply(hitTerm);
-//				double contextWidth = (withindocWidth - hittermWidth)/2; // for one side
-//				double contextWidth = 1000;
-//				Span left = getOnesideContext(d, h.termStart-1, -1, contextWidth, twCalc);
-//				Span right = getOnesideContext(d, h.termEnd, +1, contextWidth, twCalc);
-//				String leftstr = join(d, left.start,left.end, " ") + " ";
-//				String rightstr = " " + join(d, right.start,right.end, " ");
 				String leftstr = join(d, Math.max(h.termStart-50, 0), h.termStart, " ") + " ";
 				String rightstr = " " + join(d, h.termEnd, Math.min(h.termEnd+50,d.tokens.size()), " ");
 				
@@ -179,36 +153,6 @@ public class TextPanel  {
 		public String toString() { return U.sf("SPAN[%d,%d)",start,end); }
 	}
 	
-	static Span getOnesideContext(Document d, int firstTokenIndexClosestToHit, int direction, double maxWidth, 
-			Function<String,Double> textWidthCalc) {
-		assert maxWidth > 0;
-		StringBuilder s = new StringBuilder();
-
-		int curtok = firstTokenIndexClosestToHit;
-		int numtok = 1;
-		s.append(" ");
-		s.append(d.tokens.get(curtok).text);
-		
-		while (curtok>=0 && curtok < d.tokens.size() && numtok < 1000 
-				&& textWidthCalc.apply(s.toString()) < maxWidth) {
-			curtok += direction;
-			numtok++;
-			s.append(" ");
-			s.append(d.tokens.get(curtok).text);
-//			U.p("{{" + s.toString()+"}} " + textWidthCalc.apply(s.toString()));
-		}
-		
-		curtok -= direction;
-		
-		// now we have [curtok,rightmostTokenIndex] if we were going left
-		// or the other way if going right .. i think.
-		Span ret = new Span( 
-				Math.min(curtok, firstTokenIndexClosestToHit),
-				Math.max(curtok, firstTokenIndexClosestToHit) +1);
-		return ret;
-	}
-	
-
 	static String join(Document doc, int startIndex, int endIndex, String joiner) {
 		return IntStream.range(startIndex,endIndex).mapToObj(j -> doc.tokens.get(j).text)
 			.collect(Collectors.joining(joiner));
@@ -221,54 +165,14 @@ public class TextPanel  {
 		doclist = new ArrayList<>(docs.docs());
 		Collections.sort(doclist, Ordering.natural().onResultOf(d -> d.docid));
 		termset = new HashSet<>(terms);
-
 		paintToTextBuffer();
-//		renderHTML();
-	}
-	void renderHTML() {
-		StringBuilder s = new StringBuilder();
-		for (Document d : doclist) {
-			if ( ! Sets.intersects(d.termVec.support(), termset)) {
-				continue;
-			}
-			s.append(U.sf("%s\n", d.docid));
-			s.append(passageReportHTML(d, termset));
-			s.append("\n");
-		}
-		String finalstr = s.toString().replace("\n","<br>");
-		area.setText(finalstr);
-//		scrollpane.getVerticalScrollBar().setValue(0);
 	}
 	
 	static class WithinDocHit {
 		// [inclusive,exclusive)
-		int spanStart, spanEnd;
 		int termStart, termEnd;
 	}
 	
-	StringBuilder passageReportHTML(Document d, Set<String> terms) {
-		List<WithinDocHit> hits = getHitsInDoc(d, terms, 10);
-		return makeHTML(d, hits);
-	}
-
-	StringBuilder makeHTML(Document d, List<WithinDocHit> hits) {
-		StringBuilder s = new StringBuilder();
-		for (WithinDocHit h : hits) {
-			assert h.spanStart<=h.termStart && h.termStart<=h.termEnd && h.termEnd <= h.spanEnd;
-			s.append("&nbsp; -");
-			for (int j=h.spanStart; j<h.spanEnd; j++) {
-				s.append(" ");
-				if (j==h.termStart) s.append("<b>");
-				String w = d.tokens.get(j).text;
-				w = htmlEscape(w);
-				s.append(w);
-				if (j+1==h.termEnd) s.append("</b>"); 
-			}
-			s.append("\n");
-		}
-		return s;
-	}
-
 	List<WithinDocHit> getHitsInDoc(Document d, Set<String> terms, int maxHitsWithinDoc) {
 		List<WithinDocHit> hits = new ArrayList<>();
 		for (int i=0; i<d.tokens.size(); i++) {
@@ -278,19 +182,15 @@ public class TextPanel  {
 					WithinDocHit h = new WithinDocHit();
 					h.termStart = ti.tokIndsInDoc.get(0);
 					h.termEnd = ti.tokIndsInDoc.get( ti.tokIndsInDoc.size()-1 ) + 1;
-					h.spanStart = Math.max(h.termStart-wordRadius, 0);
-					h.spanEnd = Math.min(h.termEnd+wordRadius, d.tokens.size()); 
 					hits.add(h);
 				}
 				if (hits.size() >= maxHitsWithinDoc) break;
 			}
 			if (hits.size() >= maxHitsWithinDoc) break;
 		}
-		
-		Collections.sort(hits, Ordering.natural().onResultOf(h -> U.pair(h.spanStart, h.termStart)));
+		Collections.sort(hits, Ordering.natural().onResultOf(h -> U.pair(h.termStart, h.termEnd)));
+//		Collections.sort(hits, Comparator
+//				.comparing((WithinDocHit h) -> h.termStart).thenComparing((WithinDocHit h) ->h.termEnd));
 		return hits;
-	}
-	static String htmlEscape(String s) {
-		return s.replace("<","&lt;").replace(">","&gt;").replace("&","&amp;");
 	}
 }
