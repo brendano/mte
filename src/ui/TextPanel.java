@@ -1,8 +1,11 @@
 package ui;
 
+import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
+import java.awt.FlowLayout;
 import java.awt.Font;
+import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
@@ -14,12 +17,16 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
+import javax.swing.BoxLayout;
 import javax.swing.JComponent;
 import javax.swing.JEditorPane;
+import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextPane;
+import javax.swing.SwingConstants;
+import javax.swing.SwingUtilities;
 import javax.swing.event.ListSelectionListener;
 import javax.swing.text.DefaultCaret;
 
@@ -40,112 +47,131 @@ import d.TermInstance;
 import edu.stanford.nlp.util.Sets;
 
 public class TextPanel  {
-	RawTextPanel rawarea;
+	JPanel panel;
 	JScrollPane scrollpane;
-	BufferedImage textbuffer;
+	List<DocView> docviews;
 	
 	public int wordRadius = 5;
 	private Set<String> termset;
 	private List<Document> doclist;
 
 	public TextPanel() {
-        rawarea = new RawTextPanel();
-        rawarea.setBackground(Color.white);
-        rawarea.setFont(NORMAL_FONT);
+		panel = new JPanel();
+		panel.setBackground(Color.white);
+		panel.setLayout(new BoxLayout(panel,BoxLayout.Y_AXIS));
 
-        scrollpane = new JScrollPane(rawarea);
-        scrollpane.setViewportView(rawarea);
+        scrollpane = new JScrollPane(panel);
+        scrollpane.setViewportView(panel);
 	}
 	
 	public JComponent top() { return scrollpane; }
 	
 	static Font NORMAL_FONT, BOLD_FONT;
-	
+	static int fontHeight;
 	static { 
 		NORMAL_FONT = new Font("Times", Font.PLAIN, 16);
 		BOLD_FONT = new Font("Times", Font.BOLD, 16);
+//		fontHeight = new JLabel(""){{ setFont(BOLD_FONT); }}.getGraphics().getFontMetrics().getHeight();
+		fontHeight = 20;
 	}
 	
-	@SuppressWarnings("serial")
-	class RawTextPanel extends JPanel {
-		@Override public void paintComponent(Graphics _g) {
-			Graphics2D g = (Graphics2D) _g;
-			super.paintComponent(g);  // not sure this is needed
-			if (textbuffer != null) {
-				AffineTransform t = new AffineTransform();
-				t.scale(0.5,0.5);
-				g.drawRenderedImage(textbuffer, t);	
+	class DocView extends JPanel {
+		DocView(Document doc, List<WithinDocHit> hits) {
+			setLayout(new BoxLayout(this,BoxLayout.Y_AXIS));
+			add(new JLabel(doc.docid));
+			for (WithinDocHit h : hits) {
+//				add(new JLabel(h.toString()));
+				HitView hv = new HitView(doc, h);
+				add(hv);
 			}
 		}
 	}
-	
-	static int MAX_VIRT_HEIGHT = 5000;
-	
-	void paintToTextBuffer() {
-		textbuffer = new JBHiDPIScaledImage(rawarea.getWidth(), MAX_VIRT_HEIGHT, BufferedImage.TYPE_INT_RGB);
-		Graphics2D g = textbuffer.createGraphics();
-		g.setColor(Color.white);
-		g.fillRect(0,0, textbuffer.getWidth(), textbuffer.getHeight());
-		paintTextToGraphics(g);
-		g.dispose();
-	}
+	class HitView extends JPanel {
+		String hitstr,leftstr,rightstr;
+		JLabel leftContext,hitTerm,rightContext;
+		HitView(Document d, WithinDocHit h) {
+			setLayout(null);
+			hitstr = join(d, h.termStart,h.termEnd, " ");
+			leftstr = join(d, Math.max(h.termStart-50, 0), h.termStart, " ") + " ";
+			rightstr = " " + join(d, h.termEnd, Math.min(h.termEnd+50,d.tokens.size()), " ");
+			hitTerm = new JLabel(hitstr,SwingConstants.CENTER);
+			leftContext = new JLabel(leftstr,SwingConstants.RIGHT);
+			rightContext = new JLabel(rightstr,SwingConstants.LEFT);
+			hitTerm.setFont(BOLD_FONT);
+			leftContext.setFont(NORMAL_FONT);
+			rightContext.setFont(NORMAL_FONT);
+			hitTerm.setBackground(Color.white);
+			leftContext.setBackground(Color.white);
+			rightContext.setBackground(Color.white);
+			hitTerm.setAlignmentX((float) 0.5);
+			leftContext.setAlignmentX(1);
+			rightContext.setAlignmentX(0);
+			add(leftContext);add(hitTerm);add(rightContext);
+			setPreferredSize(new Dimension(200, fontHeight));
+		}
 
-	void paintTextToGraphics(Graphics2D g) {
-		if (doclist==null || termset==null) return;
-		g.setBackground(Color.white);
-		g.setColor(Color.black);
-		// the HiDPI system does this for us
-//		g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
-//		g.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_NORMALIZE);
-//		g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
-		double textHeight = g.getFontMetrics().getHeight();
-		double lineSpacing = 2;
-		double docSpacing = 5;
-		double withindocLeftMargin = 20;
-		double withindocRightMargin = 10;
-		double withindocWidth = rawarea.getWidth() - withindocLeftMargin - withindocRightMargin;
-		
-		Function<String,Double> twCalc = (String s) -> (double) g.getFontMetrics(NORMAL_FONT).getStringBounds(s,g).getWidth(); 
-		Function<String,Double> twBoldCalc = (String s) -> (double) g.getFontMetrics(BOLD_FONT).getStringBounds(s,g).getWidth();
-		
-//		double cury = docSpacing;
-		double cury = 0;
+		@Override
+		public void paintComponent(Graphics _g) {
+			// sneak in child positioning before continuing the painting process.
+			// http://docs.oracle.com/javase/tutorial/uiswing/painting/closer.html says that the paintComponent() cascade is top down, so we should get called before our children.
+			Graphics2D g = (Graphics2D) _g;
+			double height = g.getFontMetrics(BOLD_FONT).getStringBounds("X|gyjpI",g).getHeight();
+			double withindocLeftMargin = 30;
+			double withindocRightMargin = 30;
+			double withindocWidth = scrollpane.getWidth() - withindocLeftMargin - withindocRightMargin;
+			Function<String,Double> twBoldCalc = (String s) -> (double) g.getFontMetrics(BOLD_FONT).getStringBounds(s,g).getWidth();
+			double hittermWidth = twBoldCalc.apply(hitstr);
+			double hittermLeft = withindocLeftMargin + withindocWidth/2 - hittermWidth/2;
+			double hittermRight = hittermLeft + hittermWidth;
+			U.pf("%s %s %s %s %s\n", height, withindocWidth, hittermWidth, hittermLeft, hittermRight);
+			hitTerm.setBounds((int) hittermLeft,0, (int) hittermWidth, (int) height);
+			leftContext.setBounds(0,0, (int) hittermLeft, (int) height);
+			rightContext.setBounds((int) hittermRight,0, (int) (scrollpane.getWidth()-withindocRightMargin-hittermRight), (int) height);
+			
+			super.paintComponent(_g);
+		}
+
+//		@Override
+//		public void paintComponent(Graphics _g) {
+//			Graphics2D g = (Graphics2D) _g;
+//			Function<String,Double> twCalc = (String s) -> (double) g.getFontMetrics(NORMAL_FONT).getStringBounds(s,g).getWidth(); 
+//			Function<String,Double> twBoldCalc = (String s) -> (double) g.getFontMetrics(BOLD_FONT).getStringBounds(s,g).getWidth();
+//			
+//			double withindocLeftMargin = 30;
+//			double withindocRightMargin = 30;
+//			double withindocWidth = scrollpane.getWidth() - withindocLeftMargin - withindocRightMargin;
+//			double height = 20;
+//			double cury = 0;
+//			JLabel x =null; x.getAli
+//			g.setClip((int)withindocLeftMargin, 0, (int) withindocWidth, (int) height);
+//
+//			double hittermLeft = withindocLeftMargin + withindocWidth/2 - hittermWidth/2;
+//			double hittermRight = hittermLeft + hittermWidth;
+//			g.setFont(NORMAL_FONT);
+//			g.drawString(leftstr, (int) (hittermLeft - twCalc.apply(leftstr)), (int) cury);
+//			g.drawString(rightstr, (int) hittermRight, (int) cury);
+//			g.setFont(BOLD_FONT);
+//			g.drawString(hitTerm, (int) hittermLeft, (int) cury);
+//			g.setFont(NORMAL_FONT);
+//		}
+	}
+	
+	void buildViews() {
+		docviews = new ArrayList<>();
 		for (Document d : doclist) {
-			if ( ! Sets.intersects(d.termVec.support(), termset)) {
+			if (!Sets.intersects(d.termVec.support(), termset)) {
 				continue;
 			}
-			cury += docSpacing;
-			cury += textHeight;
-			g.setFont(NORMAL_FONT);
-			g.drawString(d.docid, 0, Math.round(cury));
-
-			g.setClip((int)withindocLeftMargin, 0, (int) withindocWidth, MAX_VIRT_HEIGHT);
-
 			List<WithinDocHit> hits = getHitsInDoc(d, termset, 10);
-			for (WithinDocHit h : hits) {
-				String hitTerm = join(d, h.termStart,h.termEnd, " ");
-				double hittermWidth = twBoldCalc.apply(hitTerm);
-				String leftstr = join(d, Math.max(h.termStart-50, 0), h.termStart, " ") + " ";
-				String rightstr = " " + join(d, h.termEnd, Math.min(h.termEnd+50,d.tokens.size()), " ");
-				
-				cury += lineSpacing;
-				cury += textHeight;
-				double hittermLeft = withindocLeftMargin + withindocWidth/2 - hittermWidth/2;
-				double hittermRight = hittermLeft + hittermWidth;
-				g.setFont(NORMAL_FONT);
-				g.drawString(leftstr, (int) (hittermLeft - twCalc.apply(leftstr)), (int) cury);
-				g.drawString(rightstr, (int) hittermRight, (int) cury);
-				g.setFont(BOLD_FONT);
-				g.drawString(hitTerm, (int) hittermLeft, (int) cury);
-				g.setFont(NORMAL_FONT);
-			}
-			g.setClip(0,0,rawarea.getWidth(),MAX_VIRT_HEIGHT);
+			docviews.add(new DocView(d,hits));
 		}
-		double newsize = cury+lineSpacing*3;
-		rawarea.setPreferredSize(new Dimension(rawarea.getWidth(), (int) newsize));
-		rawarea.setSize(new Dimension(rawarea.getWidth(), (int) (newsize)));
+		panel.removeAll();
+		for (DocView dv : docviews) {
+			panel.add(dv);
+		}
 	}
-	
+
+
 	/** convention: [inc,exc) */
 	static class Span {
 		int start,end; 
@@ -165,8 +191,9 @@ public class TextPanel  {
 		doclist = new ArrayList<>(docs.docs());
 		Collections.sort(doclist, Ordering.natural().onResultOf(d -> d.docid));
 		termset = new HashSet<>(terms);
-		paintToTextBuffer();
+		buildViews();
 	}
+	
 	
 	static class WithinDocHit {
 		// [inclusive,exclusive)
