@@ -256,15 +256,9 @@ public class Main implements QueryReceiver {
 									: comparison.get().epmi(t);
 			switch (columnIndex) {
 			case 0: return t;
-//			case 1: return U.sf("%.0f : %.0f", curDS.terms.value(t.term), corpus.globalTerms.value(t.term));
-			
-//			case 1: return U.sf("%d", (int) curDS.terms.value(t));
 			case 1: return (int) comparison.get().focus.value(t);
 			case 2: return ":";
-//			case 3: return U.sf("%d", (int) corpus.globalTerms.value(t));
 			case 3: return (int) comparison.get().background.value(t);
-//			case 4: return epmi > 1 ? U.sf("%.2f", epmi) : U.sf("%.4g", epmi);
-//			case 4: return epmi > .001 ? U.sf("%.3f", epmi) : U.sf("%.4g", epmi);
 			case 4: return epmi;
 			}
 			assert false; return null;
@@ -306,6 +300,7 @@ public class Main implements QueryReceiver {
 //		refreshQueryInfo();
 //		pinnedTermTable.model.fireTableRowsInserted(pinnedTerms.size()-2, pinnedTerms.size()-1);
 		pinnedTermTable.model.fireTableRowsInserted(0, pinnedTerms.size()-1);
+//		pinnedTermTable.table.setRowSelectionInterval(pinnedTerms.size()-1, pinnedTerms.size()-1);
 	}
 	void unpinTerm(String term) {
 //		refreshTermList();
@@ -325,14 +320,6 @@ public class Main implements QueryReceiver {
 		top.add(internal);
 		return top;
 	}
-	static MultiSplitPane makeMSP(String format) {
-        MultiSplitLayout.Node modelRoot = MultiSplitLayout.parseModel(format);
-        MultiSplitPane msp = new MultiSplitPane();
-        msp.getMultiSplitLayout().setModel(modelRoot);
-        return msp;
-	}
-
-	
 	
 	void setupUI() {
 //        int leftwidth = 365-5, rightwidth=430-5, height=550;
@@ -374,12 +361,10 @@ public class Main implements QueryReceiver {
         pinnedTermTable.doubleClickListener = this::unpinTerm;
 
         JPanel pinnedWrapper = new JPanel(new BorderLayout());
-//        pinnedWrapper.add(new JLabel("Pinned terms"), BorderLayout.NORTH);
         pinnedWrapper.add(pinnedTermTable.top(), BorderLayout.CENTER);
         
         JPanel docdrivenWrapper = new JPanel(new BorderLayout());
         JPanel topstuff = new JPanel(new FlowLayout(FlowLayout.LEFT));
-//        topstuff.add(new JLabel("Docvar-associated terms"));
         topstuff.add(termlistInfo);
         docdrivenWrapper.add(topstuff, BorderLayout.NORTH);
         docdrivenWrapper.add(docdrivenTermTable.top(), BorderLayout.CENTER);
@@ -388,9 +373,6 @@ public class Main implements QueryReceiver {
         termtermDescription = new JLabel("");
         termdrivenWrapper.add(termtermDescription, BorderLayout.NORTH);
         termdrivenWrapper.add(termdrivenTermTable.top(), BorderLayout.CENTER);
-//        termdrivenWrapper.setPreferredSize(new Dimension(-1,150));
-        
-//        pinnedWrapper.setPreferredSize(new Dimension(-1, 200));
         
         //////////////////////////  right-side panel  /////////////////////////
         
@@ -464,7 +446,6 @@ public class Main implements QueryReceiver {
         JFormattedTextField tpText = ((JSpinner.DefaultEditor) tpSpinner.getEditor()).getTextField();
         tpText.setFormatterFactory(new AbstractFormatterFactory() {
 			@Override public AbstractFormatter getFormatter(JFormattedTextField tf) {
-//				return new SpinnerStuff.SimpleFractionFormatter();
 				return new SpinnerStuff.NiceFractionFormatter();
 			}
         });
