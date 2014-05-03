@@ -49,8 +49,6 @@ import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.TableCellRenderer;
 
 import org.codehaus.jackson.JsonProcessingException;
-import org.jdesktop.swingx.MultiSplitLayout;
-import org.jdesktop.swingx.MultiSplitPane;
 
 import bibliothek.gui.DockController;
 import bibliothek.gui.dock.DefaultDockable;
