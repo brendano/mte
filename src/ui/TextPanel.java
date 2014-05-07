@@ -95,14 +95,17 @@ public class TextPanel  {
 			setLayout(null);
 			setBackground(Color.white);
 			hitstr = join(d, h.termStart,h.termEnd, " ");
-			leftstr = join(d, Math.max(h.termStart-50, 0), h.termStart, " ") + " ";
-			rightstr = " " + join(d, h.termEnd, Math.min(h.termEnd+50,d.tokens.size()), " ");
+			leftstr = join(d, Math.max(h.termStart-20, 0), h.termStart, " ") + " ";
+			rightstr = " " + join(d, h.termEnd, Math.min(h.termEnd+20,d.tokens.size()), " ");
 			setPreferredSize(new Dimension(200, fontHeight));
+			setSize(new Dimension(200,fontHeight));
 		}
 
 		@Override
 		public void paintComponent(Graphics _g) {
 			Graphics2D g = (Graphics2D) _g;
+		    g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+		    g.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_NORMALIZE);
 			Function<String,Double> twCalc = (String s) -> (double) g.getFontMetrics(NORMAL_FONT).getStringBounds(s,g).getWidth(); 
 			Function<String,Double> twBoldCalc = (String s) -> (double) g.getFontMetrics(BOLD_FONT).getStringBounds(s,g).getWidth();
 			

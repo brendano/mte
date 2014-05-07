@@ -12,6 +12,7 @@ import org.codehaus.jackson.JsonProcessingException;
 
 import util.BasicFileIO;
 import util.JsonUtil;
+import util.U;
 
 public class Corpus {
 	public Map<String,Document> docsById;
@@ -99,6 +100,7 @@ public class Corpus {
 //		hierSums.doSpatialSums(docsById.values());
 //		hierSums.dump();
 
+		U.p("finalizing");
 		for (Document d : docsById.values()) {
 			index.add(d);
 			double n = d.termVec.totalCount;
@@ -106,6 +108,7 @@ public class Corpus {
 		}
 		DocSet allds = new DocSet( docsById.values() );
 		globalTerms = allds.terms;
+		U.p("done finalizing");
 	}
 
 	/** disjunction query */

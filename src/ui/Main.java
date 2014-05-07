@@ -330,7 +330,6 @@ public class Main implements QueryReceiver {
         termfilterPanel.setLayout(new BoxLayout(termfilterPanel, BoxLayout.X_AXIS));
         termfilterPanel.add(new JLabel("Term Prob >="));
         termfilterPanel.add(tpSpinner);
-        
         termfilterPanel.add(new JLabel("Count >="));
         termfilterPanel.add(tcSpinner);
         
@@ -397,14 +396,12 @@ public class Main implements QueryReceiver {
 
 		SplitDockGrid grid = new SplitDockGrid();
 
-//		grid.addDockable(0,0, 1,1, new DefaultDockable("BLABLA") {{ }});
-
 		grid.addDockable(0,0,   1,10, new DefaultDockable("Pinned terms") {{ add(pinnedWrapper); }});
-		grid.addDockable(0,10, 1,20, new DefaultDockable("Covariate-associated terms") {{ add(docdrivenWrapper); }});
-		grid.addDockable(0,30, 1,20, new DefaultDockable("Term-associated terms") {{ add(termdrivenWrapper); }});
+		grid.addDockable(0,10,   1,5, new DefaultDockable("Frequency control") {{ add(termfilterPanel); }});
+		grid.addDockable(0,15, 1,20, new DefaultDockable("Covariate-associated terms") {{ add(docdrivenWrapper); }});
+		grid.addDockable(0,35, 1,20, new DefaultDockable("Term-associated terms") {{ add(termdrivenWrapper); }});
 		
 		grid.addDockable(1,0, 1,5, new DefaultDockable("Query info") {{ add(queryInfo); }});
-//		grid.addDockable(1,5, 1,5, new DefaultDockable("qi2") {{ add(subqueryInfo); }});
 		grid.addDockable(1,10, 1,15, new DefaultDockable("Covariate view") {{ add(brushPanel); }});
 		grid.addDockable(1,25, 1,20, new DefaultDockable("Text view") {{ add(textPanel.top()); }});
 		
