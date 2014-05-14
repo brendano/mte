@@ -10,6 +10,7 @@ import java.util.stream.Stream;
 import org.codehaus.jackson.JsonNode;
 import org.codehaus.jackson.JsonProcessingException;
 
+import d.Levels.BadSchema;
 import util.BasicFileIO;
 import util.JsonUtil;
 import util.U;
@@ -29,7 +30,7 @@ public class Corpus {
 		index = new InvertedIndex();
 	}
 	
-	public void loadLevels(String filename) throws FileNotFoundException {
+	public void loadLevels(String filename) throws FileNotFoundException, BadSchema {
 		yLevels = new Levels();
 		yLevels.loadJSON(JsonUtil.readJsonNX( BasicFileIO.readFile(filename) ));
 	}

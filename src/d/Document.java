@@ -46,8 +46,9 @@ public class Document {
 				doc.y = Double.parseDouble(parts[1]);
 				JsonNode j = JsonUtil.readJson(parts[2]);
 				
-				assert j.has("docid") : "all docs must have a 'docid' attribute.";
-				doc.docid = j.get("docid").getTextValue();
+				assert j.has("docid") || j.has("id") : "all docs must have a 'docid' or 'id' attribute.";
+				JsonNode docidNode = j.has("docid") ? j.get("docid") : j.has("id") ? j.get("id") : null;
+				doc.docid = docidNode.getTextValue();
 				doc.text = j.get("text").getTextValue();
 
 				ret.add(doc);

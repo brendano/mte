@@ -14,6 +14,7 @@ import org.codehaus.jackson.JsonProcessingException;
 
 import com.google.common.collect.Lists;
 
+import d.Levels.BadSchema;
 import ui.Main;
 import util.Arr;
 import util.U;
@@ -153,7 +154,7 @@ public class Analysis {
 		}
 	}
 	
-	public static void main(String[] args) throws JsonProcessingException, IOException {
+	public static void main(String[] args) throws JsonProcessingException, IOException, BadSchema {
 		VERBOSE = true;
 		final Main main = new Main();
 		main.initData();

@@ -384,7 +384,7 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 		if (yLevels != null && isIntegral(uy)) {
 			int i = (int) Math.round(uy);
 			if (yLevels.num2level.containsKey(i)) {
-				return yLevels.num2level.get(i).name;
+				return yLevels.num2level.get(i).displayName();
 			}
 		}
 		return U.sf("%.0f", uy);	
