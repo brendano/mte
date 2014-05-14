@@ -90,7 +90,7 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
         minPhysY = marTop;
         maxPhysX = w-marRight;
         maxPhysY = h-marBottom;
-        U.pf("BrushPanel set to: xs %s %s || ys %s %s\n", minPhysX,maxPhysX, minPhysY, maxPhysY);
+//        U.pf("BrushPanel set to: xs %s %s || ys %s %s\n", minPhysX,maxPhysX, minPhysY, maxPhysY);
 	}
 
 	/** user coordinates from physical (UI library) coordinates */

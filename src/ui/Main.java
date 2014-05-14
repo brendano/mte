@@ -37,6 +37,7 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JSpinner;
 import javax.swing.JTable;
+import javax.swing.JTextArea;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.SwingUtilities;
 import javax.swing.ToolTipManager;
@@ -53,6 +54,7 @@ import org.codehaus.jackson.JsonProcessingException;
 import bibliothek.gui.DockController;
 import bibliothek.gui.dock.DefaultDockable;
 import bibliothek.gui.dock.SplitDockStation;
+import bibliothek.gui.dock.station.split.SplitDividerStrategy;
 import bibliothek.gui.dock.station.split.SplitDockGrid;
 import util.BasicFileIO;
 import util.JsonUtil;
@@ -91,13 +93,13 @@ public class Main implements QueryReceiver {
 	TermTable  termdrivenTermTable;
 	BrushPanel brushPanel;
 	TextPanel textPanel;
-	JLabel mainqueryInfo;
-	JLabel subqueryInfo;
+	InfoArea mainqueryInfo;
+	InfoArea subqueryInfo;
 	JLabel termlistInfo;
 	JSpinner tpSpinner;
 	JSpinner tcSpinner;
 	JLabel tcInfo;
-	JLabel termtermDescription;
+	InfoArea termtermDescription;
 //	private JButton killDocvarQuery;
 	
 	Supplier<Void> afteranalysisCallback = () -> null;
@@ -217,7 +219,7 @@ public class Main implements QueryReceiver {
 	
 
 	void refreshQueryInfo() {
-		String s = U.sf("Docvar selection: %s docs, %s wordtoks\n", 
+		String s = U.sf("Docvar selection: %s docs, %s wordtoks", 
 				GUtil.commaize(curDS.docs().size()), 
 				GUtil.commaize((int)curDS.terms.totalCount));
 		mainqueryInfo.setText(s);
@@ -322,6 +324,23 @@ public class Main implements QueryReceiver {
 		return top;
 	}
 	
+	static class InfoArea extends JLabel {
+		public InfoArea(String s) {
+			super(s);
+			// WTF
+//			setMaximumSize(new Dimension(100,50));
+			setMinimumSize(new Dimension(200,16));
+			setBackground(Color.WHITE);
+		}
+//		public Dimension getMaximumSize() {
+////			return new Dimension(300,50);
+//		}
+	}
+	
+	static String sizes(JComponent x) {
+		return String.format("size=%s prefsize=%s min=%s max=%s", x.getSize(), x.getPreferredSize(), x.getMinimumSize(), x.getMaximumSize());
+	}
+	
 	void setupUI() {
 //        int leftwidth = 365-5, rightwidth=430-5, height=550;
         
@@ -369,18 +388,35 @@ public class Main implements QueryReceiver {
         docdrivenWrapper.add(topstuff, BorderLayout.NORTH);
         docdrivenWrapper.add(docdrivenTermTable.top(), BorderLayout.CENTER);
                 
-        JPanel termdrivenWrapper = new JPanel(new BorderLayout());
-        termtermDescription = new JLabel("");
+        termtermDescription = new InfoArea("");
+        JPanel termdrivenWrapper = new JPanel(new BorderLayout()) {{
+        	addComponentListener(new ComponentAdapter() {
+        		@Override
+        		public void componentResized(ComponentEvent e) {
+//        			U.p("termterm " + sizes(termtermDescription));
+        		}
+        	});
+        }};
         termdrivenWrapper.add(termtermDescription, BorderLayout.NORTH);
         termdrivenWrapper.add(termdrivenTermTable.top(), BorderLayout.CENTER);
         
         //////////////////////////  right-side panel  /////////////////////////
         
-        mainqueryInfo = new JLabel();
-//        queryInfo.setPreferredSize(new Dimension(rightwidth-killqueryW,20));
-        subqueryInfo = new JLabel();
-//        subqueryInfo.setPreferredSize(new Dimension(rightwidth-killqueryW,20));
-        JPanel queryInfo = new JPanel() {{ add(mainqueryInfo); add(subqueryInfo); }};
+        mainqueryInfo = new InfoArea("");
+        subqueryInfo = new InfoArea("");
+        
+        JPanel queryInfo = new JPanel() {{
+	        	setLayout(new BoxLayout(this, BoxLayout.PAGE_AXIS));
+	        	add(mainqueryInfo); add(subqueryInfo);
+	        	addComponentListener(new ComponentAdapter() {
+	        		@Override
+	        		public void componentResized(ComponentEvent e) {
+//	        			U.p("mainqueryInfo " + sizes(mainqueryInfo));
+//	        			U.p("subqueryInfo " + sizes(subqueryInfo));
+	        		}
+	        	});
+    		}
+        };
 
         brushPanel = new BrushPanel(this, corpus.allDocs());
         brushPanel.yLevels = corpus.yLevels;
@@ -391,28 +427,29 @@ public class Main implements QueryReceiver {
         brushPanel.setDefaultXYLim(corpus);
         
         textPanel = new TextPanel();
-//        textPanel.scrollpane.setMinimumSize(new Dimension(rightwidth-10,300));
-        
 		DockController controller = new DockController();
 		SplitDockStation station = new SplitDockStation();
 		controller.add(station);
-
+		
 		SplitDockGrid grid = new SplitDockGrid();
 
-		grid.addDockable(0,0,   1,10, new DefaultDockable("Pinned terms") {{ add(pinnedWrapper); }});
-		grid.addDockable(0,10,   1,5, new DefaultDockable("Frequency control") {{ add(termfilterPanel); }});
-		grid.addDockable(0,15, 1,20, new DefaultDockable("Covariate-associated terms") {{ add(docdrivenWrapper); }});
-		grid.addDockable(0,35, 1,20, new DefaultDockable("Term-associated terms") {{ add(termdrivenWrapper); }});
+//		double x=0.5, rx=1-0.5;
+		double x=1, rx=1;
+		grid.addDockable(0,0,   x,10, new DefaultDockable("Pinned terms") {{ add(pinnedWrapper); }});
+		grid.addDockable(0,10,   x,5, new DefaultDockable("Frequency control") {{ add(termfilterPanel); }});
+		grid.addDockable(0,15, x,20, new DefaultDockable("Covariate-associated terms") {{ add(docdrivenWrapper); }});
+		grid.addDockable(0,35, x,20, new DefaultDockable("Term-associated terms") {{ add(termdrivenWrapper); }});
 		
-		grid.addDockable(1,0, 1,5, new DefaultDockable("Query info") {{ add(queryInfo); }});
-		grid.addDockable(1,10, 1,15, new DefaultDockable("Covariate view") {{ add(brushPanel); }});
-		grid.addDockable(1,25, 1,20, new DefaultDockable("Text view") {{ add(textPanel.top()); }});
+		grid.addDockable(x,0, rx,5, new DefaultDockable("Query info") {{ add(queryInfo); }});
+		grid.addDockable(x,10, rx,15, new DefaultDockable("Covariate view") {{ add(brushPanel); }});
+		grid.addDockable(x,25, rx,20, new DefaultDockable("Text view") {{ add(textPanel.top()); }});
 		
 		station.dropTree(grid.toTree());
 
         mainFrame = new JFrame("Text Explorer Tool");
 		mainFrame.add(station.getComponent());
-		mainFrame.setBounds(20,20, 800,600);
+		mainFrame.pack();
+		mainFrame.setBounds(20,20, 800,550);
         mainFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
         ToolTipManager.sharedInstance().setDismissDelay((int) 1e6);
