@@ -279,11 +279,11 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 		Collections.sort(points, Comparator
 				.comparingInt((MyPoint p) -> p.isTermquery1Selected ? 1:0)
 				.thenComparingInt((MyPoint p) -> p.isDocquerySelected ? 1:0)
-				);
+		);
 		
 		for (int i=0; i<points.size(); i++) {
 			MyPoint mp = points.get(i);
-			Color c = mp.isTermquery1Selected ? Color.red :
+			Color c = mp.isTermquery1Selected ? GUtil.Dark2[0] :
 							mp.isDocquerySelected ? Color.black : 
 							Color.gray;
 			g.setColor(c);

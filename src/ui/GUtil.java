@@ -1,5 +1,6 @@
 package ui;
 
+import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics2D;
 import java.awt.geom.Ellipse2D;
@@ -13,10 +14,22 @@ import java.util.Set;
 import util.U;
 
 public class GUtil {
-	
-    public static void drawLine(Graphics2D g, double x1, double y1, double x2, double y2) {
-    	g.drawLine( (int) x1, (int) y1, (int) x2, (int) y2);
-    }
+
+	/** Dark2 from http://colorbrewer2.org/ http://blog.mollietaylor.com/2012/10/color-blindness-and-palette-choice.html */
+	public static Color[] Dark2 = new Color[] {
+			new Color(27,158,119),
+			new Color(217,95,2),
+			new Color(117,112,179),
+			new Color(231,41,138),
+			new Color(102,166,30),
+			new Color(230,171,2),
+			new Color(166,118,29),
+			new Color(102,102,102)
+	};
+
+	public static void drawLine(Graphics2D g, double x1, double y1, double x2, double y2) {
+		g.drawLine( (int) x1, (int) y1, (int) x2, (int) y2);
+	}
 
 	/** 
 	 * centered: adjx,adjy = (0,0)
@@ -28,10 +41,10 @@ public class GUtil {
 	 * i'm not sure that top/bottom alignment are working correctly
 	 */
 	public static void drawCenteredString(Graphics2D g, String s, double x, double y, double adjx, double adjy) {
-        Rectangle2D r = g.getFontMetrics().getStringBounds(s, g);
-        double finalx = x + r.getWidth() * (adjx-1)/2;
-        double finaly = y + r.getHeight() * (adjy+1)/2;
-        g.drawString(s, (float) finalx, (float) finaly); 
+		Rectangle2D r = g.getFontMetrics().getStringBounds(s, g);
+		double finalx = x + r.getWidth() * (adjx-1)/2;
+		double finaly = y + r.getHeight() * (adjy+1)/2;
+		g.drawString(s, (float) finalx, (float) finaly); 
 	}
 
 	public static void drawCenteredCircle(Graphics2D g, int x, int y, int radius, boolean fill) {
@@ -60,7 +73,7 @@ public class GUtil {
 			g.drawPolygon(xs,ys,xs.length);
 		}
 	}
-	
+
 	static boolean isInteger(double x) {
 		return Math.abs(x - Math.round(x)) < 1e-100;
 	}
@@ -84,7 +97,7 @@ public class GUtil {
 		}
 		return ret;
 	}
-	
+
 	public static List<Double> logGrid1s(double min, double max) {
 		assert min <= max;
 		List<Double> ret = new ArrayList<>();
@@ -103,12 +116,12 @@ public class GUtil {
 		}
 		return ret;
 	}
-	
-//	public static void main(String[] args) {
-//		U.p(logGrid125( Double.parseDouble(args[0]), Double.parseDouble(args[1]) ));
-//		U.p(logGrid1s( Double.parseDouble(args[0]), Double.parseDouble(args[1]) ));
-//	}
-	
+
+	//	public static void main(String[] args) {
+	//		U.p(logGrid125( Double.parseDouble(args[0]), Double.parseDouble(args[1]) ));
+	//		U.p(logGrid1s( Double.parseDouble(args[0]), Double.parseDouble(args[1]) ));
+	//	}
+
 	public static String commaize(int x) {
 		if (Math.abs(x) < 1e4) return U.sf("%d", x);
 		return NumberFormat.getNumberInstance(Locale.US).format(x);	
@@ -117,9 +130,9 @@ public class GUtil {
 		if (Math.abs(x) < 1e4) return U.sf("%f", x);
 		return NumberFormat.getNumberInstance(Locale.US).format(x);	
 	}
-	
+
 	public static double getRenderedTextWidth(Graphics2D g, String text) { 
 		return g.getFontMetrics().stringWidth(text);
 	}
-	
+
 }

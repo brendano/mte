@@ -1,5 +1,6 @@
 package ui;
 
+import java.awt.Color;
 import java.awt.Component;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -32,7 +33,6 @@ public class TermTable {
 //			}
 //		};
 		scrollpane = new JScrollPane(table);
-
 	}
 
 	List<String> getSelectedTerms() {
@@ -44,6 +44,7 @@ public class TermTable {
 	}
 
 	void setupTermTable() {
+		table.setSelectionBackground(GUtil.Dark2[0]);
 		table.setFillsViewportHeight(true);
 
 		TermCellRenderer centerRenderer = new TermCellRenderer();

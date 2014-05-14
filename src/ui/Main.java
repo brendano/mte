@@ -63,6 +63,7 @@ import d.Corpus;
 import d.DocSet;
 import d.Document;
 import d.Levels;
+import d.Levels.BadSchema;
 import d.NLP;
 import d.TermQuery;
 import d.TermVector;
@@ -102,7 +103,7 @@ public class Main implements QueryReceiver {
 	Supplier<Void> afteranalysisCallback = () -> null;
 	Supplier<Void> uiOverridesCallback = () -> null;
 
-	public void initData() throws JsonProcessingException, IOException {
+	public void initData() throws JsonProcessingException, IOException, BadSchema {
 		
 		corpus = Corpus.loadXY("/d/sotu/sotu.xy");
 		corpus.loadNLP("/d/sotu/sotu.ner");
@@ -111,8 +112,8 @@ public class Main implements QueryReceiver {
 //		NLP.NgramAnalyzer da = new NLP.NgramAnalyzer() {{ order=1; stopwordFilter=true; posnerFilter=true; }};
 //		NLP.NgramAnalyzer da = new NLP.NgramAnalyzer() {{ order=5; stopwordFilter=true; posnerFilter=true; }};
 		uiOverridesCallback = () -> {
-	      brushPanel.minUserY = -2;
-	      brushPanel.maxUserY = -brushPanel.minUserY;
+	      brushPanel.minUserY = -1;
+	      brushPanel.maxUserY = 2;
 	      return null;
 		};
 		
@@ -146,6 +147,8 @@ public class Main implements QueryReceiver {
 //		corpus.loadLevels("/d/bible/schema.json");
 //		corpus.runTokenizer(NLP::stanfordTokenize);
 //		NLP.DocAnalyzer da = new NLP.UnigramAnalyzer();
+////		NLP.NgramAnalyzer da = new NLP.NgramAnalyzer();
+////		da.order = 3; da.posnerFilter=false; da.stopwordFilter=true;
 //		uiOverridesCallback = () -> { 
 //		      brushPanel.minUserY = -1;
 //		      brushPanel.maxUserY = 66;
@@ -454,7 +457,7 @@ public class Main implements QueryReceiver {
         tcSpinner.addChangeListener(e -> refreshDocdrivenTermList());
 	}
 	
-	public static void main(String[] args) throws IOException {
+	public static void main(String[] args) throws IOException, BadSchema {
 		final Main main = new Main();
 		main.initData();
 		SwingUtilities.invokeLater(() -> {
