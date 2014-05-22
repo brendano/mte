@@ -1,9 +1,11 @@
 MiTextExplorer
 ==============
 
+Website: **[brenocon.com/te](http://brenocon.com/te)**
+
 This is a tool that allows interactive exploration of text and document covariates.
 See [the paper](http://brenocon.com/oconnor.mitextexplorer.illvi2014.pdf) for information.
-Currently, an experimental system is available. Contact brenocon@gmail.com ([http://brenocon.com](http://brenocon.com)) with questions.
+Currently, an experimental system is available. Contact brenocon@gmail.com ([http://brenocon.com](http://brenocon.com)) with questions.  
 
 How to run
 ==========
@@ -78,13 +80,12 @@ Dependencies have to be placed in `lib/` for `./build.sh` to work.
 For development in an IDE, I just manually add them to the build path.
 I've placed a copy of them here: [te-deps.zip](http://brenocon.com/te/te-deps.zip).
 The dependencies are currently:
-```
-config-1.2.1.jar
-docking-frames-common.jar
-docking-frames-core.jar
-guava-13.0.1.jar
-jackson-all-1.9.11.jar
-myutil.jar
-stanford-corenlp-3.2.0.jar
-trove-3.0.3.jar
-```
+
+    config-1.2.1.jar
+    docking-frames-common.jar
+    docking-frames-core.jar
+    guava-13.0.1.jar
+    jackson-all-1.9.11.jar
+    myutil.jar
+    stanford-corenlp-3.2.0.jar
+    trove-3.0.3.jar
