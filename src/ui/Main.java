@@ -110,6 +110,7 @@ public class Main implements QueryReceiver {
 	Supplier<Void> uiOverridesCallback = () -> null;
 
 	public void initWithCode() throws JsonProcessingException, IOException, BadSchema {
+		// the stuff in here is all half-broken
 		
 //		corpus = Corpus.loadXY("/d/sotu/sotu.xy");
 		corpus = null;
@@ -164,17 +165,18 @@ public class Main implements QueryReceiver {
 //		      return null;
 //		};
 
-		finalizeAfterConfig();
+		finalizeCorpusAnalysisAfterConfiguration();
 	}
 
 	void uiOverrides() {
 		uiOverridesCallback.get();
 	}
 	
-	void finalizeAfterConfig() {
+	void finalizeCorpusAnalysisAfterConfiguration() {
 		if (corpus.needsCovariateTypeConversion) {
 			corpus.convertCovariateTypes();	
 		}
+		corpus.calculateCovariateSummaries();
 		for (Document doc : corpus.docsById.values()) {
 			NLP.analyzeDocument(da, doc);	
 		}
@@ -523,8 +525,10 @@ public class Main implements QueryReceiver {
 		}
 		else {
 			Configuration.initWithConfig(main, args[0]);
-			main.finalizeAfterConfig();
+			main.finalizeCorpusAnalysisAfterConfiguration();
 		}
+
+
 		SwingUtilities.invokeLater(() -> {
 			main.setupUI();
 			main.uiOverrides();

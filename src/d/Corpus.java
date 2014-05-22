@@ -20,18 +20,20 @@ import util.U;
 
 public class Corpus {
 	public Map<String,Document> docsById;
+	List<Document> docsInOriginalOrder;
 	public TermVector globalTerms;
 	InvertedIndex index;
 //	SpatialIndex hierIndex;
 //	DoubleSummaryStatistics xSummary, ySummary;
 	public Schema schema;
-	
+	public Map<String,SummaryStats> covariateSummaries;
 	double doclenSumSq = 0;
 	public boolean needsCovariateTypeConversion = false;
 	
 	public Corpus() {
 		docsById = new HashMap<>();
 		index = new InvertedIndex();
+		docsInOriginalOrder = new ArrayList<>();
 	}
 	
 	public void loadSchema(String filename) throws FileNotFoundException, BadSchema {
@@ -40,7 +42,8 @@ public class Corpus {
 	}
 	
 	public Collection<Document> allDocs() {
-		return docsById.values();
+//		return docsById.values();
+		return docsInOriginalOrder;
 	}
 	
 	/** sum_d n_d n_dw ... todo, cache here */ 
@@ -73,21 +76,10 @@ public class Corpus {
 		return naiveSelect(xAttr, yAttr, minX, maxX, minY, maxY);
 	}
 	
-//	/** the format:
-//	 * 
-//	 * xvalue \t yvalue \t DocJSON
-//	 * 
-//	 */
-//	public void loadXY(String filename) {
-//		Corpus c = this;
-//		for (Document d : Document.loadXY(filename)) {
-//			assert ! c.docsById.containsKey(d.docid) : "nonunique docid: " + d.docid;
-//			c.docsById.put(d.docid, d);
-//		}
-//	}
 	public void loadJson(String filename) throws BadData, IOException {
 		for (Document d : Document.loadJson(filename)) {
 			docsById.put(d.docid, d);
+			docsInOriginalOrder.add(d);
 		}
 	}
 	public void runTokenizer(Function<String,List<Token>> tokenizer) {
@@ -144,13 +136,24 @@ public class Corpus {
 		return ret;
 	}
 
+	public void calculateCovariateSummaries() {
+		covariateSummaries = new HashMap<>();
+		for (String k : schema.varnames()) covariateSummaries.put(k, new SummaryStats());
+		for (Document d : allDocs()) {
+			for (String varname : schema.varnames()) {
+				if (!d.covariates.containsKey(varname)) continue;
+				covariateSummaries.get(varname).add((Double) schema.getDouble(d, varname));
+			}
+		}
+		U.p("Covariate summary stats: " + covariateSummaries);
+	}
+	
 	public void convertCovariateTypes() {
 		for (Document d : allDocs()) {
 			for (String varname : schema.columnTypes.keySet()) {
 				if (!d.covariates.containsKey(varname)) continue;
 				ColumnInfo ci = schema.columnTypes.get(varname);
 				Object converted = schema.columnTypes.get(varname).convertFromJson( (JsonNode) d.covariates.get(varname) );
-//				U.p(converted + " || " + converted.getClass());
 				d.covariates.put(varname, converted);
 				if (ci.dataType==DataType.CATEG && !ci.levels.name2level.containsKey(converted)) {
 					ci.levels.addLevel((String) converted);

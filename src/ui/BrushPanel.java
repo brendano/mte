@@ -59,6 +59,9 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 	int marTop = 20;
 	int marRight = 20;
 	int tickSize = 5;
+
+	double largerTickMultiplier = 1.6;
+	double tickLabelOffset = 2.0;
 	
 	Brush brush = null;
 	List<MyPoint> points;
@@ -297,7 +300,6 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 			else {
 				GUtil.drawCenteredCircle(g, p.x, p.y, 6, mp.isTermquery1Selected);
 			}
-			
 		}
 		renderBrush(g);
 	}
@@ -314,16 +316,13 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 
 
 	
-	double largerTickMultiplier = 1.6;
-	double tickLabelOffset = 2.0;
-	
 	void drawAxes(Graphics2D g) {
 		double aa = tickLabelOffset;
 		double bb = largerTickMultiplier;
 		drawRect(g, minPhysX, minPhysY, maxPhysX-minPhysX, maxPhysY-minPhysY);
-		for (double x=xtickMin(); x<=xtickMax(); x+=xtickDelta()) {
-			g.drawLine((int)x_u2p(x), (int)(maxPhysY+tickSize), (int)x_u2p(x), (int)maxPhysY );
-		}
+//		for (double x=xtickMin(); x<=xtickMax(); x+=xtickDelta()) {
+//			g.drawLine((int)x_u2p(x), (int)(maxPhysY+tickSize), (int)x_u2p(x), (int)maxPhysY );
+//		}
 		for (double x : xtickPositions()) {
 			GUtil.drawCenteredString(g, renderXtick(x), x_u2p(x), maxPhysY+aa*tickSize, 0, 1);
 			GUtil.drawLine(g, x_u2p(x), maxPhysY+bb*tickSize, x_u2p(x), maxPhysY);
@@ -336,8 +335,15 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 	
 	List<Double> xtickPositions() {
 		List<Double> ret = new ArrayList<>();
-		for (double x=xtickMin(); x<=xtickMax(); x+=xlabelDelta()) {
-			ret.add(x);
+		if (schema.column(xattr).isCateg()) {
+			for (Level lev : schema.column(xattr).levels.levels()) {
+				ret.add( (double) lev.number);
+			}
+		}
+		else {
+			for (double x=xtickMin(); x<=xtickMax(); x+=xlabelDelta()) {
+				ret.add(x);
+			}
 		}
 		return ret;
 	}
@@ -365,14 +371,11 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 		return schema.getDouble(d, yattr);
 	}
 	public void setDefaultXYLim(Corpus corpus) {
-		double xmin=Double.POSITIVE_INFINITY,xmax=Double.NEGATIVE_INFINITY;
-		double ymin=Double.POSITIVE_INFINITY,ymax=Double.NEGATIVE_INFINITY;
-		for (Document d : corpus.allDocs()) {
-			if (x(d) < xmin) xmin=x(d);
-			if (x(d) > xmax) xmax=x(d);
-			if (y(d) < ymin) ymin=y(d);
-			if (y(d) > ymax) ymax=y(d);
-		}
+		double 
+			xmin = corpus.covariateSummaries.get(xattr).min(),
+			xmax = corpus.covariateSummaries.get(xattr).max(),
+			ymin = corpus.covariateSummaries.get(yattr).min(),
+			ymax = corpus.covariateSummaries.get(yattr).max();
 		double scale;
 		scale = ymax-ymin;
 		minUserY = ymin - scale*scaleMult;
@@ -382,22 +385,32 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 		maxUserX = xmax + scale*scaleMult;
 	}
 
-	String renderXtick(double ux) {
-		return U.sf("%.0f",ux);
-	}
 	boolean isIntegral(double x) {
 		int rounded = (int) Math.round(x);
 		return Math.abs(rounded-x) < 1e-100;
 	}
 	String renderYtick(double uy) {
-		if (schema.column(yattr).isCateg() && isIntegral(uy)) {
-			int i = (int) Math.round(uy);
-			if (schema.column(yattr).levels.num2level.containsKey(i)) {
-				return schema.column(yattr).levels.num2level.get(i).displayName();
-			}
-		}
-		return U.sf("%.0f", uy);	
+		return tickText(yattr, uy);
 	}
+	String renderXtick(double ux) {
+		return tickText(xattr, ux);
+	}
+	String tickText(String attr, double userspaceValue) {
+		if (schema.column(attr).isCateg()) {
+			assert isIntegral(userspaceValue) : "this needs to be rounded for categ variable: " + userspaceValue;
+			int i = (int) Math.round(userspaceValue);
+			assert schema.column(attr).levels.num2level.containsKey(i) : "weird rounding issue for categ variable: " + userspaceValue;
+			return schema.column(attr).levels.num2level.get(i).displayName();
+		}
+		else {
+			return reasonableNumericRounding(attr, userspaceValue);
+		}
+	}
+	
+	String reasonableNumericRounding(String attr, double userspaceValue) {
+		return U.sf("%.0f", userspaceValue);
+	}
+
 	double xtickMin() {
 		return minUserX;
 	}
@@ -407,13 +420,24 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 	double xtickDelta() {
 		double range = xtickMax() - xtickMin();
 		double d1 = range/32;
-		return Math.round(d1);
-//		return 1;
+		return niceTickAmount(d1);
+	}
+	double ytickDelta() {
+		double range = ytickMax() - ytickMin();
+		return niceTickAmount(range/8);
 	}
 	double xlabelDelta() {
 		double range = xtickMax() - xtickMin();
-		double d1 = range/8;
-		return Math.round(d1);
+		return niceTickAmount(range/6);
+	}
+
+	double niceTickAmount(double ticksize) {
+		if (Math.abs(ticksize) > 1) {
+			return Math.round(ticksize);	
+		}
+		else {
+			return ticksize;
+		}
 	}
 	double ytickMin() {
 		return minUserY;
@@ -423,10 +447,7 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 		return maxUserY;
 //		return rounddown(maxUserY, ytickDelta());
 	}
-	double ytickDelta() {
-		double range = ytickMax() - ytickMin();
-		return Math.round(range/8);
-	}
+
 	double roundup(double x, double granularity) {
 		return Math.ceil(x/granularity)*granularity;
 	}

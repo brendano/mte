@@ -17,6 +17,8 @@ import util.U;
 public class Schema {
 	public Map<String,ColumnInfo> columnTypes = new HashMap<>();
 	
+	public Set<String> varnames() { return columnTypes.keySet(); }
+	
 	public ColumnInfo column(String varname) {
 		return columnTypes.get(varname);
 	}
@@ -89,7 +91,6 @@ public class Schema {
 	
 	@SuppressWarnings("unchecked")
 	public void loadSchemaFromFile(String schemaFile) throws BadSchema {
-		U.p("file " + schemaFile);
 		Config conf = ConfigFactory.parseFile(new File(schemaFile));
 		if (conf.entrySet().size()==0) throw new BadSchema("Empty schema");
 		U.p("Schema config: " + conf);
