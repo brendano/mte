@@ -12,7 +12,7 @@ import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
 import d.Schema;
-import d.Schema.BadSchema;
+import exceptions.BadSchema;
 import exceptions.BadConfig;
 import exceptions.BadData;
 

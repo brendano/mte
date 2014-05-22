@@ -3,6 +3,8 @@ package d;
 import java.io.File;
 import java.util.*;
 
+import exceptions.BadSchema;
+
 import org.codehaus.jackson.JsonNode;
 
 import com.typesafe.config.Config;
@@ -83,12 +85,6 @@ public class Schema {
 				return null;
 			}
 		}
-	}
-	
-	public static class BadSchema extends Exception {
-	    public BadSchema(String message) {
-	        super(message);
-	    }
 	}
 	
 	@SuppressWarnings("unchecked")

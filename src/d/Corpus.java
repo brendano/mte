@@ -13,6 +13,7 @@ import org.codehaus.jackson.JsonProcessingException;
 import d.Schema.ColumnInfo;
 import d.Schema.DataType;
 import exceptions.BadData;
+import exceptions.BadSchema;
 import util.BasicFileIO;
 import util.JsonUtil;
 import util.U;
@@ -33,7 +34,7 @@ public class Corpus {
 		index = new InvertedIndex();
 	}
 	
-	public void loadSchema(String filename) throws FileNotFoundException, d.Schema.BadSchema {
+	public void loadSchema(String filename) throws FileNotFoundException, BadSchema {
 		schema = new Schema();
 		schema.loadSchemaFromFile(filename);
 	}

@@ -14,7 +14,7 @@ import org.codehaus.jackson.JsonProcessingException;
 
 import com.google.common.collect.Lists;
 
-import d.Schema.BadSchema;
+import exceptions.BadSchema;
 import ui.Main;
 import util.Arr;
 import util.U;

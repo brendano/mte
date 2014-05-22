@@ -65,7 +65,7 @@ import d.Corpus;
 import d.DocSet;
 import d.Document;
 import d.Schema.Levels;
-import d.Schema.BadSchema;
+import exceptions.BadSchema;
 import d.NLP;
 import d.TermQuery;
 import d.TermVector;
