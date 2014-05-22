@@ -511,11 +511,11 @@ public class Main implements QueryReceiver {
 	}
 	
 	static void usage() {
-		System.out.println("Usage:  Main ConfigFilename");
+		System.out.println("Usage:  Launch ConfigFilename");
 		System.exit(1);
 	}
 	
-	public static void main(String[] args) throws IOException, BadSchema, BadConfig {
+	public static void myMain(String[] args) throws IOException, BadSchema, BadConfig {
 		final Main main = new Main();
 		if (args.length < 1) usage();
 		if (args[0].equals("--debug")) {
