@@ -1,6 +1,7 @@
 package d;
 
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -18,7 +19,6 @@ import edu.stanford.nlp.pipeline.StanfordCoreNLP;
 import edu.stanford.nlp.util.CoreMap;
 
 public class NLP {
-	
 	static StanfordCoreNLP stPipeline() {
 		if (_stPipeline == null) {
 		    Properties props = new Properties();

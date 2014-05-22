@@ -97,10 +97,11 @@ public class Schema {
 		Config conf = ConfigFactory.parseFile(new File(schemaFile));
 		if (conf.entrySet().size()==0) throw new BadSchema("Empty schema");
 		U.p("Schema config: " + conf);
-		for (Map.Entry<String,ConfigValue> e : conf.entrySet()) {
+		for (Map.Entry<String,ConfigValue> e : conf.root().entrySet()) {
 			String attrname = e.getKey();
 			String type = null;
 			ColumnInfo ci;
+//			U.p(e.getKey() + " || " + e.getValue());
 			if (e.getValue().valueType() == ConfigValueType.STRING) {
 				type = (String) e.getValue().unwrapped();
 				ci = new ColumnInfo(type);

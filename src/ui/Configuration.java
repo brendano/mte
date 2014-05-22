@@ -11,9 +11,12 @@ import util.U;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
-import d.BadData;
 import d.Schema;
 import d.Schema.BadSchema;
+import exceptions.BadConfig;
+import exceptions.BadData;
+
+import d.NLP;
 
 public class Configuration {
 
@@ -32,10 +35,6 @@ public class Configuration {
 		return new File(f).isAbsolute();
 	}
 	
-	public static void main(String args[]) throws JsonProcessingException, IOException {
-		initWithConfig(null, args[0]);
-	}
-	
 	static String resolvePath(String dirOfConfFile, String pathInConfFile) {
 		if (isAbsolute(pathInConfFile)) {
 			return pathInConfFile;
@@ -45,7 +44,7 @@ public class Configuration {
 		}
 	}
 	
-	public static void initWithConfig(Main main, String filename) throws JsonProcessingException, IOException {
+	public static void initWithConfig(Main main, String filename) throws JsonProcessingException, IOException, BadConfig, BadSchema {
 		String dirOfConfFile = dirname(filename);
 		File f = new File(filename);
 		Config conf = ConfigFactory.parseFile(f);
@@ -71,15 +70,21 @@ public class Configuration {
 		}
 		if (conf.hasPath("schema")) {
 			main.corpus.schema = new Schema();
-			try {
-				String p = resolvePath(dirOfConfFile, conf.getString("schema"));
-				main.corpus.schema.loadSchemaFromFile(p);
-			} catch (BadSchema e) {
-				e.printStackTrace();
-			}
+			String p = resolvePath(dirOfConfFile, conf.getString("schema"));
+			main.corpus.schema.loadSchemaFromFile(p);
 		}
 		if (conf.hasPath("nlp_file")) {
 			main.corpus.loadNLP(resolve.apply(conf.getString("nlp_file")));
+		}
+		if (conf.hasPath("tokenizer")) {
+			if (conf.hasPath("nlp_file")) throw new BadConfig("shouldn't specify both tokenizer and nlp_file");
+			String tname = conf.getString("tokenizer");
+			if (tname.equals("SimpleTokenizer")) {
+				main.corpus.runTokenizer(NLP::simpleTokenize);
+			} else if (tname.equals("StanfordTokenizer")) {
+				main.corpus.runTokenizer(NLP::stanfordTokenize);
+			}
+			else throw new BadConfig("Unknown tokenizer: " + tname);
 		}
 	}
 

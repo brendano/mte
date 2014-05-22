@@ -12,6 +12,7 @@ import org.codehaus.jackson.JsonProcessingException;
 
 import d.Schema.ColumnInfo;
 import d.Schema.DataType;
+import exceptions.BadData;
 import util.BasicFileIO;
 import util.JsonUtil;
 import util.U;
@@ -148,9 +149,8 @@ public class Corpus {
 				if (!d.covariates.containsKey(varname)) continue;
 				ColumnInfo ci = schema.columnTypes.get(varname);
 				Object converted = schema.columnTypes.get(varname).convertFromJson( (JsonNode) d.covariates.get(varname) );
-				U.p(converted + " || " + converted.getClass());
+//				U.p(converted + " || " + converted.getClass());
 				d.covariates.put(varname, converted);
-				
 				if (ci.dataType==DataType.CATEG && !ci.levels.name2level.containsKey(converted)) {
 					ci.levels.addLevel((String) converted);
 				}

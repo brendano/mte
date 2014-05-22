@@ -70,6 +70,7 @@ import d.NLP;
 import d.TermQuery;
 import d.TermVector;
 import edu.stanford.nlp.util.StringUtils;
+import exceptions.BadConfig;
 
 interface QueryReceiver {
 	public void receiveQuery(Collection<String> docids);
@@ -514,7 +515,7 @@ public class Main implements QueryReceiver {
 		System.exit(1);
 	}
 	
-	public static void main(String[] args) throws IOException, BadSchema {
+	public static void main(String[] args) throws IOException, BadSchema, BadConfig {
 		final Main main = new Main();
 		if (args.length < 1) usage();
 		if (args[0].equals("--debug")) {
