@@ -32,7 +32,7 @@ There are two mandatory keys:
 Other keys in the JSON object are covariates.
 They have to be listed in `schema.conf` to be used.
 
-TODO: covariates in separate file, and in CSV...
+TODO: covariates in separate file and CSV
 
 Configuration options
 =====================
@@ -41,6 +41,7 @@ The examples are set up with two config files,
 
   * `config.conf`: controls the application
   * `schema.conf`: describes the covariates (metadata variables). Currently, you have to specify all of them. (TODO, automatic detection)
+  
 
 The application is launched by giving it the full path to the main config file.
 For an example to adapt to your own data, start with bible/config.conf.
@@ -66,3 +67,24 @@ In `schema.conf`, every key is the name of a covariate, and the type is given.  
 
 The format for the config files is a lax form of JSON, described [here](https://github.com/typesafehub/config/blob/master/HOCON.md).  Any legal JSON can be used for the config file; it has a few niceties like being able to sometimes skip quoting, and leaving off commas when using a separate line per entry.  The comment character is `#`.
 
+Source code
+===========
+
+License is GPL v2.  I'd be happy to do BSD/MIT or something, but the software uses some GPL'd libraries which I find convenient.  
+
+Code is at [github.com/brendano/te](github.com/brendano/te).
+
+Dependencies have to be placed in `lib/` for `./build.sh` to work.
+For development in an IDE, I just manually add them to the build path.
+I've placed a copy of them here: [te-deps.zip](http://brenocon.com/te/te-deps.zip).
+The dependencies are currently:
+```
+config-1.2.1.jar
+docking-frames-common.jar
+docking-frames-core.jar
+guava-13.0.1.jar
+jackson-all-1.9.11.jar
+myutil.jar
+stanford-corenlp-3.2.0.jar
+trove-3.0.3.jar
+```
