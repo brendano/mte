@@ -28,14 +28,19 @@ import javax.swing.*;
 
 import d.Corpus;
 import d.Document;
-import d.Levels;
-import d.Levels.Level;
+import d.Schema;
+import d.Schema.Levels;
+import d.Schema.Levels.Level;
 import d.TermQuery;
 import util.U;
+
 import java.util.Comparator;
 
 @SuppressWarnings("serial")
 public class BrushPanel extends JPanel implements MouseListener, MouseMotionListener {
+	
+	String xattr, yattr;
+	Schema schema;
 	
 	// (meta)data value space
 	double minUserX=1984;
@@ -71,10 +76,10 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 		boolean isTermquery2Selected = false;
 	
 		public int physX() {
-			return (int) x_u2p(doc.x);
+			return (int) x_u2p(doc.getDouble(xattr));
 		}
 		public int physY() {
-			return (int) y_u2p(doc.y);
+			return (int) y_u2p(doc.getDouble(yattr));
 		}
 		public Point physPoint() {
 			return new Point(physX(), physY());
@@ -355,14 +360,20 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 	
 	double scaleMult = 0.1;
 	
+	double x(Document d) {
+		return d.getDouble(xattr);
+	}
+	double y(Document d) {
+		return d.getDouble(yattr);
+	}
 	public void setDefaultXYLim(Corpus corpus) {
 		double xmin=Double.POSITIVE_INFINITY,xmax=Double.NEGATIVE_INFINITY;
 		double ymin=Double.POSITIVE_INFINITY,ymax=Double.NEGATIVE_INFINITY;
 		for (Document d : corpus.allDocs()) {
-			if (d.x < xmin) xmin=d.x;
-			if (d.x > xmax) xmax=d.x;
-			if (d.y < ymin) ymin=d.y;
-			if (d.y > ymax) ymax=d.y;
+			if (x(d) < xmin) xmin=x(d);
+			if (x(d) > xmax) xmax=x(d);
+			if (y(d) < ymin) ymin=y(d);
+			if (y(d) > ymax) ymax=y(d);
 		}
 		double scale;
 		scale = ymax-ymin;

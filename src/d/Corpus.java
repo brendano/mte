@@ -10,7 +10,6 @@ import java.util.stream.Stream;
 import org.codehaus.jackson.JsonNode;
 import org.codehaus.jackson.JsonProcessingException;
 
-import d.Levels.BadSchema;
 import util.BasicFileIO;
 import util.JsonUtil;
 import util.U;
@@ -19,9 +18,9 @@ public class Corpus {
 	public Map<String,Document> docsById;
 	public TermVector globalTerms;
 	InvertedIndex index;
-	SpatialIndex hierIndex;
-	DoubleSummaryStatistics xSummary, ySummary;
-	public Levels yLevels;
+//	SpatialIndex hierIndex;
+//	DoubleSummaryStatistics xSummary, ySummary;
+	public Schema schema;
 	
 	double doclenSumSq = 0;
 	
@@ -30,9 +29,9 @@ public class Corpus {
 		index = new InvertedIndex();
 	}
 	
-	public void loadLevels(String filename) throws FileNotFoundException, BadSchema {
-		yLevels = new Levels();
-		yLevels.loadJSON(JsonUtil.readJsonNX( BasicFileIO.readFile(filename) ));
+	public void loadSchema(String filename) throws FileNotFoundException, d.Schema.BadSchema {
+		schema = new Schema();
+		schema.loadSchemaFromFile(filename);
 	}
 	
 	public Collection<Document> allDocs() {
@@ -53,23 +52,35 @@ public class Corpus {
 		return ds;
 	}
 	
-	public DocSet naiveSelect(int minX, int maxX, int minY, int maxY) {
+	public DocSet naiveSelect(String xAttr, String yAttr, int minX, int maxX, int minY, int maxY) {
 		DocSet ds = new DocSet();
 		docsById.values().stream()
-			.filter(d ->d.x >= minX && d.x <= maxX && d.y>=minY && d.y<=maxY)
+			.filter(d -> 
+				d.getDouble(xAttr) >= minX && 
+				d.getDouble(xAttr) <= maxX &&
+				d.getDouble(yAttr) >=minY && 
+				d.getDouble(yAttr) <=maxY)
 			.forEach(d -> ds.add(d));
 		return ds;
 	}
-	public DocSet select(int minX, int maxX, int minY, int maxY) {
-		return naiveSelect(minX, maxX, minY, maxY);
+	
+	public DocSet select(String xAttr, String yAttr, int minX, int maxX, int minY, int maxY) {
+		return naiveSelect(xAttr, yAttr, minX, maxX, minY, maxY);
 	}
-	public static Corpus loadXY(String filename) {
-		Corpus c = new Corpus();
+	
+	/** the format:
+	 * 
+	 * xvalue \t yvalue \t DocJSON
+	 * 
+	 */
+	public void loadXY(String filename) {
+		Corpus c = this;
 		for (Document d : Document.loadXY(filename)) {
 			assert ! c.docsById.containsKey(d.docid) : "nonunique docid: " + d.docid;
 			c.docsById.put(d.docid, d);
 		}
-		return c;
+	}
+	public void loadJson(String filename) {
 	}
 	public void runTokenizer(Function<String,List<Token>> tokenizer) {
 		for (Document d : docsById.values()) {

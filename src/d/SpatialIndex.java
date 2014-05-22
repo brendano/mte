@@ -9,6 +9,7 @@ import util.U;
 public class SpatialIndex {
 	int bottomReso;
 	double xmin,xmax,ymin,ymax;
+	String xAttr, yAttr;
 	Cell root;
 	
 	public SpatialIndex(int n, double xmin, double xmax, double ymin, double ymax) {
@@ -28,7 +29,7 @@ public class SpatialIndex {
 	}
 	public void doSpatialSums(Collection<Document> docs) {
 		for (Document d : docs) {
-			Cell c = root.children[celly(d.y)][cellx(d.x)];
+			Cell c = root.children[celly(d.getDouble(yAttr))][cellx(d.getDouble(xAttr))];
 			c.terms.addInPlace(d.termVec);
 			c.docs.add(d);
 		}
@@ -63,7 +64,7 @@ public class SpatialIndex {
 			if (!isGoodCellX(cellpoint.x)) continue;
 			if (!isGoodCellY(cellpoint.y)) continue;
 			for (Document d : root.children[cellpoint.y][cellpoint.x].docs) {
-				if (contains(d.x,d.y,  qx1,qx2, qy1,qy2)) {
+				if (contains(d.getDouble(xAttr), d.getDouble(yAttr),  qx1,qx2, qy1,qy2)) {
 					result.addInPlace(d.termVec);
 				}
 			}

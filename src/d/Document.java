@@ -9,6 +9,7 @@ import org.codehaus.jackson.JsonNode;
 import org.codehaus.jackson.JsonProcessingException;
 
 import com.google.common.collect.DiscreteDomains;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Ranges;
 
@@ -26,13 +27,73 @@ import util.U;
 
 public class Document {
 	public String docid;
-	public double x;
-	public double y;
+//	public double x;
+//	public double y;
+	public Map<String,Object> covariates;
 	public String text;
 	public List<Token> tokens;
 	public TermVector termVec;
 	public Map<Integer, List<TermInstance>> tisByStartTokindex; // not filled in until preanalysis stage
 	
+	public Document() {
+		covariates = new HashMap<>();
+	}
+	
+	public double getDouble(String attr) {
+		Object val = covariates.get(attr);
+		assert val != null;
+		if (val instanceof Double || val instanceof Integer) {
+			return (Double) val;
+		}
+		else {
+			assert false : "schemafication TODO";
+			return -1;
+		}
+	}
+	
+	static Set<String> SPECIAL_FIELDS;
+	static {
+		SPECIAL_FIELDS = new HashSet<>();
+		SPECIAL_FIELDS.add("docid");
+		SPECIAL_FIELDS.add("id");
+		SPECIAL_FIELDS.add("text");
+	}
+	
+	/** returns the document, where covariate values are generic JsonNode objects. */
+	static List<Document> loadJson(String filename) throws BadData, IOException {
+		List<Document> ret = new ArrayList<>();
+		for (String line : BasicFileIO.openFileLines(filename)) {
+			String[] parts = line.split("\t");
+			String docstr = parts[parts.length-1];
+			
+			JsonNode j;
+			try {
+				j = JsonUtil.readJson(docstr);
+			} catch ( JsonProcessingException e) {
+				throw new BadData("invalid JSON: " + docstr);
+			}
+			
+			Document doc = loadDocFromJson(j);
+			ret.add(doc);
+		}
+		return ret;
+	}
+	
+	static Document loadDocFromJson(JsonNode j) throws BadData {
+		Document doc = new Document();
+		if (!(j.has("docid") || j.has("id")))
+			throw new BadData("all docs must have an 'id' or 'docid' attribute.");
+		JsonNode docidNode = j.has("docid") ? j.get("docid") : j.has("id") ? j.get("id") : null;
+		doc.docid = docidNode.getTextValue();
+		if (!j.has("text"))
+			throw new BadData("all docs must have a 'text' attribute");
+		doc.text = j.get("text").getTextValue();
+		for (String key : ImmutableList.copyOf(j.getFieldNames())) {
+			if (SPECIAL_FIELDS.contains(key)) continue;
+			doc.covariates.put(key, j.get(key));
+		}
+		return doc;
+	}
 	static List<Document> loadXY(String filename) {
 		
 		List<Document> ret = new ArrayList<>();
@@ -42,8 +103,8 @@ public class Document {
 				Document doc = new Document();
 
 				String[] parts = line.split("\t");
-				doc.x = Double.parseDouble(parts[0]);
-				doc.y = Double.parseDouble(parts[1]);
+				doc.covariates.put("x", Double.parseDouble(parts[0]));
+				doc.covariates.put("y", Double.parseDouble(parts[1]));
 				JsonNode j = JsonUtil.readJson(parts[2]);
 				
 				assert j.has("docid") || j.has("id") : "all docs must have a 'docid' or 'id' attribute.";

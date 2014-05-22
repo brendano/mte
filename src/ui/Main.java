@@ -64,8 +64,8 @@ import d.Analysis.TermvecComparison;
 import d.Corpus;
 import d.DocSet;
 import d.Document;
-import d.Levels;
-import d.Levels.BadSchema;
+import d.Schema.Levels;
+import d.Schema.BadSchema;
 import d.NLP;
 import d.TermQuery;
 import d.TermVector;
@@ -79,6 +79,8 @@ interface QueryReceiver {
 public class Main implements QueryReceiver {
 	public Corpus corpus;
 	public DocSet curDS = new DocSet();
+	
+	String xattr, yattr;
 
 	public List<String> docdrivenTerms = new ArrayList<>();
 	public List<String> pinnedTerms = new ArrayList<>();
@@ -105,11 +107,14 @@ public class Main implements QueryReceiver {
 	Supplier<Void> afteranalysisCallback = () -> null;
 	Supplier<Void> uiOverridesCallback = () -> null;
 
-	public void initData() throws JsonProcessingException, IOException, BadSchema {
+	public void initWithCode() throws JsonProcessingException, IOException, BadSchema {
 		
-		corpus = Corpus.loadXY("/d/sotu/sotu.xy");
+//		corpus = Corpus.loadXY("/d/sotu/sotu.xy");
+		corpus = null;
 		corpus.loadNLP("/d/sotu/sotu.ner");
-		corpus.loadLevels("/d/sotu/schema.json");
+		corpus.loadSchema("/d/sotu/schema.conf");
+		xattr = "year";
+		yattr = "party";
 		NLP.DocAnalyzer da = new NLP.UnigramAnalyzer();
 //		NLP.NgramAnalyzer da = new NLP.NgramAnalyzer() {{ order=1; stopwordFilter=true; posnerFilter=true; }};
 //		NLP.NgramAnalyzer da = new NLP.NgramAnalyzer() {{ order=5; stopwordFilter=true; posnerFilter=true; }};
@@ -419,7 +424,7 @@ public class Main implements QueryReceiver {
         };
 
         brushPanel = new BrushPanel(this, corpus.allDocs());
-        brushPanel.yLevels = corpus.yLevels;
+        brushPanel.schema = corpus.schema;
         brushPanel.setOpaque(true);
         brushPanel.setBackground(Color.white);
 //        brushPanel.setPreferredSize(new Dimension(rightwidth, 250));
@@ -494,9 +499,20 @@ public class Main implements QueryReceiver {
         tcSpinner.addChangeListener(e -> refreshDocdrivenTermList());
 	}
 	
+	static void usage() {
+		System.out.println("Usage:  Main ConfigFilename");
+		System.exit(1);
+	}
+	
 	public static void main(String[] args) throws IOException, BadSchema {
 		final Main main = new Main();
-		main.initData();
+		if (args.length < 1) usage();
+		if (args[0].equals("--debug")) {
+			main.initWithCode();	
+		}
+		else {
+			Configuration.initWithConfig(main, args[0]);
+		}
 		SwingUtilities.invokeLater(() -> {
 			main.setupUI();
 			main.uiOverrides();
