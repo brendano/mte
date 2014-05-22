@@ -67,8 +67,6 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 	
 	Color BRUSH_COLOR = new Color(61,56,240);
 	
-	public Levels yLevels;
-
 	class MyPoint {
 		Document doc;
 		boolean isDocquerySelected = false;
@@ -76,10 +74,10 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 		boolean isTermquery2Selected = false;
 	
 		public int physX() {
-			return (int) x_u2p(doc.getDouble(xattr));
+			return (int) x_u2p(schema.getDouble(doc, xattr));
 		}
 		public int physY() {
-			return (int) y_u2p(doc.getDouble(yattr));
+			return (int) y_u2p(schema.getDouble(doc, yattr));
 		}
 		public Point physPoint() {
 			return new Point(physX(), physY());
@@ -345,8 +343,8 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 	}
 	List<Double> ytickPositions() {
 		List<Double> ret = new ArrayList<>();
-		if (yLevels != null) {
-			for (Level lev : yLevels.levels()) {
+		if (schema.column(yattr).isCateg()) {
+			for (Level lev : schema.column(yattr).levels.levels()) {
 				ret.add( (double) lev.number);
 			}
 		}
@@ -361,10 +359,10 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 	double scaleMult = 0.1;
 	
 	double x(Document d) {
-		return d.getDouble(xattr);
+		return schema.getDouble(d, xattr);
 	}
 	double y(Document d) {
-		return d.getDouble(yattr);
+		return schema.getDouble(d, yattr);
 	}
 	public void setDefaultXYLim(Corpus corpus) {
 		double xmin=Double.POSITIVE_INFINITY,xmax=Double.NEGATIVE_INFINITY;
@@ -392,10 +390,10 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 		return Math.abs(rounded-x) < 1e-100;
 	}
 	String renderYtick(double uy) {
-		if (yLevels != null && isIntegral(uy)) {
+		if (schema.column(yattr).isCateg() && isIntegral(uy)) {
 			int i = (int) Math.round(uy);
-			if (yLevels.num2level.containsKey(i)) {
-				return yLevels.num2level.get(i).displayName();
+			if (schema.column(yattr).levels.num2level.containsKey(i)) {
+				return schema.column(yattr).levels.num2level.get(i).displayName();
 			}
 		}
 		return U.sf("%.0f", uy);	

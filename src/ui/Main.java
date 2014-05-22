@@ -77,7 +77,7 @@ interface QueryReceiver {
 
 @SuppressWarnings("serial")
 public class Main implements QueryReceiver {
-	public Corpus corpus;
+	public Corpus corpus = new Corpus();
 	public DocSet curDS = new DocSet();
 	
 	String xattr, yattr;
@@ -104,6 +104,7 @@ public class Main implements QueryReceiver {
 	InfoArea termtermDescription;
 //	private JButton killDocvarQuery;
 	
+	NLP.DocAnalyzer da = new NLP.UnigramAnalyzer();
 	Supplier<Void> afteranalysisCallback = () -> null;
 	Supplier<Void> uiOverridesCallback = () -> null;
 
@@ -115,7 +116,7 @@ public class Main implements QueryReceiver {
 		corpus.loadSchema("/d/sotu/schema.conf");
 		xattr = "year";
 		yattr = "party";
-		NLP.DocAnalyzer da = new NLP.UnigramAnalyzer();
+		da = new NLP.UnigramAnalyzer();
 //		NLP.NgramAnalyzer da = new NLP.NgramAnalyzer() {{ order=1; stopwordFilter=true; posnerFilter=true; }};
 //		NLP.NgramAnalyzer da = new NLP.NgramAnalyzer() {{ order=5; stopwordFilter=true; posnerFilter=true; }};
 		uiOverridesCallback = () -> {
@@ -162,15 +163,22 @@ public class Main implements QueryReceiver {
 //		      return null;
 //		};
 
+		finalizeAfterConfig();
+	}
+
+	void uiOverrides() {
+		uiOverridesCallback.get();
+	}
+	
+	void finalizeAfterConfig() {
+		if (corpus.needsCovariateTypeConversion) {
+			corpus.convertCovariateTypes();	
+		}
 		for (Document doc : corpus.docsById.values()) {
 			NLP.analyzeDocument(da, doc);	
 		}
 		afteranalysisCallback.get();
 		corpus.finalizeIndexing();
-	}
-
-	void uiOverrides() {
-		uiOverridesCallback.get();
 	}
 	
 	double getTermProbThresh() {
@@ -429,6 +437,8 @@ public class Main implements QueryReceiver {
         brushPanel.setBackground(Color.white);
 //        brushPanel.setPreferredSize(new Dimension(rightwidth, 250));
         brushPanel.setBorder(BorderFactory.createLineBorder(Color.black));
+        if (xattr != null) brushPanel.xattr = xattr;
+        if (yattr != null) brushPanel.yattr = yattr;
         brushPanel.setDefaultXYLim(corpus);
         
         textPanel = new TextPanel();
@@ -512,6 +522,7 @@ public class Main implements QueryReceiver {
 		}
 		else {
 			Configuration.initWithConfig(main, args[0]);
+			main.finalizeAfterConfig();
 		}
 		SwingUtilities.invokeLater(() -> {
 			main.setupUI();

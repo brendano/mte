@@ -29,7 +29,8 @@ public class SpatialIndex {
 	}
 	public void doSpatialSums(Collection<Document> docs) {
 		for (Document d : docs) {
-			Cell c = root.children[celly(d.getDouble(yAttr))][cellx(d.getDouble(xAttr))];
+//			Cell c = root.children[celly(d.getDouble(yAttr))][cellx(d.getDouble(xAttr))];
+			Cell c = null;  assert false : "BROKEN HERE";
 			c.terms.addInPlace(d.termVec);
 			c.docs.add(d);
 		}
@@ -64,9 +65,10 @@ public class SpatialIndex {
 			if (!isGoodCellX(cellpoint.x)) continue;
 			if (!isGoodCellY(cellpoint.y)) continue;
 			for (Document d : root.children[cellpoint.y][cellpoint.x].docs) {
-				if (contains(d.getDouble(xAttr), d.getDouble(yAttr),  qx1,qx2, qy1,qy2)) {
-					result.addInPlace(d.termVec);
-				}
+				assert false : "BROKEN HERE";
+//				if (contains(d.getDouble(xAttr), d.getDouble(yAttr),  qx1,qx2, qy1,qy2)) {
+//					result.addInPlace(d.termVec);
+//				}
 			}
 		}
 		return result;

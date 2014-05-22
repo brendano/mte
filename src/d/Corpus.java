@@ -10,6 +10,8 @@ import java.util.stream.Stream;
 import org.codehaus.jackson.JsonNode;
 import org.codehaus.jackson.JsonProcessingException;
 
+import d.Schema.ColumnInfo;
+import d.Schema.DataType;
 import util.BasicFileIO;
 import util.JsonUtil;
 import util.U;
@@ -23,8 +25,9 @@ public class Corpus {
 	public Schema schema;
 	
 	double doclenSumSq = 0;
+	public boolean needsCovariateTypeConversion = false;
 	
-	private Corpus() {
+	public Corpus() {
 		docsById = new HashMap<>();
 		index = new InvertedIndex();
 	}
@@ -56,10 +59,10 @@ public class Corpus {
 		DocSet ds = new DocSet();
 		docsById.values().stream()
 			.filter(d -> 
-				d.getDouble(xAttr) >= minX && 
-				d.getDouble(xAttr) <= maxX &&
-				d.getDouble(yAttr) >=minY && 
-				d.getDouble(yAttr) <=maxY)
+				schema.getDouble(d,xAttr) >= minX && 
+				schema.getDouble(d,xAttr) <= maxX &&
+				schema.getDouble(d,yAttr) >=minY && 
+				schema.getDouble(d,yAttr) <=maxY)
 			.forEach(d -> ds.add(d));
 		return ds;
 	}
@@ -68,19 +71,22 @@ public class Corpus {
 		return naiveSelect(xAttr, yAttr, minX, maxX, minY, maxY);
 	}
 	
-	/** the format:
-	 * 
-	 * xvalue \t yvalue \t DocJSON
-	 * 
-	 */
-	public void loadXY(String filename) {
-		Corpus c = this;
-		for (Document d : Document.loadXY(filename)) {
-			assert ! c.docsById.containsKey(d.docid) : "nonunique docid: " + d.docid;
-			c.docsById.put(d.docid, d);
+//	/** the format:
+//	 * 
+//	 * xvalue \t yvalue \t DocJSON
+//	 * 
+//	 */
+//	public void loadXY(String filename) {
+//		Corpus c = this;
+//		for (Document d : Document.loadXY(filename)) {
+//			assert ! c.docsById.containsKey(d.docid) : "nonunique docid: " + d.docid;
+//			c.docsById.put(d.docid, d);
+//		}
+//	}
+	public void loadJson(String filename) throws BadData, IOException {
+		for (Document d : Document.loadJson(filename)) {
+			docsById.put(d.docid, d);
 		}
-	}
-	public void loadJson(String filename) {
 	}
 	public void runTokenizer(Function<String,List<Token>> tokenizer) {
 		for (Document d : docsById.values()) {
@@ -134,6 +140,24 @@ public class Corpus {
 			}
 		}
 		return ret;
+	}
+
+	public void convertCovariateTypes() {
+		for (Document d : allDocs()) {
+			for (String varname : schema.columnTypes.keySet()) {
+				if (!d.covariates.containsKey(varname)) continue;
+				ColumnInfo ci = schema.columnTypes.get(varname);
+				Object converted = schema.columnTypes.get(varname).convertFromJson( (JsonNode) d.covariates.get(varname) );
+				U.p(converted + " || " + converted.getClass());
+				d.covariates.put(varname, converted);
+				
+				if (ci.dataType==DataType.CATEG && !ci.levels.name2level.containsKey(converted)) {
+					ci.levels.addLevel((String) converted);
+				}
+				
+			}
+		}
+		U.p("Covariate types, after conversion pass: " + schema.columnTypes);
 	}
 
 }

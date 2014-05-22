@@ -15,15 +15,43 @@ import util.U;
 public class Schema {
 	public Map<String,ColumnInfo> columnTypes = new HashMap<>();
 	
+	public ColumnInfo column(String varname) {
+		return columnTypes.get(varname);
+	}
+	public double getDouble(Document d, String attr) {
+		ColumnInfo ci = this.columnTypes.get(attr);
+		Object value = d.covariates.get(attr);
+		if (value instanceof Integer || value instanceof Double) {
+			return (Double) value;
+		}
+		if (value instanceof String && ci.dataType==DataType.CATEG) {
+			assert ci.levels.name2level.containsKey(value) : String.format("unknown level '%s', not in vocabulary for %s", value, attr);
+			return ci.levels.name2level.get(value).number;
+		}
+		U.p(columnTypes);
+		U.p(attr + " || " + value + " || " + ci);
+		assert false : "wtf";
+		return -42;
+	}
 	public static enum DataType {
 		NUMERIC, CATEG, BINARY;
 	}
 	
 	public static class ColumnInfo {
-		DataType dataType;
+		public DataType dataType;
 		/** only for Categ or Ordinal, I think */
-		Levels levels;
+		public Levels levels;
 
+		public boolean isCateg() {
+			return dataType==DataType.CATEG;
+		}
+		public String toString() {
+			String s = "" + dataType;
+			if (dataType==DataType.CATEG) {
+				s += "(" +levels.levels().size() + " levels)";
+			}
+			return s;
+		}
 		public ColumnInfo(String type) throws BadSchema {
 			DataType dt = type.equals("numeric") ? DataType.NUMERIC :
 				type.equals("categ")||type.equals("categorical")||type.equals("factor") ? DataType.CATEG :
@@ -41,6 +69,20 @@ public class Schema {
 			}
 			return this;
 		}
+		
+		public Object convertFromJson(JsonNode jj) {
+			switch(dataType) {
+			case NUMERIC:
+				return jj.asDouble();
+			case CATEG:
+				return jj.asText();
+			case BINARY:
+				return jj.asBoolean();
+			default:
+				assert false;
+				return null;
+			}
+		}
 	}
 	
 	public static class BadSchema extends Exception {
@@ -51,13 +93,16 @@ public class Schema {
 	
 	@SuppressWarnings("unchecked")
 	public void loadSchemaFromFile(String schemaFile) throws BadSchema {
+		U.p("file " + schemaFile);
 		Config conf = ConfigFactory.parseFile(new File(schemaFile));
+		if (conf.entrySet().size()==0) throw new BadSchema("Empty schema");
+		U.p("Schema config: " + conf);
 		for (Map.Entry<String,ConfigValue> e : conf.entrySet()) {
 			String attrname = e.getKey();
 			String type = null;
 			ColumnInfo ci;
 			if (e.getValue().valueType() == ConfigValueType.STRING) {
-				type = e.getValue().toString();
+				type = (String) e.getValue().unwrapped();
 				ci = new ColumnInfo(type);
 			}
 			else if (e.getValue().valueType() == ConfigValueType.OBJECT) {
@@ -73,11 +118,15 @@ public class Schema {
 					for (String value : values) {
 						ci.levels.addLevel(value);
 					}
-					
 				}
-				
 			}
+			else {
+				throw new BadSchema("Need a variable type description.");
+			}
+			assert ci != null;
+			columnTypes.put(attrname, ci);
 		}
+		U.p("Covariate types, after schema loading: " + columnTypes);
 	}
 	
 	public static class Levels {

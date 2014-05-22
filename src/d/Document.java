@@ -13,6 +13,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Ranges;
 
+import d.Schema.ColumnInfo;
 import edu.stanford.nlp.ling.CoreAnnotations.SentencesAnnotation;
 import edu.stanford.nlp.ling.CoreAnnotations.TokensAnnotation;
 import edu.stanford.nlp.ling.CoreLabel;
@@ -37,18 +38,6 @@ public class Document {
 	
 	public Document() {
 		covariates = new HashMap<>();
-	}
-	
-	public double getDouble(String attr) {
-		Object val = covariates.get(attr);
-		assert val != null;
-		if (val instanceof Double || val instanceof Integer) {
-			return (Double) val;
-		}
-		else {
-			assert false : "schemafication TODO";
-			return -1;
-		}
 	}
 	
 	static Set<String> SPECIAL_FIELDS;
@@ -94,32 +83,32 @@ public class Document {
 		}
 		return doc;
 	}
-	static List<Document> loadXY(String filename) {
-		
-		List<Document> ret = new ArrayList<>();
-		
-		for (String line : BasicFileIO.openFileLines(filename)) {
-			try {
-				Document doc = new Document();
-
-				String[] parts = line.split("\t");
-				doc.covariates.put("x", Double.parseDouble(parts[0]));
-				doc.covariates.put("y", Double.parseDouble(parts[1]));
-				JsonNode j = JsonUtil.readJson(parts[2]);
-				
-				assert j.has("docid") || j.has("id") : "all docs must have a 'docid' or 'id' attribute.";
-				JsonNode docidNode = j.has("docid") ? j.get("docid") : j.has("id") ? j.get("id") : null;
-				doc.docid = docidNode.getTextValue();
-				doc.text = j.get("text").getTextValue();
-
-				ret.add(doc);
-				
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-		}
-		return ret;
-	}
+//	static List<Document> loadXY(String filename) {
+//		
+//		List<Document> ret = new ArrayList<>();
+//		
+//		for (String line : BasicFileIO.openFileLines(filename)) {
+//			try {
+//				Document doc = new Document();
+//
+//				String[] parts = line.split("\t");
+//				doc.covariates.put("x", Double.parseDouble(parts[0]));
+//				doc.covariates.put("y", Double.parseDouble(parts[1]));
+//				JsonNode j = JsonUtil.readJson(parts[2]);
+//				
+//				assert j.has("docid") || j.has("id") : "all docs must have a 'docid' or 'id' attribute.";
+//				JsonNode docidNode = j.has("docid") ? j.get("docid") : j.has("id") ? j.get("id") : null;
+//				doc.docid = docidNode.getTextValue();
+//				doc.text = j.get("text").getTextValue();
+//
+//				ret.add(doc);
+//				
+//			} catch (IOException e) {
+//				e.printStackTrace();
+//			}
+//		}
+//		return ret;
+//	}
 
 	public void loadFromNLP(JsonNode jdoc) {
 		List<Token> alltoks = new ArrayList<>();
