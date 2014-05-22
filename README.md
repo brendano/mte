@@ -18,7 +18,7 @@ Launch it with one argument, the configuration file of the corpus you want to vi
 
     java -jar te.jar sotu/config.conf
 
-This requires Java version 8, accessible from the commandline.  Check the version with `java -version`; it must be at least `"1.8.0"`.
+This requires Java version 8 to be accessible from the commandline.  Check the version with `java -version`; it must be at least `"1.8.0"`.
 (Sometimes, you might have to give a flag to specify memory usage, like `java -Xmx2g`. I'm not sure when this is necessary.)
 
 Data format
