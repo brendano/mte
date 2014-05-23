@@ -5,7 +5,7 @@ Website: **[brenocon.com/te](http://brenocon.com/te)**
 
 The **Mutual information Text Explorer** is a tool that allows interactive exploration of text data and document covariates.
 See [the paper](http://brenocon.com/oconnor.mitextexplorer.illvi2014.pdf) for information.
-Currently, an experimental system is available. Contact brenocon@gmail.com ([http://brenocon.com](http://brenocon.com)) with questions.  
+Currently, an experimental system is available. It is very buggy, use with caution, etc etc. Contact brenocon@gmail.com ([http://brenocon.com](http://brenocon.com)) with questions.  
 
 How to run
 ==========
@@ -25,13 +25,16 @@ Data format
 ===========
 
 Each line is one document, encoded as a JSON object.
-There are two mandatory keys:
+There is one mandatory key:
 
- * `id` (or `docid`): a string that is a unique identifier for this document.
  * `text`: a string of the document's text.
 
+There is one optional special key:
+
+ * `id` (or `docid`): a string that is a unique identifier for this document. Not necessary for simple usage.
+
 Other keys in the JSON object are covariates.
-They have to be listed in the `schema` to be used. 
+They have to be listed in the `schema` configuration to be used. 
 
 TODO: automatic type detection
 
@@ -69,7 +72,7 @@ The format for the config file is a lax form of JSON, described [here](https://g
 Source code
 ===========
 
-License is GPL v2.  I'd be happy to do BSD/MIT or something, but the software uses some GPL'd libraries which I find convenient.  
+License is GPL v2 or later.  I'd be happy to do BSD/MIT or something, but the software uses some GPL'd libraries which I find convenient.  
 
 Code is at [github.com/brendano/te](https://github.com/brendano/te).
 

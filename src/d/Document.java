@@ -52,6 +52,7 @@ public class Document {
 	/** returns the document, where covariate values are generic JsonNode objects. */
 	static List<Document> loadJson(String filename) throws BadData, IOException {
 		List<Document> ret = new ArrayList<>();
+		int docnum = 0;
 		for (String line : BasicFileIO.openFileLines(filename)) {
 			String[] parts = line.split("\t");
 			String docstr = parts[parts.length-1];
@@ -59,22 +60,21 @@ public class Document {
 			JsonNode j;
 			try {
 				j = JsonUtil.readJson(docstr);
+				docnum += 1;
 			} catch ( JsonProcessingException e) {
 				throw new BadData("invalid JSON: " + docstr);
 			}
 			
-			Document doc = loadDocFromJson(j);
+			Document doc = loadDocFromJson(j, docnum);
 			ret.add(doc);
 		}
 		return ret;
 	}
 	
-	static Document loadDocFromJson(JsonNode j) throws BadData {
+	static Document loadDocFromJson(JsonNode j, int docnum) throws BadData {
 		Document doc = new Document();
-		if (!(j.has("docid") || j.has("id")))
-			throw new BadData("all docs must have an 'id' or 'docid' attribute.");
 		JsonNode docidNode = j.has("docid") ? j.get("docid") : j.has("id") ? j.get("id") : null;
-		doc.docid = docidNode.getTextValue();
+		doc.docid = docidNode==null ? "doc"+docnum : docidNode.getTextValue();
 		if (!j.has("text"))
 			throw new BadData("all docs must have a 'text' attribute");
 		doc.text = j.get("text").getTextValue();
