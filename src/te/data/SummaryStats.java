@@ -1,4 +1,4 @@
-package d;
+package te.data;
 
 import util.OnlineNormal1d;
 import util.ReservoirSampler;

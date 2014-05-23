@@ -1,9 +1,9 @@
-package d;
+package te.data;
 import java.awt.Point;
 import java.awt.Rectangle;
 import java.util.*;
 
-import ui.GUtil;
+import te.ui.GUtil;
 import util.U;
 
 public class SpatialIndex {

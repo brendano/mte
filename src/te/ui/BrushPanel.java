@@ -1,4 +1,4 @@
-package ui;
+package te.ui;
 
 import java.awt.BasicStroke;
 import java.awt.Color;
@@ -26,12 +26,12 @@ import java.util.Map;
 
 import javax.swing.*;
 
-import d.Corpus;
-import d.Document;
-import d.Schema;
-import d.Schema.Levels;
-import d.Schema.Levels.Level;
-import d.TermQuery;
+import te.data.Corpus;
+import te.data.Document;
+import te.data.Schema;
+import te.data.TermQuery;
+import te.data.Schema.Levels;
+import te.data.Schema.Levels.Level;
 import util.U;
 
 import java.util.Comparator;

@@ -1,4 +1,4 @@
-package ui;
+package te.ui;
 
 import java.awt.Color;
 import java.awt.Dimension;

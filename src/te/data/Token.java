@@ -1,4 +1,4 @@
-package d;
+package te.data;
 
 public class Token {
 	public String text;

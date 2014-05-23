@@ -1,4 +1,4 @@
-package ui;
+package te.ui;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -37,13 +37,13 @@ import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
 
+import te.data.Corpus;
+import te.data.DocSet;
+import te.data.Document;
+import te.data.TermInstance;
 import util.Arr;
 import util.U;
 import util.misc.Pair;
-import d.Corpus;
-import d.DocSet;
-import d.Document;
-import d.TermInstance;
 import edu.stanford.nlp.util.Sets;
 
 public class TextPanel  {

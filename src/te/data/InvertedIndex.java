@@ -1,4 +1,4 @@
-package d;
+package te.data;
 import java.util.*;
 
 /** yes, it's silly to call it "inverted" but it does make it clear what it is */

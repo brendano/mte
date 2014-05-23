@@ -1,4 +1,4 @@
-package d;
+package te.data;
 
 import java.io.IOException;
 import java.util.*;
@@ -13,7 +13,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Ranges;
 
-import d.Schema.ColumnInfo;
 import edu.stanford.nlp.ling.CoreAnnotations.SentencesAnnotation;
 import edu.stanford.nlp.ling.CoreAnnotations.TokensAnnotation;
 import edu.stanford.nlp.ling.CoreLabel;
@@ -21,8 +20,9 @@ import edu.stanford.nlp.pipeline.Annotation;
 import edu.stanford.nlp.pipeline.StanfordCoreNLP;
 import edu.stanford.nlp.util.CoreMap;
 import edu.stanford.nlp.util.StringUtils;
-import exceptions.BadData;
-import ui.GUtil;
+import te.data.Schema.ColumnInfo;
+import te.exceptions.BadData;
+import te.ui.GUtil;
 import util.BasicFileIO;
 import util.JsonUtil;
 import util.U;

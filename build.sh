@@ -12,7 +12,7 @@ for jar in ../lib/*.jar; jar xf $jar
 # The manifest makes it so you can do "java -jar"
 (
 cat<<-EOF
-Main-Class: ui.Launch
+Main-Class: te.ui.Launch
 EOF
 ) > Manifest.txt
 jar cfm ../te.jar Manifest.txt *

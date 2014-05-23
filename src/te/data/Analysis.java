@@ -1,4 +1,4 @@
-package d;
+package te.data;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -14,8 +14,8 @@ import org.codehaus.jackson.JsonProcessingException;
 
 import com.google.common.collect.Lists;
 
-import exceptions.BadSchema;
-import ui.Main;
+import te.exceptions.BadSchema;
+import te.ui.Main;
 import util.Arr;
 import util.U;
 

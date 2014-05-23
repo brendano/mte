@@ -1,4 +1,4 @@
-package d;
+package te.data;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -10,10 +10,10 @@ import java.util.stream.Stream;
 import org.codehaus.jackson.JsonNode;
 import org.codehaus.jackson.JsonProcessingException;
 
-import d.Schema.ColumnInfo;
-import d.Schema.DataType;
-import exceptions.BadData;
-import exceptions.BadSchema;
+import te.data.Schema.ColumnInfo;
+import te.data.Schema.DataType;
+import te.exceptions.BadData;
+import te.exceptions.BadSchema;
 import util.BasicFileIO;
 import util.JsonUtil;
 import util.U;

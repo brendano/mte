@@ -1,11 +1,11 @@
-package d;
+package te.data;
 
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import ui.GUtil;
+import te.ui.GUtil;
 import util.Arr;
 import util.U;
 

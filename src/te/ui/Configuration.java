@@ -1,4 +1,4 @@
-package ui;
+package te.ui;
 
 import java.io.File;
 import java.io.IOException;
@@ -6,17 +6,15 @@ import java.util.function.Function;
 
 import org.codehaus.jackson.JsonProcessingException;
 
+import te.data.NLP;
+import te.data.Schema;
+import te.exceptions.BadConfig;
+import te.exceptions.BadData;
+import te.exceptions.BadSchema;
 import util.U;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
-
-import d.Schema;
-import exceptions.BadSchema;
-import exceptions.BadConfig;
-import exceptions.BadData;
-
-import d.NLP;
 
 public class Configuration {
 

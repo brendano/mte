@@ -1,9 +1,7 @@
-package d;
+package te.data;
 
 import java.io.File;
 import java.util.*;
-
-import exceptions.BadSchema;
 
 import org.codehaus.jackson.JsonNode;
 
@@ -13,6 +11,7 @@ import com.typesafe.config.ConfigObject;
 import com.typesafe.config.ConfigValue;
 import com.typesafe.config.ConfigValueType;
 
+import te.exceptions.BadSchema;
 import util.U;
 
 public class Schema {

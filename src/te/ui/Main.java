@@ -1,4 +1,4 @@
-package ui;
+package te.ui;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -56,21 +56,21 @@ import bibliothek.gui.dock.DefaultDockable;
 import bibliothek.gui.dock.SplitDockStation;
 import bibliothek.gui.dock.station.split.SplitDividerStrategy;
 import bibliothek.gui.dock.station.split.SplitDockGrid;
+import te.data.Analysis;
+import te.data.Corpus;
+import te.data.DocSet;
+import te.data.Document;
+import te.data.NLP;
+import te.data.TermQuery;
+import te.data.TermVector;
+import te.data.Analysis.TermvecComparison;
+import te.data.Schema.Levels;
+import te.exceptions.BadConfig;
+import te.exceptions.BadSchema;
 import util.BasicFileIO;
 import util.JsonUtil;
 import util.U;
-import d.Analysis;
-import d.Analysis.TermvecComparison;
-import d.Corpus;
-import d.DocSet;
-import d.Document;
-import d.Schema.Levels;
-import exceptions.BadSchema;
-import d.NLP;
-import d.TermQuery;
-import d.TermVector;
 import edu.stanford.nlp.util.StringUtils;
-import exceptions.BadConfig;
 
 interface QueryReceiver {
 	public void receiveQuery(Collection<String> docids);
