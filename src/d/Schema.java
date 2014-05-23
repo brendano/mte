@@ -9,6 +9,7 @@ import org.codehaus.jackson.JsonNode;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
+import com.typesafe.config.ConfigObject;
 import com.typesafe.config.ConfigValue;
 import com.typesafe.config.ConfigValueType;
 
@@ -22,6 +23,7 @@ public class Schema {
 	public ColumnInfo column(String varname) {
 		return columnTypes.get(varname);
 	}
+	
 	public double getDouble(Document d, String attr) {
 		ColumnInfo ci = this.columnTypes.get(attr);
 		Object value = d.covariates.get(attr);
@@ -37,8 +39,9 @@ public class Schema {
 		assert false : "wtf";
 		return -42;
 	}
+	
 	public static enum DataType {
-		NUMERIC, CATEG, BINARY;
+		NUMBER, CATEG, BOOLEAN;
 	}
 	
 	public static class ColumnInfo {
@@ -57,9 +60,9 @@ public class Schema {
 			return s;
 		}
 		public ColumnInfo(String type) throws BadSchema {
-			DataType dt = type.equals("numeric") ? DataType.NUMERIC :
+			DataType dt = type.equals("number") ? DataType.NUMBER :
 				type.equals("categ")||type.equals("categorical")||type.equals("factor") ? DataType.CATEG :
-				type.equals("binary")||type.equals("boolean") ? DataType.BINARY : null;
+				type.equals("binary")||type.equals("boolean") ? DataType.BOOLEAN : null;
 			if (dt==null) {
 				throw new BadSchema(String.format("Unknown data type '%s'", type));
 			}
@@ -76,11 +79,11 @@ public class Schema {
 		
 		public Object convertFromJson(JsonNode jj) {
 			switch(dataType) {
-			case NUMERIC:
+			case NUMBER:
 				return jj.asDouble();
 			case CATEG:
 				return jj.asText();
-			case BINARY:
+			case BOOLEAN:
 				return jj.asBoolean();
 			default:
 				assert false;
@@ -89,12 +92,16 @@ public class Schema {
 		}
 	}
 	
-	@SuppressWarnings("unchecked")
 	public void loadSchemaFromFile(String schemaFile) throws BadSchema {
 		Config conf = ConfigFactory.parseFile(new File(schemaFile));
-		if (conf.entrySet().size()==0) throw new BadSchema("Empty schema");
-		U.p("Schema config: " + conf);
-		for (Map.Entry<String,ConfigValue> e : conf.root().entrySet()) {
+		loadSchemaFromConfigObject(conf.root());
+	}
+
+	@SuppressWarnings("unchecked")
+	public void loadSchemaFromConfigObject(ConfigObject confroot) throws BadSchema {
+		if (confroot.entrySet().size()==0) throw new BadSchema("Empty schema");
+		U.p("Schema config: " + confroot);
+		for (Map.Entry<String,ConfigValue> e : confroot.entrySet()) {
 			String attrname = e.getKey();
 			String type = null;
 			ColumnInfo ci;
@@ -155,38 +162,6 @@ public class Schema {
 			name2level.put(lev.name,lev);
 			return lev;
 		}
-		
-//		public void loadJSON(JsonNode levelsinfo) throws BadSchema {
-//			if (!levelsinfo.isArray()) {
-//				throw new BadSchema("Levels info must be a JSON array.");
-//			}
-//			int index=-1;
-//			for (JsonNode jj : levelsinfo) {
-//				index++;
-//				Level lev = new Level();
-//				if (jj.isTextual()) {
-//					lev.number = index;
-//					lev.name = jj.asText();
-//					lev.longname = null;
-//				}
-//				else if (jj.isObject()) {
-//					lev.number = jj.has("number") ? jj.get("number").asInt() : index;
-//					lev.name = jj.has("name") ? jj.get("name").asText() : null;
-//					lev.longname = jj.has("longname") ? jj.get("longname").asText() : null;
-//				}
-//				else {
-//					throw new BadSchema(U.sf("Bad JSON array element: %s", jj.toString()));
-//				}
-//				if (lev.name==null && lev.longname!=null) lev.name = lev.longname;
-//				else if (lev.name==null && lev.longname==null) assert false : "need either code or name for every level";
-//				if (name2level.containsKey(lev.number)) {
-//					throw new BadSchema(U.sf("Repeated number %d in level %s", lev.number, lev));
-//				}
-//				name2level.put(lev.name, lev);
-//				num2level.put(lev.number, lev);
-//			}
-//		}
-
 	}
 
 }

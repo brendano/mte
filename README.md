@@ -31,42 +31,40 @@ There are two mandatory keys:
  * `text`: a string of the document's text.
 
 Other keys in the JSON object are covariates.
-They have to be listed in `schema.conf` to be used.
+They have to be listed in the `schema` to be used. 
+
+TODO: automatic type detection
 
 TODO: covariates in separate file and CSV
 
 Configuration options
 =====================
 
-The examples are set up with two configuration files,
-
-  * `config.conf`: controls the application
-  * `schema.conf`: describes the covariates (metadata variables). Currently, you have to specify all of them. (TODO, automatic detection)
-  
-
 The application is launched by giving it the full path to the main config file.
 For an example to adapt to your own data, start with bible/config.conf.
 
-In `config.conf`, parameters include:
+Configuration paramters include:
 
   * `data`: the filename of the data. Either absolute, or relative to the config file's directory.
-  * `schema`: the schema config file.
+  * `schema`: an object that describes the types of the covariates; see below. Or, a filename for an external schema config.
   * `x`, `y`: which covariates should be the x- and y-axes.
   * `tokenizer`: what tokenizer to run. Options are 
     - `StanfordTokenizer`, which is good for traditionally edited text.
     - `SimpleTokenizer`, which tokenizes only on whitespace. If you want to run your own tokenizer, an easy way to use it is to encode your tokenization into the `text` field by putting spaces between the tokens, and then use `SimpleTokenizer`. On real text, this tokenizer gives poor results.  But it is fast.
   * `nlp_file`: this is an alternative to `tokenizer`. It says you don't want the application to run any NLP routines, and instead read off all NLP annotations from an external file. It relies on the `id` document identifiers in order to merge the annotations against the text and covariates.  I don't have documentation for the format, but it is produced by [this](https://github.com/brendano/myutil/blob/master/src/corenlp/Parse.java).  Currently this is the only way to get part-of-speech and named entity annotations into the system.
 
-In `schema.conf`, every key is the name of a covariate, and the type is given.  Legal types are
+In the `schema` object (or schema config file), every key is the name of a covariate, and the type is given.  Legal types are
 
- * `numeric`, for a numeric variable (either integer or floating point is fine).
- * `categ`, a categorical variable (a.k.a. discrete, or what R calls a factor).
-   In the data, the values for a categorical variables are represented as
+ * `number`, for a numeric variable (either integer or floating point is fine).
+ * `categorical`, a categorical variable (a.k.a. discrete, or what R calls a factor).
+   In the data, the values for a categorical variable are represented as
    strings.  In the schema, you can optionally specify a list of possible
    values.  The ordering you give will be the order it is displayed in.  See
    bible.zip for an example.
 
-The format for the config files is a lax form of JSON, described [here](https://github.com/typesafehub/config/blob/master/HOCON.md).  Any legal JSON can be used for the config file; it has a few niceties like being able to sometimes skip quoting, and leaving off commas when using a separate line per entry.  The comment character is `#`.
+TODO: reconcile with / extend to http://dataprotocols.org/json-table-schema/ which seems to be a moderately sensible data column typing system (are there better ones? there are certainly many worse ones.)
+
+The format for the config file is a lax form of JSON, described [here](https://github.com/typesafehub/config/blob/master/HOCON.md).  Any legal JSON can be used for the config file; it has a few niceties like commenting with `#`, being able to sometimes skip quoting, and leaving off commas when using a separate line per entry.
 
 Source code
 ===========

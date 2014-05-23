@@ -115,7 +115,7 @@ public class Main implements QueryReceiver {
 //		corpus = Corpus.loadXY("/d/sotu/sotu.xy");
 		corpus = null;
 		corpus.loadNLP("/d/sotu/sotu.ner");
-		corpus.loadSchema("/d/sotu/schema.conf");
+//		corpus.loadSchema("/d/sotu/schema.conf");
 		xattr = "year";
 		yattr = "party";
 		da = new NLP.UnigramAnalyzer();

@@ -34,11 +34,7 @@ public class Corpus {
 		docsById = new HashMap<>();
 		index = new InvertedIndex();
 		docsInOriginalOrder = new ArrayList<>();
-	}
-	
-	public void loadSchema(String filename) throws FileNotFoundException, BadSchema {
 		schema = new Schema();
-		schema.loadSchemaFromFile(filename);
 	}
 	
 	public Collection<Document> allDocs() {

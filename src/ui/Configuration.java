@@ -43,18 +43,30 @@ public class Configuration {
 			return new File(dirOfConfFile, pathInConfFile).toString();
 		}
 	}
+	static String resolvePathExists(String dirOfConfFile, String pathInConfFile) throws BadSchema {
+		String f = resolvePath(dirOfConfFile,pathInConfFile);
+		assertFileExists(f);
+		return f;
+	}
 	
+	static void assertFileExists(String filename) throws BadSchema {
+		if ( ! (new File(filename)).exists()) {
+			throw new BadSchema("File does not exist: " + filename);
+		}
+	}
 	public static void initWithConfig(Main main, String filename) throws JsonProcessingException, IOException, BadConfig, BadSchema {
+		
+		// TODO, this function shouldn't be responsible for actually running potentially-expensive analysis routines.
+		// it should queue them up somehow.
+		
 		String dirOfConfFile = dirname(filename);
-		File f = new File(filename);
-		Config conf = ConfigFactory.parseFile(f);
+		File _file = new File(filename);
+		Config conf = ConfigFactory.parseFile(_file);
 		conf = conf.resolve();
 		U.p(conf);
 		
-		Function<String,String> resolve = (String f2) -> resolvePath(dirOfConfFile, f2);
-		
 		if (conf.hasPath("data")) {
-			String path = resolvePath(dirOfConfFile, conf.getString("data"));
+			String path = resolvePathExists(dirOfConfFile, conf.getString("data"));
 			try {
 				main.corpus.loadJson(path);
 			} catch (BadData | IOException e) {
@@ -68,16 +80,28 @@ public class Configuration {
 		if (conf.hasPath("y")) {
 			main.yattr = conf.getString("y");
 		}
+		if (main.xattr==null || main.yattr==null) throw new BadConfig("Need to specify both 'x' and 'y'"); 
 		if (conf.hasPath("schema")) {
-			main.corpus.schema = new Schema();
-			String p = resolvePath(dirOfConfFile, conf.getString("schema"));
-			main.corpus.schema.loadSchemaFromFile(p);
+			Object schema = conf.getAnyRef("schema");
+			if (schema instanceof String) {
+				String sfilename = resolvePathExists(dirOfConfFile, (String) schema);
+				main.corpus.schema.loadSchemaFromFile(sfilename);
+			}
+			else {
+				main.corpus.schema.loadSchemaFromConfigObject(conf.getObject("schema"));
+			}
+		}
+
+		if (!conf.hasPath("nlp_file") && !conf.hasPath("tokenizer")) {
+			throw new BadSchema("Need to specify a tokenizer.");
+//			U.p("Defaulting to tokenizer=StanfordTokenizer");
 		}
 		if (conf.hasPath("nlp_file")) {
-			main.corpus.loadNLP(resolve.apply(conf.getString("nlp_file")));
+			String f = resolvePathExists(dirOfConfFile, conf.getString("nlp_file"));
+			main.corpus.loadNLP(f);
 		}
 		if (conf.hasPath("tokenizer")) {
-			if (conf.hasPath("nlp_file")) throw new BadConfig("shouldn't specify both tokenizer and nlp_file");
+			if (conf.hasPath("nlp_file")) throw new BadConfig("Don't specify both tokenizer and nlp_file");
 			String tname = conf.getString("tokenizer");
 			if (tname.equals("SimpleTokenizer")) {
 				main.corpus.runTokenizer(NLP::simpleTokenize);
