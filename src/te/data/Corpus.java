@@ -102,8 +102,6 @@ public class Corpus {
 		}
 	}
 	public void finalizeIndexing() {
-//		xSummary = docsById.values().stream().mapToDouble(d->d.x).summaryStatistics();
-//		ySummary = docsById.values().stream().mapToDouble(d->d.y).summaryStatistics();
 //		hierIndex = new HierIndex(16, xSummary.getMin(), xSummary.getMax(), ySummary.getMin(), ySummary.getMax());
 //		hierSums.doSpatialSums(docsById.values());
 //		hierSums.dump();

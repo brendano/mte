@@ -48,7 +48,7 @@ public class GUtil {
 	}
 
 	public static void drawCenteredCircle(Graphics2D g, int x, int y, int radius, boolean fill) {
-		Ellipse2D.Double circle = new Ellipse2D.Double(x -radius/2, y -radius/2, radius, radius);
+		Ellipse2D.Double circle = new Ellipse2D.Double(x -radius, y -radius, 2*radius, 2*radius);
 		if (fill) {
 			g.fill(circle);
 		} else {

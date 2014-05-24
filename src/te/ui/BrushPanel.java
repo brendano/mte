@@ -295,10 +295,10 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 			g.setColor(c);
 			Point p = mp.physPoint();
 			if (mp.isTermquery1Selected) {
-				GUtil.drawCenteredTriangle(g, p.x, p.y, 6, mp.isTermquery1Selected);
+				GUtil.drawCenteredTriangle(g, p.x, p.y, 3, mp.isTermquery1Selected);
 			}
 			else {
-				GUtil.drawCenteredCircle(g, p.x, p.y, 6, mp.isTermquery1Selected);
+				GUtil.drawCenteredCircle(g, p.x, p.y, 3, mp.isTermquery1Selected);
 			}
 		}
 		renderBrush(g);
