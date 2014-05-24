@@ -46,13 +46,16 @@ Configuration options
 The application is launched by giving it the full path to the main config file.
 For an example to adapt to your own data, start with bible/config.conf.
 
-Configuration paramters include:
+Required configuration parameters include:
 
   * `data`: the filename of the data. Either absolute, or relative to the config file's directory.
   * `schema`: an object that describes the types of the covariates; see below. Or, a filename for an external schema config.
   * `x`, `y`: which covariates should be the x- and y-axes.
+
+Other configuration parameters include:
+
   * `tokenizer`: what tokenizer to run. Options are 
-    - `StanfordTokenizer`, which is good for traditionally edited text.
+    - `StanfordTokenizer`, which is good for traditionally edited text. (Default.)
     - `SimpleTokenizer`, which tokenizes only on whitespace. If you want to run your own tokenizer, an easy way to use it is to encode your tokenization into the `text` field by putting spaces between the tokens, and then use `SimpleTokenizer`. On real text, this tokenizer gives poor results.  But it is fast.
   * `nlp_file`: this is an alternative to `tokenizer`. It says you don't want the application to run any NLP routines, and instead read off all NLP annotations from an external file. It relies on the `id` document identifiers in order to merge the annotations against the text and covariates.  I don't have documentation for the format, but it is produced by [this](https://github.com/brendano/myutil/blob/master/src/corenlp/Parse.java).  Currently this is the only way to get part-of-speech and named entity annotations into the system.
 

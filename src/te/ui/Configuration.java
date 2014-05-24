@@ -90,17 +90,21 @@ public class Configuration {
 			}
 		}
 
-		if (!conf.hasPath("nlp_file") && !conf.hasPath("tokenizer")) {
-			throw new BadSchema("Need to specify a tokenizer.");
-//			U.p("Defaulting to tokenizer=StanfordTokenizer");
-		}
+		if (conf.hasPath("nlp_file") && conf.hasPath("tokenizer"))
+			throw new BadConfig("Don't specify both tokenizer and nlp_file");
 		if (conf.hasPath("nlp_file")) {
 			String f = resolvePathExists(dirOfConfFile, conf.getString("nlp_file"));
 			main.corpus.loadNLP(f);
 		}
-		if (conf.hasPath("tokenizer")) {
-			if (conf.hasPath("nlp_file")) throw new BadConfig("Don't specify both tokenizer and nlp_file");
-			String tname = conf.getString("tokenizer");
+		else {
+			String tname = null;
+			if (!conf.hasPath("tokenizer")) {
+				U.p("Defaulting to tokenizer=StanfordTokenizer");
+				tname = "StanfordTokenizer";
+			}
+			else if (conf.hasPath("tokenizer")) {
+				tname = conf.getString("tokenizer");
+			}
 			if (tname.equals("SimpleTokenizer")) {
 				main.corpus.runTokenizer(NLP::simpleTokenize);
 			} else if (tname.equals("StanfordTokenizer")) {
