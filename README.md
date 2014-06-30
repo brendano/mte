@@ -3,8 +3,12 @@ MiTextExplorer
 
 Website: **[brenocon.com/te](http://brenocon.com/te)**
 
+<img width=500 src="http://brenocon.com/te/hella.png">
+
 The **Mutual information Text Explorer** is a tool that allows interactive exploration of text data and document covariates.
-See [the paper](http://brenocon.com/oconnor.mitextexplorer.illvi2014.pdf) for information.
+See [the paper](http://brenocon.com/oconnor.mitextexplorer.illvi2014.pdf) 
+or [slides](http://brenocon.com/oconnor.mitextexplorer.slides.illvi2014.pdf)
+for information.
 Currently, an experimental system is available. It is very buggy, use with caution, etc etc. Contact brenocon@gmail.com ([http://brenocon.com](http://brenocon.com)) with questions.  
 
 How to run
