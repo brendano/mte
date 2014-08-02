@@ -1,11 +1,11 @@
 MiTextExplorer
 ==============
 
-Website: **[brenocon.com/te](http://brenocon.com/te)**
+Website: **[brenocon.com/mte](http://brenocon.com/mte)**
 
-<img width=500 src="http://brenocon.com/te/hella.png">
+<img width=500 src="http://brenocon.com/mte/hella.png">
 
-The **Mutual information Text Explorer** is a tool that allows interactive exploration of text data and document covariates.
+The **Mutual information Text Explorer** (MTE) is a tool that allows interactive exploration of text data and document covariates.
 See [the paper](http://brenocon.com/oconnor.mitextexplorer.illvi2014.pdf) 
 or [slides](http://brenocon.com/oconnor.mitextexplorer.slides.illvi2014.pdf)
 for information.
@@ -14,13 +14,13 @@ Currently, an experimental system is available. It is very buggy, use with cauti
 How to run
 ==========
 
-Get the application: <b><a href=http://brenocon.com/te/te.jar>te.jar</a></b>
+Get the application: <b><a href=http://brenocon.com/mte/mte.jar>mte.jar</a></b>
 
-Get one of the example datasets: <a href=http://brenocon.com/te/bible.zip>bible.zip</a> or <a href=http://brenocon.com/te/sotu.zip>sotu.zip</a>.
+Get one of the example datasets: <a href=http://brenocon.com/mte/bible.zip>bible.zip</a> or <a href=http://brenocon.com/mte/sotu.zip>sotu.zip</a>.
 
 Launch it with one argument, the configuration file of the corpus you want to view.  For example:
 
-    java -jar te.jar sotu/config.conf
+    java -jar mte.jar sotu/config.conf
 
 This requires Java version 8 to be accessible from the commandline.  Check the version with `java -version`; it must be at least `"1.8.0"`.
 (Sometimes, you might have to give a flag to specify memory usage, like `java -Xmx2g`. I'm not sure when this is necessary.)
@@ -81,11 +81,11 @@ Source code
 
 License is GPL v2 or later.  I'd be happy to do BSD/MIT or something, but the software uses some GPL'd libraries which I find convenient.  
 
-Code is at [github.com/brendano/te](https://github.com/brendano/te).
+Code is at [github.com/brendano/mte](https://github.com/brendano/mte).
 
 Dependencies have to be placed in `lib/` for `./build.sh` to work.
 For development in an IDE, I just manually add them to the build path.
-I've placed a copy of them here: [te-deps.zip](http://brenocon.com/te/te-deps.zip).
+I've placed a copy of them here: [mte-deps.zip](http://brenocon.com/mte/mte-deps.zip).
 The dependencies are currently:
 
     config-1.2.1.jar

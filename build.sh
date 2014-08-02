@@ -15,8 +15,8 @@ cat<<-EOF
 Main-Class: te.ui.Launch
 EOF
 ) > Manifest.txt
-jar cfm ../te.jar Manifest.txt *
+jar cfm ../mte.jar Manifest.txt *
 cd ..
 
 echo "Done creating jar file:"
-ls -l te.jar
+ls -l mte.jar
