@@ -61,6 +61,8 @@ public class GUtil {
 	public static void drawCenteredTriangle(Graphics2D g, double x, double y, double radius, boolean fill) {
 		// w,h are the half-width and half-height of the equilateral triangle, respectively
 		// http://brenocon.com/Screen%20Shot%202014-03-19%20at%203.35.50%20PM.jpg
+		
+		radius *= 2;
 		double w = radius * Math.cos(Math.PI/6);
 		double h = radius * Math.sin(Math.PI/6);
 		double z = 0.8;  // horiz multiplier
