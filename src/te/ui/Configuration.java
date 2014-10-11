@@ -63,6 +63,9 @@ public class Configuration {
 		conf = conf.resolve();
 		U.p(conf);
 		
+		if (conf.hasPath("indicatorize") && conf.getBoolean("indicatorize")) {
+			main.afteranalysisCallback = () -> { main.corpus.indicatorize(); return null; };
+		}
 		if (conf.hasPath("data")) {
 			String path = resolvePathExists(dirOfConfFile, conf.getString("data"));
 			try {
