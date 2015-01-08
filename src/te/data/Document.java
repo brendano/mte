@@ -29,6 +29,7 @@ import util.U;
 
 public class Document {
 	public String docid;
+	/** starts at 1 */
 	public int docnumOriginalOrder;
 //	public double x;
 //	public double y;
@@ -50,10 +51,11 @@ public class Document {
 		SPECIAL_FIELDS.add("text");
 	}
 	
-	/** returns the document, where covariate values are generic JsonNode objects. */
+	/** input: a file with one JSON object per line (each represents one document)
+	 * returns the documents, where covariate values are generic JsonNode objects. */
 	static List<Document> loadJson(String filename) throws BadData, IOException {
 		List<Document> ret = new ArrayList<>();
-		int docnum = 0;
+		int docnum = 1;
 		for (String line : BasicFileIO.openFileLines(filename)) {
 			String[] parts = line.split("\t");
 			String docstr = parts[parts.length-1];
@@ -61,13 +63,12 @@ public class Document {
 			JsonNode j;
 			try {
 				j = JsonUtil.readJson(docstr);
+				Document doc = loadDocFromJson(j, docnum);
+				ret.add(doc);
 				docnum += 1;
 			} catch ( JsonProcessingException e) {
 				throw new BadData("invalid JSON: " + docstr);
 			}
-			
-			Document doc = loadDocFromJson(j, docnum);
-			ret.add(doc);
 		}
 		return ret;
 	}
@@ -76,6 +77,7 @@ public class Document {
 		Document doc = new Document();
 		JsonNode docidNode = j.has("docid") ? j.get("docid") : j.has("id") ? j.get("id") : null;
 		doc.docid = docidNode==null ? "doc"+docnum : docidNode.getTextValue();
+		doc.docnumOriginalOrder = docnum;
 		if (!j.has("text"))
 			throw new BadData("all docs must have a 'text' attribute");
 		doc.text = j.get("text").getTextValue();
