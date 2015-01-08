@@ -60,7 +60,7 @@ public class Corpus {
 		return ds;
 	}
 	
-	public DocSet naiveSelect(String xAttr, String yAttr, int minX, int maxX, int minY, int maxY) {
+	public DocSet naiveSelect(String xAttr, String yAttr, double minX, double maxX, double minY, double maxY) {
 		DocSet ds = new DocSet();
 		docsById.values().stream()
 			.filter(d -> 
@@ -72,7 +72,7 @@ public class Corpus {
 		return ds;
 	}
 	
-	public DocSet select(String xAttr, String yAttr, int minX, int maxX, int minY, int maxY) {
+	public DocSet select(String xAttr, String yAttr, double minX, double maxX, double minY, double maxY) {
 		return naiveSelect(xAttr, yAttr, minX, maxX, minY, maxY);
 	}
 	
