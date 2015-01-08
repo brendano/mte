@@ -337,13 +337,15 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 	enum XorY { X, Y }
 	
 	List<Double> tickPositions(String attr, XorY x_or_y) {
-		if (schema.column(attr).isCateg()) {
+		if (attr==null) {
+			return Collections.EMPTY_LIST;
+		}
+		else if (schema.column(attr).isCateg()) {
 			return schema.column(attr).levels.levels().stream().
 					map((lev) -> (double) lev.number).
 					collect(Collectors.toList());
 		}
 		else {
-			List<Double> ret = new ArrayList<>();
 			double min=-42,max=-42,delta=-42;
 			if (x_or_y==XorY.X) {
 				min=xtickMin(); max=xtickMax(); delta=xlabelDelta();
@@ -351,6 +353,8 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 			else if (x_or_y==XorY.Y) {
 				min=ytickMin(); max=ytickMax(); delta=ytickDelta();
 			}
+//			U.pf("min,max,delta = %s %s %s\n", min,max,delta);
+			List<Double> ret = new ArrayList<>();
 			for (double x=min; x<=max; x+=delta) {
 				ret.add(x);
 			}
@@ -375,42 +379,44 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 		if (yattr==null) return 0;
 		return schema.getDouble(d, yattr);
 	}
+	class Range { double min, max;  double scale() { return max-min; }}
+	
+	Range getDataRange(Corpus corpus, String attr) {
+		Range r = new Range();
+		if (attr==null) {
+			r.min=-1; r.max=1;
+		} else {
+			r.min = corpus.covariateSummaries.get(attr).min();
+			r.max = corpus.covariateSummaries.get(attr).max();
+		}
+		return r;
+	}
+	
 	public void setDefaultXYLim(Corpus corpus) {
-		double xmin,xmax,ymin,ymax;
-		if (xattr==null) {
-			xmin=-1; xmax=1;
-		} else {
-			xmin = corpus.covariateSummaries.get(xattr).min();
-			xmax = corpus.covariateSummaries.get(xattr).max();
-		}
-		if (yattr==null) {
-			ymin=-1; ymax=1;
-		} else {
-			ymin = corpus.covariateSummaries.get(yattr).min();
-			ymax = corpus.covariateSummaries.get(yattr).max();
-		}
+		Range xr = getDataRange(corpus, xattr);
+		Range yr = getDataRange(corpus, yattr);
 		double scale;
-		scale = ymax-ymin;
+		scale = yr.scale();
 		scale = scale==0 ? 1 : scale;
-		minUserY = ymin - scale*scaleMult;
-		maxUserY = ymax + scale*scaleMult;
-		scale = xmax-xmin;
+		minUserY = yr.min - scale*scaleMult;
+		maxUserY = yr.max + scale*scaleMult;
+		scale = xr.scale();
 		scale = scale==0 ? 1: scale;
-		minUserX = xmin - scale*scaleMult;
-		maxUserX = xmax + scale*scaleMult;
+		minUserX = xr.min - scale*scaleMult;
+		maxUserX = xr.max + scale*scaleMult;
 	}
 
 	boolean isIntegral(double x) {
 		int rounded = (int) Math.round(x);
 		return Math.abs(rounded-x) < 1e-100;
 	}
-	String renderYtick(double uy) {
-		return tickText(yattr, uy);
-	}
 	String renderXtick(double ux) {
-		return tickText(xattr, ux);
+		return tickText(xattr, ux, XorY.X);
 	}
-	String tickText(String attr, double userspaceValue) {
+	String renderYtick(double uy) {
+		return tickText(yattr, uy, XorY.Y);
+	}
+	String tickText(String attr, double userspaceValue, XorY which) {
 		if (schema.column(attr).isCateg()) {
 			assert isIntegral(userspaceValue) : "this needs to be rounded for categ variable: " + userspaceValue;
 			int i = (int) Math.round(userspaceValue);
@@ -418,12 +424,26 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 			return schema.column(attr).levels.num2level.get(i).displayName();
 		}
 		else {
-			return reasonableNumericRounding(attr, userspaceValue);
+			return reasonableNumericRounding(attr, userspaceValue, which);
 		}
 	}
 	
-	String reasonableNumericRounding(String attr, double userspaceValue) {
-		return U.sf("%.0f", userspaceValue);
+	String reasonableNumericRounding(String attr, double userspaceValue, XorY which) {
+		double range = which==XorY.X ? maxUserX-minUserX : maxUserY-minUserY;
+		if (range==0) range=1;
+		if (range >= 10) {
+			return U.sf("%.0f", userspaceValue);
+		} else {
+			double log10 = Math.log10(range);
+			int numDecimalPointsNeeded = (int) (Math.abs(Math.floor(log10)) + 2); // should be only +1 or so if fix tickmarks to be at friendly rounding points
+			if (numDecimalPointsNeeded < 6) {
+				String fmt = "%." + numDecimalPointsNeeded + "f";
+				return U.sf(fmt, userspaceValue);
+			}
+			else {
+				return U.sf("%.3e", userspaceValue);
+			}
+		}
 	}
 
 	double xtickMin() {
