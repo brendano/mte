@@ -35,11 +35,12 @@ import te.data.Schema.Levels.Level;
 import util.U;
 
 import java.util.Comparator;
+import java.util.stream.Collectors;
 
 @SuppressWarnings("serial")
 public class BrushPanel extends JPanel implements MouseListener, MouseMotionListener {
 	
-	String xattr, yattr;
+	String xattr, yattr;  // allowed to be NULL.
 	Schema schema;
 	
 	// (meta)data value space
@@ -77,10 +78,10 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 		boolean isTermquery2Selected = false;
 	
 		public int physX() {
-			return (int) x_u2p(schema.getDouble(doc, xattr));
+			return (int) x_u2p(xOfDoc(doc));
 		}
 		public int physY() {
-			return (int) y_u2p(schema.getDouble(doc, yattr));
+			return (int) y_u2p(yOfDoc(doc));
 		}
 		public Point physPoint() {
 			return new Point(physX(), physY());
@@ -333,49 +334,61 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 		}
 	}
 	
-	List<Double> xtickPositions() {
-		List<Double> ret = new ArrayList<>();
-		if (schema.column(xattr).isCateg()) {
-			for (Level lev : schema.column(xattr).levels.levels()) {
-				ret.add( (double) lev.number);
-			}
+	enum XorY { X, Y }
+	
+	List<Double> tickPositions(String attr, XorY x_or_y) {
+		if (schema.column(attr).isCateg()) {
+			return schema.column(attr).levels.levels().stream().
+					map((lev) -> (double) lev.number).
+					collect(Collectors.toList());
 		}
 		else {
-			for (double x=xtickMin(); x<=xtickMax(); x+=xlabelDelta()) {
+			List<Double> ret = new ArrayList<>();
+			double min=-42,max=-42,delta=-42;
+			if (x_or_y==XorY.X) {
+				min=xtickMin(); max=xtickMax(); delta=xlabelDelta();
+			}
+			else if (x_or_y==XorY.Y) {
+				min=ytickMin(); max=ytickMax(); delta=ytickDelta();
+			}
+			for (double x=min; x<=max; x+=delta) {
 				ret.add(x);
 			}
+			return ret;
 		}
-		return ret;
+	}
+	
+	List<Double> xtickPositions() {
+		return tickPositions(xattr, XorY.X);
 	}
 	List<Double> ytickPositions() {
-		List<Double> ret = new ArrayList<>();
-		if (schema.column(yattr).isCateg()) {
-			for (Level lev : schema.column(yattr).levels.levels()) {
-				ret.add( (double) lev.number);
-			}
-		}
-		else {
-			for (double y=ytickMin(); y<=ytickMax(); y+=ytickDelta()) {
-				ret.add(y);
-			}
-		}
-		return ret;
+		return tickPositions(yattr, XorY.Y);
 	}
 	
 	double scaleMult = 0.1;
 	
-	double x(Document d) {
+	double xOfDoc(Document d) {
+		if (xattr==null) return 0;
 		return schema.getDouble(d, xattr);
 	}
-	double y(Document d) {
+	double yOfDoc(Document d) {
+		if (yattr==null) return 0;
 		return schema.getDouble(d, yattr);
 	}
 	public void setDefaultXYLim(Corpus corpus) {
-		double 
-			xmin = corpus.covariateSummaries.get(xattr).min(),
-			xmax = corpus.covariateSummaries.get(xattr).max(),
-			ymin = corpus.covariateSummaries.get(yattr).min(),
+		double xmin,xmax,ymin,ymax;
+		if (xattr==null) {
+			xmin=-1; xmax=1;
+		} else {
+			xmin = corpus.covariateSummaries.get(xattr).min();
+			xmax = corpus.covariateSummaries.get(xattr).max();
+		}
+		if (yattr==null) {
+			ymin=-1; ymax=1;
+		} else {
+			ymin = corpus.covariateSummaries.get(yattr).min();
 			ymax = corpus.covariateSummaries.get(yattr).max();
+		}
 		double scale;
 		scale = ymax-ymin;
 		scale = scale==0 ? 1 : scale;
