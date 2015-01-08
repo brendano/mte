@@ -29,6 +29,7 @@ import util.U;
 
 public class Document {
 	public String docid;
+	public int docnumOriginalOrder;
 //	public double x;
 //	public double y;
 	public Map<String,Object> covariates;

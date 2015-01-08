@@ -20,7 +20,7 @@ import util.U;
 
 public class Corpus {
 	public Map<String,Document> docsById;
-	List<Document> docsInOriginalOrder;
+	private List<Document> docsInOriginalOrder;
 	public TermVector globalTerms;
 	InvertedIndex index;
 //	SpatialIndex hierIndex;
@@ -38,8 +38,12 @@ public class Corpus {
 	}
 	
 	public Collection<Document> allDocs() {
-//		return docsById.values();
 		return docsInOriginalOrder;
+	}
+	
+	/** docnum is the 0-indexed integer from the original input order */
+	public Document getDocByDocnum(int docnum) {
+		return docsInOriginalOrder.get(docnum);
 	}
 	
 	/** sum_d n_d n_dw ... todo, cache here */ 
@@ -143,6 +147,7 @@ public class Corpus {
 	}
 	
 	public void convertCovariateTypes() {
+		U.p("Covariate types, before conversion pass: " + schema.columnTypes);
 		for (Document d : allDocs()) {
 			for (String varname : schema.columnTypes.keySet()) {
 				if (!d.covariates.containsKey(varname)) continue;

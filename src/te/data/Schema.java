@@ -33,8 +33,8 @@ public class Schema {
 			assert ci.levels.name2level.containsKey(value) : String.format("unknown level '%s', not in vocabulary for %s", value, attr);
 			return ci.levels.name2level.get(value).number;
 		}
-		U.p(columnTypes);
-		U.p(attr + " || " + value + " || " + ci);
+//		U.p(columnTypes);
+//		U.p(attr + " || " + value + " || " + ci);
 		assert false : "wtf";
 		return -42;
 	}

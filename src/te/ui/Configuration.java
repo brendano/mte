@@ -75,13 +75,6 @@ public class Configuration {
 			}
 			main.corpus.needsCovariateTypeConversion = true;
 		}
-		if (conf.hasPath("x")) {
-			main.xattr = conf.getString("x");
-		}
-		if (conf.hasPath("y")) {
-			main.yattr = conf.getString("y");
-		}
-		if (main.xattr==null || main.yattr==null) throw new BadConfig("Need to specify both 'x' and 'y'"); 
 		if (conf.hasPath("schema")) {
 			Object schema = conf.getAnyRef("schema");
 			if (schema instanceof String) {
@@ -115,6 +108,21 @@ public class Configuration {
 			}
 			else throw new BadConfig("Unknown tokenizer: " + tname);
 		}
+
+		
+		// data view config should be set only after all data is loaded.
+		
+		if (conf.hasPath("x")) {
+			if ( ! main.setXAttr(conf.getString("x"))) {
+				assert false : "bad x variable " + conf.getString("x");
+			}
+		}
+		if (conf.hasPath("y")) {
+			if ( ! main.setYAttr(conf.getString("y"))) {
+				assert false : "bad y variable" + conf.getString("y");
+			}
+		}
+
 	}
 
 }

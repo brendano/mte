@@ -81,7 +81,7 @@ public class Main implements QueryReceiver {
 	public Corpus corpus = new Corpus();
 	public DocSet curDS = new DocSet();
 	
-	String xattr, yattr;
+	private String xattr, yattr;
 
 	public List<String> docdrivenTerms = new ArrayList<>();
 	public List<String> pinnedTerms = new ArrayList<>();
@@ -108,7 +108,23 @@ public class Main implements QueryReceiver {
 	NLP.DocAnalyzer da = new NLP.UnigramAnalyzer();
 	Supplier<Void> afteranalysisCallback = () -> null;
 	Supplier<Void> uiOverridesCallback = () -> null;
-
+	
+	/** only call this after schema is set. return false if fails. */
+	public boolean setXAttr(String xattrName) {
+		if ( ! corpus.schema.varnames().contains(xattrName)) {
+			return false;
+		}
+		xattr = xattrName;
+		return true;
+	}
+	/** only call this after schema is set. return false if fails. */
+	public boolean setYAttr(String yattrName) {
+		if ( ! corpus.schema.varnames().contains(yattrName)) {
+			return false;
+		}
+		yattr = yattrName;
+		return true;
+	}
 	public void initWithCode() throws JsonProcessingException, IOException, BadSchema {
 		// the stuff in here is all half-broken
 		
@@ -440,6 +456,8 @@ public class Main implements QueryReceiver {
         brushPanel.setBackground(Color.white);
 //        brushPanel.setPreferredSize(new Dimension(rightwidth, 250));
         brushPanel.setBorder(BorderFactory.createLineBorder(Color.black));
+        // TODO this is bad organization that the app owns the xattr/yattr selections and copies them to the brushpanel, right?
+        // i guess eventually we'll need a current-user-config object as the source of truth for this and brushpanel should be hooked up to pull from it?
         if (xattr != null) brushPanel.xattr = xattr;
         if (yattr != null) brushPanel.yattr = yattr;
         brushPanel.setDefaultXYLim(corpus);
@@ -519,7 +537,9 @@ public class Main implements QueryReceiver {
 	
 	public static void myMain(String[] args) throws IOException, BadSchema, BadConfig {
 		final Main main = new Main();
+		
 		if (args.length < 1) usage();
+		
 		if (args[0].equals("--debug")) {
 			main.initWithCode();	
 		}
