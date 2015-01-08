@@ -378,9 +378,11 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 			ymax = corpus.covariateSummaries.get(yattr).max();
 		double scale;
 		scale = ymax-ymin;
+		scale = scale==0 ? 1 : scale;
 		minUserY = ymin - scale*scaleMult;
 		maxUserY = ymax + scale*scaleMult;
 		scale = xmax-xmin;
+		scale = scale==0 ? 1: scale;
 		minUserX = xmin - scale*scaleMult;
 		maxUserX = xmax + scale*scaleMult;
 	}
