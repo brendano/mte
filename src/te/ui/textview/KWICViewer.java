@@ -1,4 +1,4 @@
-package te.ui;
+package te.ui.textview;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -43,16 +43,16 @@ import util.U;
 import util.misc.Pair;
 import edu.stanford.nlp.util.Sets;
 
-public class TextPanel  {
+public class KWICViewer  {
 	JPanel panel;
 	JScrollPane scrollpane;
-	List<DocView> docviews;
+	List<KWICDocView> docviews;
 	
 	public int wordRadius = 5;
 	private Set<String> termset;
 	private List<Document> doclist;
 
-	public TextPanel() {
+	public KWICViewer() {
 		panel = new JPanel();
 		panel.setBackground(Color.white);
 		panel.setLayout(new BoxLayout(panel,BoxLayout.Y_AXIS));
@@ -73,8 +73,8 @@ public class TextPanel  {
 	}
 	
 	
-	class DocView extends JPanel {
-		DocView(Document doc, List<WithinDocHit> hits) {
+	class KWICDocView extends JPanel {
+		KWICDocView(Document doc, List<WithinDocHit> hits) {
 			setBackground(Color.white);
 			setLayout(new BoxLayout(this,BoxLayout.Y_AXIS));
 			add(new JLabel(doc.docid));
@@ -134,10 +134,10 @@ public class TextPanel  {
 				continue;
 			}
 			List<WithinDocHit> hits = getHitsInDoc(d, termset, 10);
-			docviews.add(new DocView(d,hits));
+			docviews.add(new KWICDocView(d,hits));
 		}
 		panel.removeAll();
-		for (DocView dv : docviews) {
+		for (KWICDocView dv : docviews) {
 			panel.add(dv);
 		}
 	}

@@ -67,6 +67,7 @@ import te.data.Analysis.TermvecComparison;
 import te.data.Schema.Levels;
 import te.exceptions.BadConfig;
 import te.exceptions.BadSchema;
+import te.ui.textview.KWICViewer;
 import util.BasicFileIO;
 import util.JsonUtil;
 import util.U;
@@ -95,7 +96,7 @@ public class Main implements QueryReceiver {
 	TermTable pinnedTermTable;
 	TermTable  termdrivenTermTable;
 	BrushPanel brushPanel;
-	TextPanel textPanel;
+	KWICViewer textPanel;
 	InfoArea mainqueryInfo;
 	InfoArea subqueryInfo;
 	JLabel termlistInfo;
@@ -462,7 +463,7 @@ public class Main implements QueryReceiver {
         if (yattr != null) brushPanel.yattr = yattr;
         brushPanel.setDefaultXYLim(corpus);
         
-        textPanel = new TextPanel();
+        textPanel = new KWICViewer();
 		DockController controller = new DockController();
 		SplitDockStation station = new SplitDockStation();
 		controller.add(station);
