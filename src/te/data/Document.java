@@ -31,8 +31,6 @@ public class Document {
 	public String docid;
 	/** starts at 1 */
 	public int docnumOriginalOrder;
-//	public double x;
-//	public double y;
 	public Map<String,Object> covariates;
 	public String text;
 	public List<Token> tokens;

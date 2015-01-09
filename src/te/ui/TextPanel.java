@@ -30,9 +30,6 @@ import javax.swing.SwingUtilities;
 import javax.swing.event.ListSelectionListener;
 import javax.swing.text.DefaultCaret;
 
-import jetbrains.HiDPIScaledGraphics;
-import jetbrains.JBHiDPIScaledImage;
-
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
@@ -67,11 +64,11 @@ public class TextPanel  {
 	public JComponent top() { return scrollpane; }
 	
 	static Font NORMAL_FONT, BOLD_FONT;
-	int fontHeight = 18;
+	static int fontHeight = 16;
 	
 	static { 
-		NORMAL_FONT = new Font("Times", Font.PLAIN, 16);
-		BOLD_FONT = new Font("Times", Font.BOLD, 16);
+		NORMAL_FONT = new Font("Times", Font.PLAIN, fontHeight);
+		BOLD_FONT = new Font("Times", Font.BOLD, fontHeight);
 //		fontHeight = new JLabel(""){{ setFont(BOLD_FONT); }}.getGraphics().getFontMetrics().getHeight();
 	}
 	
@@ -88,6 +85,8 @@ public class TextPanel  {
 			}
 		}
 	}
+	
+	/** this is for one single hit -- i.e. one line in the kwic panel. */
 	class HitView extends JPanel {
 		String hitstr,leftstr,rightstr;
 
