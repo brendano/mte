@@ -178,14 +178,31 @@ public class NLP {
 	public static void analyzeDocument(DocAnalyzer analyzer, Document doc) {
 		doc.termVec = new TermVector();
 		doc.tisByStartTokindex = new HashMap<>();
+		doc.tisByStartCharindex = new HashMap<>();
+		doc.tisByEndCharindex = new HashMap<>();
 		for (TermInstance ti : analyzer.analyze(doc)) {
 			doc.termVec.increment(ti.termName);
+			
 			int firstIndex = ti.tokIndsInDoc.get(0);
-			if (!doc.tisByStartTokindex.containsKey(firstIndex)) {
-				doc.tisByStartTokindex.put(firstIndex, new ArrayList<>());
-			}
+			GUtil.ensureList(doc.tisByStartTokindex, firstIndex);
 			doc.tisByStartTokindex.get(firstIndex).add(ti);
+			
+			int firstCharindex = doc.tokens.get(firstIndex).startChar;
+			GUtil.ensureList(doc.tisByStartCharindex, firstCharindex);
+			doc.tisByStartCharindex.get(firstCharindex).add(ti);			
+			
+			int lasttok = ti.tokIndsInDoc.get( ti.tokIndsInDoc.size()-1 );
+			int endchar = doc.tokens.get(lasttok).endChar;
+			GUtil.ensureList(doc.tisByEndCharindex, endchar );
+			doc.tisByEndCharindex.get(endchar).add(ti);			
+
 		}
+		
+//		U.p("\n" + doc.docid);
+//		U.p(doc.tisByStartTokindex);
+//		U.p(doc.tisByStartCharindex);
+//		U.p(doc.tisByEndCharindex );
+
 	}
 	
 }

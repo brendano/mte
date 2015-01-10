@@ -41,9 +41,9 @@ public class Corpus {
 		return docsInOriginalOrder;
 	}
 	
-	/** docnum is the 0-indexed integer from the original input order */
+	/** docnum is 1-indexed (starts at 1) */
 	public Document getDocByDocnum(int docnum) {
-		return docsInOriginalOrder.get(docnum);
+		return docsInOriginalOrder.get(docnum-1);
 	}
 	
 	/** sum_d n_d n_dw ... todo, cache here */ 

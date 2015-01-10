@@ -2,6 +2,7 @@ package te.ui.textview;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
@@ -9,9 +10,13 @@ import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
 import java.util.*;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -47,6 +52,8 @@ public class KWICViewer  {
 	JPanel panel;
 	JScrollPane scrollpane;
 	List<KWICDocView> docviews;
+	public Consumer<Document> fulldocClickReceiver;
+	public BiConsumer<Document,TermInstance> fulldocTerminstClickReceiver;
 	
 	public int wordRadius = 5;
 	private Set<String> termset;
@@ -74,10 +81,21 @@ public class KWICViewer  {
 	
 	
 	class KWICDocView extends JPanel {
+		Document document;
 		KWICDocView(Document doc, List<WithinDocHit> hits) {
+			document = doc;
 			setBackground(Color.white);
 			setLayout(new BoxLayout(this,BoxLayout.Y_AXIS));
-			add(new JLabel(doc.docid));
+			add(new JLabel(doc.docid) {{
+				setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+				addMouseListener(new MouseAdapter() {
+					public void mouseClicked(MouseEvent e) {
+						if (fulldocClickReceiver != null)
+							fulldocClickReceiver.accept(document);
+					}
+				});
+				
+			}} );
 			for (WithinDocHit h : hits) {
 //				add(new JLabel(h.toString()));
 				HitView hv = new HitView(doc, h);
@@ -89,8 +107,12 @@ public class KWICViewer  {
 	/** this is for one single hit -- i.e. one line in the kwic panel. */
 	class HitView extends JPanel {
 		String hitstr,leftstr,rightstr;
+		Document doc;
+		WithinDocHit dochit;
 
 		HitView(Document d, WithinDocHit h) {
+			doc=d;
+			dochit=h;
 			setLayout(null);
 			setBackground(Color.white);
 			hitstr = join(d, h.termStart,h.termEnd, " ");
@@ -98,6 +120,20 @@ public class KWICViewer  {
 			rightstr = " " + join(d, h.termEnd, Math.min(h.termEnd+20,d.tokens.size()), " ");
 			setPreferredSize(new Dimension(200, fontHeight));
 			setSize(new Dimension(200,fontHeight));
+			
+			addMouseListener(new MouseAdapter() {
+				public void mouseClicked(MouseEvent e) {
+					if (fulldocTerminstClickReceiver != null)
+						fulldocTerminstClickReceiver.accept(doc, getTermInstanceOfHit());
+				}
+			});
+		}
+		
+		TermInstance getTermInstanceOfHit() {
+			List<TermInstance> terminsts = doc.tisByStartTokindex.get(dochit.termStart);
+			assert terminsts!=null : "bad terminsts, is the index broken?";
+			assert !terminsts.isEmpty() : "bad terminsts, is the index broken?";
+			return terminsts.get(0);
 		}
 
 		@Override
@@ -142,14 +178,6 @@ public class KWICViewer  {
 		}
 	}
 
-
-	/** convention: [inc,exc) */
-	static class Span {
-		int start,end; 
-		public Span(int s, int e) { start=s;end=e; }
-		public String toString() { return U.sf("SPAN[%d,%d)",start,end); }
-	}
-	
 	static String join(Document doc, int startIndex, int endIndex, String joiner) {
 		return IntStream.range(startIndex,endIndex).mapToObj(j -> doc.tokens.get(j).text)
 			.collect(Collectors.joining(joiner));
@@ -167,7 +195,7 @@ public class KWICViewer  {
 	
 	
 	static class WithinDocHit {
-		// [inclusive,exclusive)
+		// [inclusive,exclusive) token index span
 		int termStart, termEnd;
 	}
 	

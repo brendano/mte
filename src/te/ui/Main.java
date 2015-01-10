@@ -17,6 +17,7 @@ import java.io.IOException;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -61,12 +62,15 @@ import te.data.Corpus;
 import te.data.DocSet;
 import te.data.Document;
 import te.data.NLP;
+import te.data.TermInstance;
 import te.data.TermQuery;
 import te.data.TermVector;
 import te.data.Analysis.TermvecComparison;
 import te.data.Schema.Levels;
 import te.exceptions.BadConfig;
 import te.exceptions.BadSchema;
+import te.ui.textview.FullDocViewer;
+import te.ui.textview.Highlighter;
 import te.ui.textview.KWICViewer;
 import util.BasicFileIO;
 import util.JsonUtil;
@@ -96,7 +100,9 @@ public class Main implements QueryReceiver {
 	TermTable pinnedTermTable;
 	TermTable  termdrivenTermTable;
 	BrushPanel brushPanel;
-	KWICViewer textPanel;
+	KWICViewer kwicPanel;
+	FullDocViewer fulldocPanel;
+	DefaultDockable fulldocDock;
 	InfoArea mainqueryInfo;
 	InfoArea subqueryInfo;
 	JLabel termlistInfo;
@@ -217,7 +223,19 @@ public class Main implements QueryReceiver {
 	}
 
 	void refreshTextPanel() {
-		textPanel.show(getCurrentTQ().terms, curDS);
+		kwicPanel.show(getCurrentTQ().terms, curDS);
+	}
+
+	void selectTerminstForFullview(Document d, TermInstance ti) {
+		selectSingleDocumentForFullview(d);
+		fulldocPanel.htmlpane.scrollToReference(Highlighter.idForTermInstance(ti));
+	}
+	void selectSingleDocumentForFullview(Document doc) {
+		fulldocDock.setTitleText("Document: " + doc.docid);
+		fulldocPanel.show(getCurrentTQ().terms, doc);
+	}
+	void refreshSingleDocumentInFullview() {
+		fulldocPanel.showForCurrentDoc(getCurrentTQ().terms);
 	}
 	
 	void refreshDocdrivenTermList() {
@@ -326,6 +344,7 @@ public class Main implements QueryReceiver {
 		refreshTextPanel();
 		brushPanel.showTerms(curTQ);
 		runTermTermQuery(curTQ);
+		refreshSingleDocumentInFullview();
 	}
 	
 
@@ -457,13 +476,18 @@ public class Main implements QueryReceiver {
         brushPanel.setBackground(Color.white);
 //        brushPanel.setPreferredSize(new Dimension(rightwidth, 250));
         brushPanel.setBorder(BorderFactory.createLineBorder(Color.black));
-        // TODO this is bad organization that the app owns the xattr/yattr selections and copies them to the brushpanel, right?
+        // todo this is bad organization that the app owns the xattr/yattr selections and copies them to the brushpanel, right?
         // i guess eventually we'll need a current-user-config object as the source of truth for this and brushpanel should be hooked up to pull from it?
         if (xattr != null) brushPanel.xattr = xattr;
         if (yattr != null) brushPanel.yattr = yattr;
         brushPanel.setDefaultXYLim(corpus);
         
-        textPanel = new KWICViewer();
+        kwicPanel = new KWICViewer();
+        kwicPanel.fulldocClickReceiver = this::selectSingleDocumentForFullview;
+        kwicPanel.fulldocTerminstClickReceiver = this::selectTerminstForFullview;
+        fulldocPanel = new FullDocViewer();
+        fulldocPanel.show(Collections.EMPTY_LIST, corpus.getDocByDocnum(1));
+        
 		DockController controller = new DockController();
 		SplitDockStation station = new SplitDockStation();
 		controller.add(station);
@@ -479,7 +503,9 @@ public class Main implements QueryReceiver {
 		
 		grid.addDockable(x,0, rx,5, new DefaultDockable("Query info") {{ add(queryInfo); }});
 		grid.addDockable(x,10, rx,15, new DefaultDockable("Covariate view") {{ add(brushPanel); }});
-		grid.addDockable(x,25, rx,20, new DefaultDockable("Text view") {{ add(textPanel.top()); }});
+		grid.addDockable(x,25, rx,20, new DefaultDockable("KWIC view") {{ add(kwicPanel.top()); }});
+		fulldocDock = new DefaultDockable("Document view") {{ add(fulldocPanel.top()); }};
+		grid.addDockable(x,25, rx,25, fulldocDock);
 		
 		station.dropTree(grid.toTree());
 
@@ -527,7 +553,7 @@ public class Main implements QueryReceiver {
 
         tcSpinner = new JSpinner(new SpinnerNumberModel(1, 0, 1000, 1));
         tcSpinner.setPreferredSize(new Dimension(60,30));
-        tcSpinner.setValue(1);
+        tcSpinner.setValue(2);
         tcSpinner.addChangeListener(e -> refreshDocdrivenTermList());
 	}
 	

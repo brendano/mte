@@ -7,9 +7,12 @@ import java.awt.geom.Ellipse2D;
 import java.awt.geom.Rectangle2D;
 import java.text.NumberFormat;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
+import java.util.function.Supplier;
 
 import util.U;
 
@@ -135,6 +138,22 @@ public class GUtil {
 
 	public static double getRenderedTextWidth(Graphics2D g, String text) { 
 		return g.getFontMetrics().stringWidth(text);
+	}
+	
+
+	/** like {@link java.util.Map#putIfAbsent} except instantiates the value if it's needed. */
+	public static <K,V> void ensureValue(Map<K,V> map, K key, Supplier<V> fn) {
+		if (!map.containsKey(key)) {
+			map.put(key, fn.get());
+		}
+	}
+	/** if key not in map, add it with a new arraylist value */
+	public static <K,V> void ensureList(Map<K, List<V>> map, K key) {
+		ensureValue(map, key, ()-> new ArrayList<V>());
+	}
+	/** if key not in map, add it with a new hashmap value */
+	public static <K,K2,V> void ensureMap(Map<K, Map<K2,V>> map, K key) {
+		ensureValue(map, key, ()-> new HashMap<K2,V>());
 	}
 
 }
