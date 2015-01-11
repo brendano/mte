@@ -19,21 +19,18 @@ public class Highlighter {
 		if (c=='>') return "&gt;";
 		return Character.toString(c);
 	}
-	static String highlightTermsAsHTML(Collection<String> terms, Document doc, 
-			String startmarker, String endmarker) {
+	static String highlightTermsAsHTML(Collection<String> terms, Document doc) {
 		StringBuilder output = new StringBuilder();
 		Set<TermInstance> currentlyInsideThese = new HashSet<>();
 		
-		U.p("charindex " + doc.tisByStartCharindex);
 		for (int cur=0; cur < doc.text.length(); cur++) {
 			int next = cur+1;
 
 			for (TermInstance ti : doc.tisByStartCharindex.getOrDefault(cur, Collections.EMPTY_LIST)) {
-				U.p("HERE " + ti);
-				output.append("<span name=\"" + idForTermInstance(ti) + "\">" );
+				output.append("<a name=\"" + idForTermInstance(ti) + "\">" );
 				if (terms.contains(ti.termName)) {
 					currentlyInsideThese.add(ti);
-//					output.append(startmarker);	
+					output.append("<b>");	
 				}
 				
 			}
@@ -46,10 +43,10 @@ public class Highlighter {
 			}
 			
 			for (TermInstance ti : doc.tisByEndCharindex.getOrDefault(next, Collections.EMPTY_LIST)) {
-				output.append("</span>");
+				output.append("</a>");
 				if (currentlyInsideThese.contains(ti)) {
 					currentlyInsideThese.remove(ti);
-//					output.append(endmarker);	
+					output.append("</b>");	
 				}
 			}
 		}

@@ -486,7 +486,6 @@ public class Main implements QueryReceiver {
         kwicPanel.fulldocClickReceiver = this::selectSingleDocumentForFullview;
         kwicPanel.fulldocTerminstClickReceiver = this::selectTerminstForFullview;
         fulldocPanel = new FullDocViewer();
-        fulldocPanel.show(Collections.EMPTY_LIST, corpus.getDocByDocnum(1));
         
 		DockController controller = new DockController();
 		SplitDockStation station = new SplitDockStation();
@@ -494,25 +493,31 @@ public class Main implements QueryReceiver {
 		
 		SplitDockGrid grid = new SplitDockGrid();
 
-//		double x=0.5, rx=1-0.5;
-		double x=1, rx=1;
-		grid.addDockable(0,0,   x,10, new DefaultDockable("Pinned terms") {{ add(pinnedWrapper); }});
-		grid.addDockable(0,10,   x,5, new DefaultDockable("Frequency control") {{ add(termfilterPanel); }});
-		grid.addDockable(0,15, x,20, new DefaultDockable("Covariate-associated terms") {{ add(docdrivenWrapper); }});
-		grid.addDockable(0,35, x,20, new DefaultDockable("Term-associated terms") {{ add(termdrivenWrapper); }});
-		
-		grid.addDockable(x,0, rx,5, new DefaultDockable("Query info") {{ add(queryInfo); }});
-		grid.addDockable(x,10, rx,15, new DefaultDockable("Covariate view") {{ add(brushPanel); }});
-		grid.addDockable(x,25, rx,20, new DefaultDockable("KWIC view") {{ add(kwicPanel.top()); }});
 		fulldocDock = new DefaultDockable("Document view") {{ add(fulldocPanel.top()); }};
-		grid.addDockable(x,25, rx,25, fulldocDock);
+
+//		double x=0.5, rx=1-0.5;
+		double w1=3, w2=6;
+		double y,h;
+		y=0;
+		grid.addDockable(0,0,   w1,h=5, new DefaultDockable("Pinned terms") {{ add(pinnedWrapper); }});
+		grid.addDockable(0,y+=h, w1,h=2, new DefaultDockable("Frequency control") {{ add(termfilterPanel); }});
+		grid.addDockable(0,y+=h, w1,h=10, new DefaultDockable("Covariate-associated terms") {{ add(docdrivenWrapper); }});
+		grid.addDockable(0,y+=h, w1,h=5, new DefaultDockable("Term-associated terms") {{ add(termdrivenWrapper); }});
+//		grid.addDockable(0,y+=h, x,8, fulldocDock);
 		
+		y=0;
+		grid.addDockable(w1,y, w2,h=3, new DefaultDockable("Query info") {{ add(queryInfo); }});
+		grid.addDockable(w1,y+=h, w2,h=7, new DefaultDockable("Covariate view") {{ add(brushPanel); }});
+		h=15;
+		grid.addDockable(w1, y, w2/2, h, new DefaultDockable("KWIC view") {{ add(kwicPanel.top()); }});
+		grid.addDockable(w1+w2/2, y, w2/2, h, fulldocDock);
+	
 		station.dropTree(grid.toTree());
 
         mainFrame = new JFrame("Text Explorer Tool");
 		mainFrame.add(station.getComponent());
 		mainFrame.pack();
-		mainFrame.setBounds(20,20, 800,550);
+		mainFrame.setBounds(0,0, 1000, 768-25);  //  mac osx toolbar is 22,23ish tall
         mainFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
         ToolTipManager.sharedInstance().setDismissDelay((int) 1e6);
@@ -527,17 +532,6 @@ public class Main implements QueryReceiver {
         return tmp;
 	}
 	
-	private static JButton createSimpleButton(String text) {
-		  JButton button = new JButton(text);
-		  button.setForeground(Color.BLACK);
-		  button.setBackground(Color.WHITE);
-		  Border line = new LineBorder(Color.BLACK);
-		  Border margin = new EmptyBorder(1,1,1,1);
-		  Border compound = new CompoundBorder(line, margin);
-		  button.setBorder(compound);
-		  return button;
-		}
-
 
 	void setupTermfilterSpinners() {
 		tpSpinner = new JSpinner(new SpinnerStuff.MySM());
@@ -574,7 +568,6 @@ public class Main implements QueryReceiver {
 			Configuration.initWithConfig(main, args[0]);
 			main.finalizeCorpusAnalysisAfterConfiguration();
 		}
-
 
 		SwingUtilities.invokeLater(() -> {
 			main.setupUI();

@@ -43,17 +43,10 @@ public class FullDocViewer {
 	public void showForCurrentDoc(Collection<String> terms) {
 		if (currentDoc==null) return;
 		String newstr;
-		String smark = "_AAASTARTBBB_";
-		String emark = "_AAAENDBBB_";
-		newstr = Highlighter.highlightTermsAsHTML(terms, currentDoc, 
-				smark,emark );
-		U.p(newstr.substring(0,1000));
-//		newstr = escapeHTML(newstr);
-//		newstr = newstr.replace(smark, "<b>");
-//		newstr = newstr.replace(emark, "</b>");
+		newstr = Highlighter.highlightTermsAsHTML(terms, currentDoc); 
 		newstr = newstr.replace("\\r\\n", "\\n");
 		newstr = newstr.replace("\\r", "\\n");
-		newstr = newstr.replaceAll("(\\n\\s*?)(\\n[ \\t]*)+", "\n<br><br>\n"); // two newlines gets a break
+		newstr = newstr.replaceAll("(\\n[ \\t]*)(\\n[ \\t]*)+", "\n<br><br>\n"); // two or more newlines gets a double-br break
 //		newstr = newstr.replace("\n", "<br>");
 //		newstr = newstr.replace("\n\n", "<br><br>");
 //		newstr = newstr.replace("\r\n\r\n", "<br><br>");
