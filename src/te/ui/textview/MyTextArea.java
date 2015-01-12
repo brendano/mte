@@ -82,6 +82,7 @@ public class MyTextArea {
 		boolean isSoftBreak;  // otherwise it's a hard break
 	}
 	
+	/** this can't handle hard breaks. only infers soft breaks. */
 	static List<Integer> calculateBreaks(Document doc, int width, Function<String,Integer> widthMeasure) {
 		List<Integer> possBreaks = possibleBreakpoints(doc);
 		if (possBreaks.size()>0) assert possBreaks.get(possBreaks.size()-1) != doc.text.length();
@@ -103,7 +104,6 @@ public class MyTextArea {
 		}
 		return breaks;
 	}
-
 	
 	static List<Integer> possibleBreakpoints(Document doc) {
 		// uses tokenization and stuff
@@ -132,54 +132,8 @@ public class MyTextArea {
 	/** calculate all visible break positions for a given rendering width and font.
 	 * includes both softbreaks (ones caused by wordwrap) as well as hardbreaks (forced by newlines)
 	 */
-	static List<Integer> calculateBreaks2(Document doc, int width, FontMetrics fm) {
+	static List<Integer> calculateBreaks(Document doc, int width, FontMetrics fm) {
 		return calculateBreaks(doc, width, fm::stringWidth);
-	}
-	
-	static List<Integer> calculateBreaks2(Document doc, int width, Function<String,Integer> widthMeasure) {
-		List<Integer> possBreaks = possibleBreakpoints(doc);
-		possBreaks.add(doc.text.length());
-		List<Integer> breaks = new ArrayList<>();
-		int curStart = 0;
-		int lastPossBreakThatBreaked = -1;
-		
-//		for (int i=0; i<possBreaks.size(); i++) {
-		int i=0;
-		while(true) {
-			int possEnd = possBreaks.get(i);
-			if (possEnd < doc.text.length()-1 && doc.text.charAt(possEnd)=='\n') {
-				breaks.add(possEnd);
-				curStart=possEnd;
-				lastPossBreakThatBreaked = possEnd;
-			}
-			else {
-				assert curStart<=possEnd;
-				String candidateLine = doc.text.substring(curStart, possEnd-curStart);
-				U.pf("CAND %d:%d [[%s]]\n", curStart,possEnd, candidateLine);
-				int w = widthMeasure.apply(candidateLine);
-				if (w > width && (i==0 || lastPossBreakThatBreaked==possBreaks.get(i))) {
-					// this is just a really long token that has to be too wide
-					breaks.add(possEnd);
-					curStart=possEnd;
-					lastPossBreakThatBreaked = possEnd;
-				}
-				else if (w > width && curStart<possEnd) {
-					// we've gone over the desired width.
-					// use the last previous breakpoint candidate as the breakpoint.
-					int lastbreak = possBreaks.get(i-1);
-					breaks.add(lastbreak);
-					curStart = lastbreak;
-					lastPossBreakThatBreaked = lastbreak;
-					i = i-1; // so next iteration we'll redo considering the current breakpoint.
-				}
-			}
-		}
-		// is this possible now? not sure
-		if (breaks.size()>0 && breaks.get( breaks.size()-1 ) == doc.text.length()) {
-			assert false : "Wtf";
-			throw new RuntimeException("wtf");
-		}
-		return breaks;
 	}
 	
 	Rendering render(int width) {
