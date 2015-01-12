@@ -120,9 +120,16 @@ public class Document {
 			for (int i=0; i<jsent.get("tokens").size(); i++) {
 				Token myTok = new Token();
 				myTok.text = jsent.get("tokens").get(i).asText();
-				myTok.pos = jsent.get("pos").get(i).asText();
+				if (jsent.has("pos")) {
+					myTok.pos = jsent.get("pos").get(i).asText();
+				}
 				if (jsent.has("ner")) {
 					myTok.ner = jsent.get("ner").get(i).asText();
+				}
+				if (jsent.has("char_offsets")) {
+					assert jsent.get("char_offsets").get(i).size()==2 : "char offset should be a 2-length array representing a char span [begin,end)";
+					myTok.startChar = jsent.get("char_offsets").get(i).get(0).asInt();
+					myTok.endChar = jsent.get("char_offsets").get(i).get(1).asInt();
 				}
 				alltoks.add(myTok);
 			}
