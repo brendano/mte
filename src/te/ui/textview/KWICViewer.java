@@ -14,6 +14,7 @@ import java.awt.Toolkit;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.geom.AffineTransform;
+import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
 import java.util.*;
 import java.util.function.BiConsumer;
@@ -143,22 +144,22 @@ public class KWICViewer  {
 		}
 		@Override
 		public void paintComponent(Graphics _g) {
-//			U.p(Toolkit.getDefaultToolkit().getDesktopProperty("awt.font.desktophints"));
-//			(new Object()).toString()
 			Graphics2D g = (Graphics2D) _g;
-//			U.p("CLIP " + g.getClip());
-//			U.pf("%s visible area %s\n", this, this.getVisibleRect());
 		    g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 		    g.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_NORMALIZE);
+		    // text width calculators
 			Function<String,Double> twCalc = (String s) -> (double) g.getFontMetrics(NORMAL_FONT).getStringBounds(s,g).getWidth(); 
 			Function<String,Double> twBoldCalc = (String s) -> (double) g.getFontMetrics(BOLD_FONT).getStringBounds(s,g).getWidth();
 			
-			double withindocLeftMargin = 30;
-			double withindocRightMargin = 30;
+			double withindocLeftMargin = 5;
+			double withindocRightMargin = 5;
 			double withindocWidth = scrollpane.getWidth() - withindocLeftMargin - withindocRightMargin;
-			double height = fontHeight;
+//			double height = fontHeight;
 			double cury = fontHeight-5;
-			g.setClip((int)withindocLeftMargin, 0, (int) withindocWidth, (int) height);
+			Rectangle2D oldClip = g.getClipBounds();
+			g.setClip((int)withindocLeftMargin, 0, 
+					(int) (oldClip.getWidth()- withindocLeftMargin), (int) oldClip.getHeight());
+//			U.p("CLIP AFTER " + g.getClip());
 
 			double hittermWidth = twBoldCalc.apply(hitstr);
 			double hittermLeft = withindocLeftMargin + withindocWidth/2 - hittermWidth/2;
