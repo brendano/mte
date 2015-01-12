@@ -12,6 +12,7 @@ import javax.swing.text.DefaultCaret;
 
 import te.data.DocSet;
 import te.data.Document;
+import util.Timer;
 import util.U;
 
 public class FullDocViewer {
@@ -35,15 +36,23 @@ public class FullDocViewer {
 
 	public JComponent top() { return scrollpane; }
 
-	public void show(Collection<String> terms, Document doc) {
-		currentDoc = doc;
-		showForCurrentDoc(terms);
-	}
+	Timer timer = new Timer();
 	
-	public void showForCurrentDoc(Collection<String> terms) {
+	public void show(Collection<String> terms, Document doc) {
+		boolean newdoc = doc==currentDoc;
+		currentDoc = doc;
+		showForCurrentDoc(terms, newdoc);
+		timer.report();
+	}
+
+	public void showForCurrentDoc(Collection<String> terms, boolean isNewDoc) {
 		if (currentDoc==null) return;
 		String newstr;
-		newstr = Highlighter.highlightTermsAsHTML(terms, currentDoc); 
+		timer.tick("create html");
+		newstr = Highlighter.highlightTermsAsHTML(terms, currentDoc);
+		timer.tock();
+
+		timer.tick("string sub");
 		newstr = newstr.replace("\\r\\n", "\\n");
 		newstr = newstr.replace("\\r", "\\n");
 		newstr = newstr.replaceAll("(\\n[ \\t]*)(\\n[ \\t]*)+", "\n<br><br>\n"); // two or more newlines gets a double-br break
@@ -51,8 +60,14 @@ public class FullDocViewer {
 //		newstr = newstr.replace("\n\n", "<br><br>");
 //		newstr = newstr.replace("\r\n\r\n", "<br><br>");
 //		newstr = newstr.replace("\r\r", "<br><br>");
+		timer.tock();
+		int curpos = scrollpane.getVerticalScrollBar().getValue();
+		timer.tick("set text");
 		htmlpane.setText(newstr);
-		scrollpane.getVerticalScrollBar().setValue(0);
+		timer.tock();
+		if (isNewDoc) {
+			scrollpane.getVerticalScrollBar().setValue(0);	
+		}
 	}
 	
 	static String escapeHTML(String input) {

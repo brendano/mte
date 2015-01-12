@@ -81,7 +81,6 @@ interface QueryReceiver {
 	public void receiveQuery(Collection<String> docids);
 }
 
-@SuppressWarnings("serial")
 public class Main implements QueryReceiver {
 	public Corpus corpus = new Corpus();
 	public DocSet curDS = new DocSet();
@@ -235,7 +234,7 @@ public class Main implements QueryReceiver {
 		fulldocPanel.show(getCurrentTQ().terms, doc);
 	}
 	void refreshSingleDocumentInFullview() {
-		fulldocPanel.showForCurrentDoc(getCurrentTQ().terms);
+		fulldocPanel.showForCurrentDoc(getCurrentTQ().terms, false);
 	}
 	
 	void refreshDocdrivenTermList() {
@@ -394,8 +393,6 @@ public class Main implements QueryReceiver {
 	}
 	
 	void setupUI() {
-//        int leftwidth = 365-5, rightwidth=430-5, height=550;
-        
         /////////////////  termpanel  ///////////////////
         
         setupTermfilterSpinners();
@@ -509,7 +506,7 @@ public class Main implements QueryReceiver {
 		grid.addDockable(w1,y, w2,h=3, new DefaultDockable("Query info") {{ add(queryInfo); }});
 		grid.addDockable(w1,y+=h, w2,h=7, new DefaultDockable("Covariate view") {{ add(brushPanel); }});
 		h=15;
-		grid.addDockable(w1, y, w2/2, h, new DefaultDockable("KWIC view") {{ add(kwicPanel.top()); }});
+		grid.addDockable(w1, y,           w2/2, h, new DefaultDockable("KWIC view") {{ add(kwicPanel.top()); }});
 		grid.addDockable(w1+w2/2, y, w2/2, h, fulldocDock);
 	
 		station.dropTree(grid.toTree());

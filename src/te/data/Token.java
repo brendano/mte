@@ -16,4 +16,5 @@ public class Token {
 		if (text==null) return "[NULLTOKEN]";
 		return text + "_[" + startChar + ":" + endChar + "]";
 	}
+	
 }

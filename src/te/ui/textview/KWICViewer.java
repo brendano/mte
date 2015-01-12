@@ -10,6 +10,7 @@ import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
+import java.awt.Toolkit;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.geom.AffineTransform;
@@ -136,9 +137,17 @@ public class KWICViewer  {
 			return terminsts.get(0);
 		}
 
+		@Override public String toString() {
+			return String.format("HitView[%s dochit %s:%s]", Integer.toHexString(hashCode()),
+					dochit.termStart, dochit.termEnd);
+		}
 		@Override
 		public void paintComponent(Graphics _g) {
+//			U.p(Toolkit.getDefaultToolkit().getDesktopProperty("awt.font.desktophints"));
+//			(new Object()).toString()
 			Graphics2D g = (Graphics2D) _g;
+//			U.p("CLIP " + g.getClip());
+//			U.pf("%s visible area %s\n", this, this.getVisibleRect());
 		    g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 		    g.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_NORMALIZE);
 			Function<String,Double> twCalc = (String s) -> (double) g.getFontMetrics(NORMAL_FONT).getStringBounds(s,g).getWidth(); 
