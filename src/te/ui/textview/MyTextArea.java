@@ -1,8 +1,10 @@
 package te.ui.textview;
 
+
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
+import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.GraphicsEnvironment;
@@ -11,12 +13,12 @@ import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.util.*;
-import java.util.function.Function;
-import java.util.function.Supplier;
+import java.util.function.*;
 
 import te.data.Document;
 import te.data.NLP;
 import te.ui.GUtil;
+import util.Arr;
 import util.BasicFileIO;
 import util.U;
 import util.misc.Pair;
@@ -26,8 +28,11 @@ import javax.swing.JEditorPane;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+import javax.swing.JTextArea;
 import javax.swing.JViewport;
 import javax.swing.SwingUtilities;
+
+import edu.stanford.nlp.util.MutableInteger;
 
 public class MyTextArea {
 	InternalTextArea area;
@@ -65,73 +70,176 @@ public class MyTextArea {
 	    g.setFont(NORMAL_FONT);
 		return U.pair(image, g);
 	}
+	
+	static boolean isNonprinting(char c) {
+		// this is complicated. depends what it's aimed for.
+		if (c=='\n') return false;
+		return true;
+	}
+	
+	static class Break {
+		int charind;  // for the insertion point. break right before this character.
+		boolean isSoftBreak;  // otherwise it's a hard break
+	}
+	
+	static List<Integer> calculateBreaks(Document doc, int width, Function<String,Integer> widthMeasure) {
+		List<Integer> possBreaks = possibleBreakpoints(doc);
+		if (possBreaks.size()>0) assert possBreaks.get(possBreaks.size()-1) != doc.text.length();
+		possBreaks.add(doc.text.length());
+		int widthLeft = width;
+		int curStart=0;
+		List <Integer> breaks = new ArrayList<>();
+		
+		for (int possBreak : possBreaks) {
+			String cand = doc.text.substring(curStart,possBreak);
+			int w = widthMeasure.apply(cand);
+			if (w > widthLeft) {
+				if (curStart>0) breaks.add(curStart);
+				widthLeft = width - w;
+			} else {
+				widthLeft -= w;
+			}
+			curStart = possBreak;
+		}
+		return breaks;
+	}
+
+	
+	static List<Integer> possibleBreakpoints(Document doc) {
+		// uses tokenization and stuff
+		int curtok = 0;
+		int curchar = 0;
+		List<Integer> breaks = new ArrayList<>();
+		while(true) {
+			while (curchar <= doc.tokens.get(curtok).startChar) {
+				breaks.add(curchar);
+				curchar++;
+			}
+			curchar = doc.tokens.get(curtok).endChar;
+			curtok++;
+			if (curchar>=doc.text.length()) break;
+			if (curtok>=doc.tokens.size()) {
+				while (curchar < doc.text.length()) {
+					breaks.add(curchar);
+					curchar++;
+				}
+				break;
+			}
+		}
+		return breaks;
+	}
+	
+	/** calculate all visible break positions for a given rendering width and font.
+	 * includes both softbreaks (ones caused by wordwrap) as well as hardbreaks (forced by newlines)
+	 */
+	static List<Integer> calculateBreaks2(Document doc, int width, FontMetrics fm) {
+		return calculateBreaks(doc, width, fm::stringWidth);
+	}
+	
+	static List<Integer> calculateBreaks2(Document doc, int width, Function<String,Integer> widthMeasure) {
+		List<Integer> possBreaks = possibleBreakpoints(doc);
+		possBreaks.add(doc.text.length());
+		List<Integer> breaks = new ArrayList<>();
+		int curStart = 0;
+		int lastPossBreakThatBreaked = -1;
+		
+//		for (int i=0; i<possBreaks.size(); i++) {
+		int i=0;
+		while(true) {
+			int possEnd = possBreaks.get(i);
+			if (possEnd < doc.text.length()-1 && doc.text.charAt(possEnd)=='\n') {
+				breaks.add(possEnd);
+				curStart=possEnd;
+				lastPossBreakThatBreaked = possEnd;
+			}
+			else {
+				assert curStart<=possEnd;
+				String candidateLine = doc.text.substring(curStart, possEnd-curStart);
+				U.pf("CAND %d:%d [[%s]]\n", curStart,possEnd, candidateLine);
+				int w = widthMeasure.apply(candidateLine);
+				if (w > width && (i==0 || lastPossBreakThatBreaked==possBreaks.get(i))) {
+					// this is just a really long token that has to be too wide
+					breaks.add(possEnd);
+					curStart=possEnd;
+					lastPossBreakThatBreaked = possEnd;
+				}
+				else if (w > width && curStart<possEnd) {
+					// we've gone over the desired width.
+					// use the last previous breakpoint candidate as the breakpoint.
+					int lastbreak = possBreaks.get(i-1);
+					breaks.add(lastbreak);
+					curStart = lastbreak;
+					lastPossBreakThatBreaked = lastbreak;
+					i = i-1; // so next iteration we'll redo considering the current breakpoint.
+				}
+			}
+		}
+		// is this possible now? not sure
+		if (breaks.size()>0 && breaks.get( breaks.size()-1 ) == doc.text.length()) {
+			assert false : "Wtf";
+			throw new RuntimeException("wtf");
+		}
+		return breaks;
+	}
+	
 	Rendering render(int width) {
 		// need to supply the width.  this function determines the height.
+		long t0 = System.nanoTime(); U.pf("\n");
 
 		Rendering r = new Rendering();
 		r.screenLinesPerParagraph = new int[paragraphs.size()];
-		int segmentPixelHeight = 100;
-		int segmentExtraForBuffer = 30;
-		int segmentExtraForLine = 4;
-		
-		List<Image> segmentImages = new ArrayList<>();
-		List<Integer> segmentHeights = new ArrayList<>();
-		
 		// createCompatibleImage() is recommended by Haase, but on Retina displays it displays text crappily - maybe it uses a naive scaler or something.
 		// createCompatibleVolatileImage() works fine.
 		// seen in http://comments.gmane.org/gmane.comp.java.openjdk.macosx-port.devel/6400
+		// should use bufferedimage on windows?
 		Function<Integer,Image> makeImage = (Integer h) -> area.getGraphicsConfiguration().createCompatibleVolatileImage(width, h);
-		
-		Pair<Image,Graphics2D> pair = createNewSegment(makeImage, width,segmentPixelHeight);
-		Graphics2D g = pair.second;
+//		Function<Integer,Image> makeImage = (Integer h) -> area.getGraphicsConfiguration().createCompatibleImage(width, h);
+
+		int height = 100;
+		double multiplier = 1.5;
+		Pair<Image,Graphics2D> pair = createNewSegment(makeImage, width, height);
+		Graphics2D curg = pair.second;
 		Image curimg = pair.first;
-		int usedHeightInCurrentSegment = 0;
-		int absoluteHeightAtCurrentY0 = 0; // the cumul sum of all segment heights so far
-	    
-	    int lineHeight = getLineHeight(g);
+		Image newimg = null;
+		Graphics2D newg = null;
+	    int lineHeight = getLineHeight(curg);
 
 	    for (int linenum=0; linenum < paragraphs.size(); linenum++) {
-	    	String line = paragraphs.get(linenum);
 	    	int absoluteY = (linenum+1) * lineHeight;
-	    	int relativeY = absoluteY - absoluteHeightAtCurrentY0;
-	    	if (relativeY >= segmentPixelHeight) {  // TODO extra buffering space
-	    		// store current segment and cleanup
-	    		segmentImages.add(curimg);
-	    		segmentHeights.add(usedHeightInCurrentSegment);
-	    		g.dispose();
-	    		// advance to new segment
-	    		pair = createNewSegment(makeImage, width, segmentPixelHeight);
-	    		g = pair.second;
-	    		curimg = pair.first;
-	    		absoluteHeightAtCurrentY0 += usedHeightInCurrentSegment;
-	    		usedHeightInCurrentSegment = 0;
-	    		relativeY = absoluteY - absoluteHeightAtCurrentY0;
+	    	if (absoluteY > height-40) {
+	    		U.pf("startcopy %.2f ms\n", (System.nanoTime()-t0)/1e6);
+	    		// cleanup current
+	    		curg.dispose();
+	    		// make new
+	    		int newHeight = (int) (multiplier * height);
+	    		U.pf("absy %s  oldheight %s  mult %s  newheight %s\n", absoluteY, height, multiplier, newHeight);
+	    		assert absoluteY <= newHeight;
+	    		pair = createNewSegment(makeImage, width, newHeight);
+	    		newimg = pair.first;
+	    		newg = pair.second;
+	    		newg.drawImage(curimg,0,0,null);
+	    		newg.drawLine(0,newHeight,width,newHeight);
+	    		curimg=newimg;
+	    		curg=newg;
+	    		height=newHeight;
+	    		U.pf("copyend %.2f ms\n", (System.nanoTime()-t0)/1e6);
 	    	}
-	    	assert relativeY < segmentPixelHeight;
+
 	    	
-			g.drawString(line, 0, relativeY);
-			usedHeightInCurrentSegment = relativeY;
+	    	String line = paragraphs.get(linenum);
+//	    	line = line.substring(0,Math.min(line.length(),100));
+    		curg.drawString(line, 0, absoluteY);
+	    	int ww = curg.getFontMetrics(NORMAL_FONT).stringWidth(line);
+//	    	curg.drawLine(0,absoluteY,ww,absoluteY);
 			linenum++;
 		}
 	    
-	    // finish the current segment -- copy and pasted from the loop, sigh
-		segmentImages.add(curimg);
-		segmentHeights.add(usedHeightInCurrentSegment);
-		g.dispose();
-		
-		// vertical concatenation
-		int totalHeight = segmentHeights.stream().mapToInt(x->x).sum();
-		Image finalImage = makeImage.apply(totalHeight);
-		g = (Graphics2D) finalImage.getGraphics();
-		int absY=0;
-		for (int seg=0; seg<segmentImages.size(); seg++) {
-			g.drawImage(segmentImages.get(seg), 0, absY, null);
-//			g.drawLine(0,absY,width,absY);
-			absY += segmentHeights.get(seg);
-		}
-		assert absY==totalHeight;
-		g.dispose();
-		r.image = finalImage;
+	    // finish the current segment
+	    curg.dispose();
+		r.image = curimg;
+		Arr.fill(r.screenLinesPerParagraph, 1);
+		U.pf("END time %.2f ms\n", (System.nanoTime()-t0)/1e6);
+//		JTextArea
 		return r;
 	}
 	
@@ -165,6 +273,8 @@ public class MyTextArea {
 		Document d = new Document();
 		d.text = BasicFileIO.readFile(System.in);
 		d.tokens = NLP.stanfordTokenize(d.text);
+		
+		U.p(possibleBreakpoints(d));
 		
 		JFrame main = new JFrame() {{ setSize(new Dimension(200,200)); }};
 		MyTextArea a = new MyTextArea();
