@@ -176,6 +176,17 @@ public class GUtil {
 		spans.add(new Span(curstart, text.length()));
 		return spans;
 	}
+	/** 0, {4,8}, 10 ===> [0,4), [4,8), [8,10) */  
+	public static List<Span> breakpointsToSpans(int start, List<Integer> breakpoints, int end) {
+		List<Span> spans = new ArrayList<>();
+		int curstart=0;
+		for (int p : breakpoints) {
+			spans.add(new Span(curstart, p));
+			curstart=p;
+		}
+		spans.add(new Span(curstart, end));
+		return spans;
+	}
 	
 	public static void main(String[] args) {
 		String text = "asdf\nqwer";

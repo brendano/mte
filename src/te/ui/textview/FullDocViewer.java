@@ -49,7 +49,8 @@ public class FullDocViewer {
 		if (currentDoc==null) return;
 		String newstr;
 		timer.tick("create html");
-		newstr = Highlighter.highlightTermsAsHTML(terms, currentDoc);
+//		newstr = Highlighter.highlightTermsAsHTML(terms, currentDoc);
+		newstr = escapeHTML(currentDoc.text);
 		timer.tock();
 
 		timer.tick("string sub");

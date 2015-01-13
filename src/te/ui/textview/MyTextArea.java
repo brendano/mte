@@ -47,7 +47,7 @@ public class MyTextArea {
 	 * note number of paragraphs (physical lines) is the lower bound on the number of screen lines.
 	 * some paragraphs have to wrap. */
 	
-	List<Span> paragraphs;  // aka physical lines from file .. charspans.
+	List<Span> paragraphSpans;  // aka physical lines from file .. charspans.
 
 	static int FONT_HEIGHT = 14;
 	static Font NORMAL_FONT = new Font("Times", Font.PLAIN, FONT_HEIGHT);
@@ -56,35 +56,7 @@ public class MyTextArea {
 		int fontHeight = g.getFontMetrics(NORMAL_FONT).getHeight();
 		return (int) Math.ceil(fontHeight*1.0/2);
 	}
-	
-	class Rendering {
-		int[] screenLinesPerParagraph; // parallel to the above. depends on rendering width.
-		Image image;
-	}
 
-	Pair<Image,Graphics2D> createNewSegment(Function<Integer,Image> fn, int width, int height) {
-		Image image = fn.apply(height);
-		Graphics2D g = (Graphics2D) image.getGraphics();
-		g.setColor(Color.WHITE);
-		g.fillRect(0,0,width,height);
-		g.setColor(Color.BLACK);
-	    g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-	    g.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_NORMALIZE);
-	    g.setFont(NORMAL_FONT);
-		return U.pair(image, g);
-	}
-	
-	static boolean isNonprinting(char c) {
-		// this is complicated. depends what it's aimed for.
-		if (c=='\n') return false;
-		return true;
-	}
-	
-	public static class Break {
-		int charind;  // for the insertion point. break right before this character.
-		boolean isSoftBreak;  // otherwise it's a hard break
-	}
-	
 	/** this can't handle hard breaks. only infers soft breaks. */
 	public static List<Integer> calculateBreaks(Document doc, int charstart, int charend, int width, Function<String,Integer> widthMeasure) {
 		List<Integer> possBreaks = possibleBreakpoints(doc, charstart, charend);
@@ -158,74 +130,95 @@ public class MyTextArea {
 		return calculateBreaks(doc, 0, doc.text.length(), width, fm::stringWidth);
 	}
 	
+	/** a Rendering is legitimate for a specific desired rending width */
+	static class Rendering {
+		List<Paragraph> paragraphs;
+		static class Paragraph {
+			int numScreenLines;
+			int screenLinePosition; // cumsum of the numscreenlines seen before
+			List<Span> screenlineCharSpans;
+		}
+		Image image;
+	}
+
 	Rendering render(int width) {
 		// need to supply the width.  this function determines the height.
 		long t0 = System.nanoTime(); U.pf("\n");
 
 		Rendering r = new Rendering();
-		r.screenLinesPerParagraph = new int[paragraphs.size()];
+		r.paragraphs = new ArrayList<>();
 		
-//		FontMetrics fm = area.getGraphicsConfiguration().createCompatibleVolatileImage(width,10).getGraphics().getFontMetrics(NORMAL_FONT);
-//		for (int p=0; p<paragraphs.size(); p++) {
-//		}
+		// need to dispose this tiny temp graphics object?
+		Graphics tmpg = area.getGraphicsConfiguration().createCompatibleVolatileImage(width,10).getGraphics();
+		FontMetrics fm = tmpg.getFontMetrics(NORMAL_FONT);
+		
+		// This layout code is 20ms for
+		//      107    7214   41811 /d/sotu/text/2010.txt
+
+		for (int p=0; p<paragraphSpans.size(); p++) {
+			Span pspan = paragraphSpans.get(p);
+			Rendering.Paragraph pp = new Rendering.Paragraph();
+			List<Integer> softbreaks = calculateBreaks(doc, pspan.start, pspan.end, width, fm::stringWidth);
+			int nl = softbreaks.size() + 1;
+			pp.numScreenLines = nl;
+			if (p==0) {
+				pp.screenLinePosition = 0;
+			}
+			else {
+				Rendering.Paragraph prev = r.paragraphs.get(p-1);
+				pp.screenLinePosition = prev.numScreenLines + prev.screenLinePosition;
+			}
+			pp.screenlineCharSpans = GUtil.breakpointsToSpans(pspan.start, softbreaks, pspan.end);
+			r.paragraphs.add(pp);
+		}
+		Rendering.Paragraph pp = r.paragraphs.get( r.paragraphs.size()-1 );
+		int totalScreenLines = pp.screenLinePosition + pp.numScreenLines;
 		
 		// createCompatibleImage() is recommended by Haase, but on Retina displays it displays text crappily - maybe it uses a naive scaler or something.
 		// createCompatibleVolatileImage() looks correct ... but is slower? or slower only when writing to outside the clipping region?
 		// seen in http://comments.gmane.org/gmane.comp.java.openjdk.macosx-port.devel/6400
 		// should use bufferedimage on windows?
-		Function<Integer,Image> makeImage = (Integer h) -> area.getGraphicsConfiguration().createCompatibleVolatileImage(width, h);
+//		Function<Integer,Image> makeImage = (Integer h) -> area.getGraphicsConfiguration().createCompatibleVolatileImage(width, h);
 //		Function<Integer,Image> makeImage = (Integer h) -> area.getGraphicsConfiguration().createCompatibleImage(width, h);
 
-		int height = 100;
-		double multiplier = 1.5;
-		Pair<Image,Graphics2D> pair = createNewSegment(makeImage, width, height);
-		Graphics2D curg = pair.second;
-		Image curimg = pair.first;
-		Image newimg = null;
-		Graphics2D newg = null;
-	    int lineHeight = getLineHeight(curg);
+		int lineHeight = getLineHeight(tmpg);
+		int totalHeight = totalScreenLines * lineHeight;
+		
+		Image image = area.getGraphicsConfiguration().createCompatibleVolatileImage(width, totalHeight);
+		U.pf("IMAGE %s\n", image);
+		Graphics2D g = (Graphics2D) image.getGraphics();
+		g.setColor(Color.WHITE);
+		g.fillRect(0,0,width,totalHeight);
+		g.setColor(Color.BLACK);
+	    g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+	    g.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_NORMALIZE);
+	    g.setFont(NORMAL_FONT);
 
-	    for (int linenum=0; linenum < paragraphs.size(); linenum++) {
-	    	int absoluteY = (linenum+1) * lineHeight;
-	    	if (absoluteY > height-40) {
-	    		U.pf("startcopy %.2f ms\n", (System.nanoTime()-t0)/1e6);
-	    		// cleanup current
-	    		curg.dispose();
-	    		// make new
-	    		int newHeight = (int) (multiplier * height);
-	    		U.pf("absy %s  oldheight %s  mult %s  newheight %s\n", absoluteY, height, multiplier, newHeight);
-	    		assert absoluteY <= newHeight;
-	    		pair = createNewSegment(makeImage, width, newHeight);
-	    		newimg = pair.first;
-	    		newg = pair.second;
-	    		newg.drawImage(curimg,0,0,null);
-	    		newg.drawLine(0,newHeight,width,newHeight);
-	    		curimg=newimg;
-	    		curg=newg;
-	    		height=newHeight;
-	    		U.pf("copyend %.2f ms\n", (System.nanoTime()-t0)/1e6);
+	    for (int p=0; p < paragraphSpans.size(); p++) {
+	    	pp = r.paragraphs.get(p);
+//	    	int absoluteY = (pp.screenLinePosition+1) * lineHeight;
+	    	for (int screenline=0; screenline<pp.numScreenLines; screenline++) {
+	    		Span s = pp.screenlineCharSpans.get(screenline);
+		    	String line = GUtil.substring(doc.text, s);
+	    		g.drawString(line, 0,  (pp.screenLinePosition+1+screenline) * lineHeight);
 	    	}
-	    	
-	    	String line = GUtil.substring(doc.text, paragraphs.get(linenum));
+//	    	String line = GUtil.substring(doc.text, paragraphSpans.get(p));
 //	    	line = line.substring(0,Math.min(line.length(),100));
-    		curg.drawString(line, 0, absoluteY);
-	    	int ww = curg.getFontMetrics(NORMAL_FONT).stringWidth(line);
-//	    	curg.drawLine(0,absoluteY,ww,absoluteY);
-			linenum++;
+//	    	U.pf("%s %s\n", pp.screenLinePosition, lineHeight);
+//    		g.drawString(line, 0, absoluteY);
+//	    	int ww = g.getFontMetrics(NORMAL_FONT).stringWidth(line);
 		}
 	    
 	    // finish the current segment
-	    curg.dispose();
-		r.image = curimg;
-		Arr.fill(r.screenLinesPerParagraph, 1);
+	    g.dispose();
+		r.image = image;
 		U.pf("END time %.2f ms\n", (System.nanoTime()-t0)/1e6);
-//		JTextArea
 		return r;
 	}
 	
 	void loadDocumentIntoRenderingDatastructures() {
 		assert doc!=null : "document must be set before calling this";
-		paragraphs = GUtil.splitIntoSpans("\n", doc.text);
+		paragraphSpans = GUtil.splitIntoSpans("\n", doc.text);
 	}
 	class InternalTextArea extends JPanel {
 		InternalTextArea() {
