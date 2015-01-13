@@ -3,6 +3,8 @@ package te.ui;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics2D;
+import java.awt.GraphicsConfiguration;
+import java.awt.GraphicsEnvironment;
 import java.awt.geom.Ellipse2D;
 import java.awt.geom.Rectangle2D;
 import java.text.NumberFormat;
@@ -13,7 +15,10 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
+import te.data.Span;
 import util.U;
 
 public class GUtil {
@@ -78,7 +83,7 @@ public class GUtil {
 			g.drawPolygon(xs,ys,xs.length);
 		}
 	}
-
+	
 	static boolean isInteger(double x) {
 		return Math.abs(x - Math.round(x)) < 1e-100;
 	}
@@ -156,4 +161,30 @@ public class GUtil {
 		ensureValue(map, key, ()-> new HashMap<K2,V>());
 	}
 
+	public static String substring(String str, Span charspan) {
+		return str.substring(charspan.start, charspan.end);
+	}
+
+	public static List<Span> splitIntoSpans(String regex, String text) {
+		List<Span> spans = new ArrayList<>();
+		int curstart=0;
+		Matcher m = Pattern.compile(regex).matcher(text);
+		while (m.find()) {
+			spans.add(new Span(curstart, m.start()));
+			curstart=m.end();
+		}
+		spans.add(new Span(curstart, text.length()));
+		return spans;
+	}
+	
+	public static void main(String[] args) {
+		String text = "asdf\nqwer";
+		int curstart=0;
+		Matcher m = Pattern.compile("(?=\n)").matcher(text);
+		while (m.find()) {
+			U.p(new Span(curstart, m.start()));
+			curstart=m.end();
+		}
+		U.p(new Span(curstart, text.length()));
+	}
 }

@@ -14,9 +14,12 @@ import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.util.*;
 import java.util.function.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import te.data.Document;
 import te.data.NLP;
+import te.data.Span;
 import te.ui.GUtil;
 import util.Arr;
 import util.BasicFileIO;
@@ -44,7 +47,7 @@ public class MyTextArea {
 	 * note number of paragraphs (physical lines) is the lower bound on the number of screen lines.
 	 * some paragraphs have to wrap. */
 	
-	List<String> paragraphs;  // aka physical lines from file
+	List<Span> paragraphs;  // aka physical lines from file .. charspans.
 
 	static int FONT_HEIGHT = 14;
 	static Font NORMAL_FONT = new Font("Times", Font.PLAIN, FONT_HEIGHT);
@@ -161,8 +164,13 @@ public class MyTextArea {
 
 		Rendering r = new Rendering();
 		r.screenLinesPerParagraph = new int[paragraphs.size()];
+		
+//		FontMetrics fm = area.getGraphicsConfiguration().createCompatibleVolatileImage(width,10).getGraphics().getFontMetrics(NORMAL_FONT);
+//		for (int p=0; p<paragraphs.size(); p++) {
+//		}
+		
 		// createCompatibleImage() is recommended by Haase, but on Retina displays it displays text crappily - maybe it uses a naive scaler or something.
-		// createCompatibleVolatileImage() works fine.
+		// createCompatibleVolatileImage() looks correct ... but is slower? or slower only when writing to outside the clipping region?
 		// seen in http://comments.gmane.org/gmane.comp.java.openjdk.macosx-port.devel/6400
 		// should use bufferedimage on windows?
 		Function<Integer,Image> makeImage = (Integer h) -> area.getGraphicsConfiguration().createCompatibleVolatileImage(width, h);
@@ -197,9 +205,8 @@ public class MyTextArea {
 	    		height=newHeight;
 	    		U.pf("copyend %.2f ms\n", (System.nanoTime()-t0)/1e6);
 	    	}
-
 	    	
-	    	String line = paragraphs.get(linenum);
+	    	String line = GUtil.substring(doc.text, paragraphs.get(linenum));
 //	    	line = line.substring(0,Math.min(line.length(),100));
     		curg.drawString(line, 0, absoluteY);
 	    	int ww = curg.getFontMetrics(NORMAL_FONT).stringWidth(line);
@@ -218,10 +225,7 @@ public class MyTextArea {
 	
 	void loadDocumentIntoRenderingDatastructures() {
 		assert doc!=null : "document must be set before calling this";
-		paragraphs = new ArrayList<>();
-		for (String line : doc.text.split("\n")) {
-			paragraphs.add(line);
-		}
+		paragraphs = GUtil.splitIntoSpans("\n", doc.text);
 	}
 	class InternalTextArea extends JPanel {
 		InternalTextArea() {
@@ -246,8 +250,6 @@ public class MyTextArea {
 		Document d = new Document();
 		d.text = BasicFileIO.readFile(System.in);
 		d.tokens = NLP.stanfordTokenize(d.text);
-		
-		U.p(possibleBreakpoints(d));
 		
 		JFrame main = new JFrame() {{ setSize(new Dimension(200,200)); }};
 		MyTextArea a = new MyTextArea();
