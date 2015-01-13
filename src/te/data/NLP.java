@@ -29,14 +29,16 @@ public class NLP {
 	};
 	private static StanfordCoreNLP _stPipeline;
 
+	/** split on whitespace. */
 	public static List<Token> simpleTokenize(String text) {
-		String[] toks = text.split("\\s+");
+		List<Span> tokspans = GUtil.splitIntoSpans("\\s+", text);
 		List<Token> ret = new ArrayList<>();
-		for (String tok : toks) {
+		for (Span tokspan : tokspans) {
+			if (tokspan.end==tokspan.start) continue; 
 			Token myTok = new Token();
-			myTok.text = tok;
-			myTok.startChar=-1;
-			myTok.endChar=-1;
+			myTok.text = GUtil.substring(text, tokspan);
+			myTok.startChar=tokspan.start;
+			myTok.endChar=tokspan.end;
 			ret.add(myTok);
 		}
 		return ret;
