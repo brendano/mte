@@ -16,58 +16,32 @@ import util.Timer;
 import util.U;
 
 public class FullDocViewer {
-	public JEditorPane htmlpane;
-	public JScrollPane scrollpane;
+//	public JEditorPane htmlpane;
+	public MyTextArea textarea;
 	Document currentDoc;  // could possibly be null if no doc is selected
 	
 	public FullDocViewer() {
-		htmlpane = new JEditorPane();
-		htmlpane.setContentType( "text/html" );
-		htmlpane.setEditable(false);
-//		htmlpane.setBackground(Color.white);
-//		htmlpane.setLayout(new BoxLayout(htmlpane,BoxLayout.Y_AXIS));
-
-		DefaultCaret caret = (DefaultCaret)htmlpane.getCaret();
-		caret.setUpdatePolicy(DefaultCaret.NEVER_UPDATE);
-
-        scrollpane = new JScrollPane(htmlpane);
-        scrollpane.setViewportView(htmlpane);
+		textarea = new MyTextArea();
 	}
 
-	public JComponent top() { return scrollpane; }
+	public JComponent top() { return textarea.top(); }
 
 	Timer timer = new Timer();
 	
 	public void show(Collection<String> terms, Document doc) {
-		boolean newdoc = doc==currentDoc;
+//		U.p("show doc " + doc);
+		boolean newdoc = doc!=currentDoc;
 		currentDoc = doc;
 		showForCurrentDoc(terms, newdoc);
-		timer.report();
 	}
 
 	public void showForCurrentDoc(Collection<String> terms, boolean isNewDoc) {
+//		U.p("show current doc " + currentDoc);
 		if (currentDoc==null) return;
-		String newstr;
-		timer.tick("create html");
-//		newstr = Highlighter.highlightTermsAsHTML(terms, currentDoc);
-		newstr = escapeHTML(currentDoc.text);
-		timer.tock();
-
-		timer.tick("string sub");
-		newstr = newstr.replace("\\r\\n", "\\n");
-		newstr = newstr.replace("\\r", "\\n");
-		newstr = newstr.replaceAll("(\\n[ \\t]*)(\\n[ \\t]*)+", "\n<br><br>\n"); // two or more newlines gets a double-br break
-//		newstr = newstr.replace("\n", "<br>");
-//		newstr = newstr.replace("\n\n", "<br><br>");
-//		newstr = newstr.replace("\r\n\r\n", "<br><br>");
-//		newstr = newstr.replace("\r\r", "<br><br>");
-		timer.tock();
-		int curpos = scrollpane.getVerticalScrollBar().getValue();
-		timer.tick("set text");
-		htmlpane.setText(newstr);
-		timer.tock();
 		if (isNewDoc) {
-			scrollpane.getVerticalScrollBar().setValue(0);	
+			textarea.setDocument(currentDoc);
+			textarea.scrollpane.getVerticalScrollBar().setValue(0);
+			textarea.launchTextRender();
 		}
 	}
 	

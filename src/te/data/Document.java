@@ -152,6 +152,8 @@ public class Document {
 		return -1;
 	}
 	
+	@Override public String toString() { return String.format("Document[docid=%s]", docid); }
+	
 //	public static void main(String[] args) {
 //		loadXY(args[0]);
 //	}

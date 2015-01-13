@@ -67,6 +67,7 @@ public class KWICViewer  {
 		panel.setLayout(new BoxLayout(panel,BoxLayout.Y_AXIS));
 
         scrollpane = new JScrollPane(panel);
+        scrollpane.getVerticalScrollBar().setUnitIncrement(10);
         scrollpane.setViewportView(panel);
 	}
 	

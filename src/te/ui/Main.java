@@ -227,7 +227,7 @@ public class Main implements QueryReceiver {
 
 	void selectTerminstForFullview(Document d, TermInstance ti) {
 		selectSingleDocumentForFullview(d);
-		fulldocPanel.htmlpane.scrollToReference(Highlighter.idForTermInstance(ti));
+//		fulldocPanel.htmlpane.scrollToReference(Highlighter.idForTermInstance(ti));
 	}
 	void selectSingleDocumentForFullview(Document doc) {
 		fulldocDock.setTitleText("Document: " + doc.docid);

@@ -22,6 +22,7 @@ import java.util.function.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import scrolltest.MyScrollpane;
 import te.data.Document;
 import te.data.NLP;
 import te.data.Span;
@@ -95,10 +96,6 @@ public class MyTextArea {
 		return breaks;
 	}
 	
-	public static List<Integer> possibleBreakpoints(Document doc) {
-		return possibleBreakpoints(doc, 0, doc.text.length());
-	}
-	
 	public static List<Integer> possibleBreakpoints(Document doc, int charStart, int charEnd) {
 		// uses tokenization and stuff
 		charEnd = Math.min(charEnd, doc.text.length());
@@ -147,6 +144,7 @@ public class MyTextArea {
 	/** can fail with null if thread is interrupted */
 	Rendering renderWordWrapping(int width) {
 		Rendering r = new Rendering();
+		if (paragraphSpans==null) return r;
 
 		// need to dispose this tiny temp graphics object?
 //		FontMetrics fm = tmpg.getFontMetrics(NORMAL_FONT);
@@ -159,6 +157,7 @@ public class MyTextArea {
 			int nl = softbreaks.size() + 1;
 			List<Span> screenlineCharSpans = GUtil.breakpointsToSpans(pspan.start, softbreaks, pspan.end);
 			for (Span scs : screenlineCharSpans) {
+				if (Thread.interrupted()) { return null; }
 				r.screenlineCharSpans.add(scs);
 			}
 		}
@@ -166,20 +165,26 @@ public class MyTextArea {
 		return r;
 	}
 	
+	/* Here's the model:
+	 * a resize launches a new text-rendering thread.
+	 * once it's done, then it asks swing for a new repaint.  at that time, painting will be done better.
+	 * 
+	 * when doing many resizes, we dont want to launch 10 or 20 simultaneous text rendering theads.
+	 * so: at any time, only one text-rendering thread should be active.
+	 * the latest one gets priority.
+	 * this is implemented by killing the currently running thread (well, using Thread.interrupt bcs that's supposed to be safer).
+	 * finally, there's a lock around the thread management and launching code, which hopefully should be pretty quick.  it's the render that's potentially slow.
+	 */
 
-	Rendering _rendering = null;
+	Rendering finishedRendering = null;
 	Thread rerenderThread = null;
-	Object renderLock = new Object();
-	
-	void setRendering(Rendering r) {
-		_rendering = r;
-	}
+	Object renderThreadManagementLock = new Object();
 	
 	void launchTextRender() {
 		// take the current width as given, then compute a new height to force it to.
 		long t0 = System.nanoTime();
 		
-		synchronized(renderLock) {
+		synchronized(renderThreadManagementLock) {
 			if (rerenderThread!=null && rerenderThread.isAlive()) {
 //				U.p("trying to kill thread");
 				rerenderThread.interrupt();
@@ -187,31 +192,26 @@ public class MyTextArea {
 			Thread t = new Thread( () -> {
 				int w = area.getWidth();
 //				U.pf("w=%d start render thread\n", w);
-				Rendering r = renderWordWrapping(w);
+				Rendering r = renderWordWrapping(w);  // here is the expensive call
 				if (r==null) return;
-				_rendering = r;
-				int newHeight = (_rendering.totalScreenLines + 1)* getLineHeight();
+				finishedRendering = r;
+				int newHeight = (finishedRendering.totalScreenLines + 1)* getLineHeight();
 				area.setPreferredSize(new Dimension(-1, newHeight));
 //				U.pf("w=%d textflow %.2f ms\n", w, (System.nanoTime()-t0)/1e6);
-				top().repaint();
+				area.revalidate();
 			});
 			rerenderThread = t;
 			t.start();
 		}
 		
 	}
-	
-	Rendering getRendering() {
-		if (_rendering != null) return _rendering;
-		return renderWordWrapping(area.getWidth());
-	}
-	
+
+	/** draw in the clipping region based on the current text rendering. */
 	void draw(Graphics2D g, int width) {
-		// need to supply the width.  this function determines the height.
 		long t0 = System.nanoTime();
 
 		Rectangle clip = g.getClipBounds();
-		Rendering rend = _rendering;
+		Rendering rend = finishedRendering;
 		if (rend==null) {
 //			U.p("exit draw() early");
 			return;
@@ -230,6 +230,7 @@ public class MyTextArea {
 	    firstline--; firstline=Math.max(firstline,0);
 	    lastline++; lastline=Math.min(lastline, rend.totalScreenLines-1);
 //	    U.pf("screenlines %d..%d\n", firstline,lastline);
+	    
 	    for (int line=firstline; line<=lastline; line++) {
 	    	Span span = rend.screenlineCharSpans.get(line);
 	    	String str = GUtil.substring(doc.text, span);
@@ -238,6 +239,10 @@ public class MyTextArea {
 //		U.pf("END draw %.2f ms\n", (System.nanoTime()-t0)/1e6);
 	}
 
+	void setDocument(Document doc) {
+		this.doc = doc;
+		loadDocumentIntoRenderingDatastructures();
+	}
 	void loadDocumentIntoRenderingDatastructures() {
 		assert doc!=null : "document must be set before calling this";
 		paragraphSpans = GUtil.splitIntoSpans("\n", doc.text);
@@ -262,10 +267,12 @@ public class MyTextArea {
 	
 	public MyTextArea() {
 		area = new InternalTextArea();
+//		scrollpane = new MyScrollpane(area);
 		scrollpane = new JScrollPane(area);
-		scrollpane.getVerticalScrollBar().setUnitIncrement(20);
+		scrollpane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
+		scrollpane.getVerticalScrollBar().setUnitIncrement(10);
 //		scrollpane.getVerticalScrollBar().setBlockIncrement(10);
-		scrollpane.setViewportView(area);
+//		scrollpane.setViewportView(area);
 	}
  	
 	public static void main(String[] args) throws IOException {
