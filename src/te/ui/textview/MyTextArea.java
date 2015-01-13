@@ -73,7 +73,7 @@ public class MyTextArea {
 	public static List<Integer> calculateBreaks(Document doc, int charstart, int charend, int width, Function<String,Integer> widthMeasure) {
 		List<Integer> possBreaks = possibleBreakpoints(doc, charstart, charend);
 		if (possBreaks.size()>0) assert possBreaks.get(possBreaks.size()-1) != doc.text.length();
-		possBreaks.add(doc.text.length());
+		possBreaks.add(charend);
 		int widthLeft = width;
 		int curStart=0;
 		List <Integer> breaks = new ArrayList<>();
@@ -81,8 +81,11 @@ public class MyTextArea {
 		for (int possBreak : possBreaks) {
 			String cand = doc.text.substring(curStart,possBreak);
 			int w = widthMeasure.apply(cand);
+//			U.pf("W=%3d  %d:%d  CAND [[%s]]\n", w, curStart, possBreak, cand.replace("\n", " "));
 			if (w > widthLeft) {
-				if (curStart>0) breaks.add(curStart);
+				if (curStart>0) {
+					breaks.add(curStart);
+				}
 				widthLeft = width - w;
 			} else {
 				widthLeft -= w;
@@ -135,26 +138,13 @@ public class MyTextArea {
 		}
 	}
 	
-	/** calculate all visible break positions for a given rendering width and font.
-	 * includes both softbreaks (ones caused by wordwrap) as well as hardbreaks (forced by newlines)
-	 */
-	static List<Integer> calculateBreaks(Document doc, int width, FontMetrics fm) {
-		return calculateBreaks(doc, 0, doc.text.length(), width, fm::stringWidth);
-	}
-	
 	/** a Rendering is legitimate for a specific desired rending width */
 	static class Rendering {
-		// gees do we need the paragraph list at all?
-		List<Paragraph> paragraphs = new ArrayList<>();
-		static class Paragraph {
-			int numScreenLines=0;
-			int screenLinePosition=0; // cumsum of the numscreenlines seen before
-			List<Span> screenlineCharSpans = new ArrayList<>();
-		}
 		List<Span> screenlineCharSpans = new ArrayList<>();
 		int totalScreenLines=0;
 	}
 	
+	/** can fail with null if thread is interrupted */
 	Rendering renderWordWrapping(int width) {
 		Rendering r = new Rendering();
 
@@ -162,46 +152,53 @@ public class MyTextArea {
 //		FontMetrics fm = tmpg.getFontMetrics(NORMAL_FONT);
 		FontMetrics fm = new Canvas(GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice().getDefaultConfiguration()).getFontMetrics(NORMAL_FONT);
 		
-		// This layout code is 20ms for
-		//      107    7214   41811 /d/sotu/text/2010.txt
-
 		for (int p=0; p<paragraphSpans.size(); p++) {
+			if (Thread.interrupted()) { return null; }
 			Span pspan = paragraphSpans.get(p);
-			Rendering.Paragraph pp = new Rendering.Paragraph();
 			List<Integer> softbreaks = calculateBreaks(doc, pspan.start, pspan.end, width, fm::stringWidth);
 			int nl = softbreaks.size() + 1;
-			pp.numScreenLines = nl;
-			if (p==0) {
-				pp.screenLinePosition = 0;
-			}
-			else {
-				Rendering.Paragraph prev = r.paragraphs.get(p-1);
-				pp.screenLinePosition = prev.numScreenLines + prev.screenLinePosition;
-			}
-			pp.screenlineCharSpans = GUtil.breakpointsToSpans(pspan.start, softbreaks, pspan.end);
-			for (Span scs : pp.screenlineCharSpans) {
+			List<Span> screenlineCharSpans = GUtil.breakpointsToSpans(pspan.start, softbreaks, pspan.end);
+			for (Span scs : screenlineCharSpans) {
 				r.screenlineCharSpans.add(scs);
 			}
-			r.paragraphs.add(pp);
 		}
-		Rendering.Paragraph pp = r.paragraphs.get( r.paragraphs.size()-1 );
-		r.totalScreenLines = pp.screenLinePosition + pp.numScreenLines;
-		
+		r.totalScreenLines = r.screenlineCharSpans.size();
 		return r;
 	}
 	
 
 	Rendering _rendering = null;
+	Thread rerenderThread = null;
+	Object renderLock = new Object();
 	
-	synchronized void rerenderText() {
+	void setRendering(Rendering r) {
+		_rendering = r;
+	}
+	
+	void launchTextRender() {
 		// take the current width as given, then compute a new height to force it to.
-		long t0 = System.nanoTime(); U.pf("\n");
-		int w = area.getWidth();
-		_rendering = renderWordWrapping(w);
-		int newHeight = (_rendering.totalScreenLines + 1)* getLineHeight();
-		area.setPreferredSize(new Dimension(-1, newHeight));
-		U.pf("textflow %.2f ms\n", (System.nanoTime()-t0)/1e6);
-		U.p("newheight " + newHeight);
+		long t0 = System.nanoTime();
+		
+		synchronized(renderLock) {
+			if (rerenderThread!=null && rerenderThread.isAlive()) {
+//				U.p("trying to kill thread");
+				rerenderThread.interrupt();
+			}
+			Thread t = new Thread( () -> {
+				int w = area.getWidth();
+//				U.pf("w=%d start render thread\n", w);
+				Rendering r = renderWordWrapping(w);
+				if (r==null) return;
+				_rendering = r;
+				int newHeight = (_rendering.totalScreenLines + 1)* getLineHeight();
+				area.setPreferredSize(new Dimension(-1, newHeight));
+//				U.pf("w=%d textflow %.2f ms\n", w, (System.nanoTime()-t0)/1e6);
+				top().repaint();
+			});
+			rerenderThread = t;
+			t.start();
+		}
+		
 	}
 	
 	Rendering getRendering() {
@@ -211,31 +208,34 @@ public class MyTextArea {
 	
 	void draw(Graphics2D g, int width) {
 		// need to supply the width.  this function determines the height.
-		long t0 = System.nanoTime(); U.pf("\n");
+		long t0 = System.nanoTime();
 
 		Rectangle clip = g.getClipBounds();
-		Rendering rend = getRendering();
+		Rendering rend = _rendering;
+		if (rend==null) {
+//			U.p("exit draw() early");
+			return;
+		}
+		
 		int lineHeight = getLineHeight();
-		int totalHeight = rend.totalScreenLines * lineHeight;
 		g.setColor(Color.WHITE);
 		g.fillRect(clip.x,clip.y,clip.width,clip.height);
 		g.setColor(Color.BLACK);
 	    g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 	    g.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_NORMALIZE);
 	    g.setFont(NORMAL_FONT);
-	    U.p(clip);
 	    
 	    int firstline = clip.y / lineHeight;
 	    int lastline = (clip.y + clip.height) / lineHeight;
 	    firstline--; firstline=Math.max(firstline,0);
 	    lastline++; lastline=Math.min(lastline, rend.totalScreenLines-1);
-	    U.pf("screenlines %d..%d\n", firstline,lastline);
+//	    U.pf("screenlines %d..%d\n", firstline,lastline);
 	    for (int line=firstline; line<=lastline; line++) {
 	    	Span span = rend.screenlineCharSpans.get(line);
 	    	String str = GUtil.substring(doc.text, span);
 	    	g.drawString(str, 0, (line+1)*lineHeight);
 	    }
-		U.pf("END repaint %.2f ms\n", (System.nanoTime()-t0)/1e6);
+//		U.pf("END draw %.2f ms\n", (System.nanoTime()-t0)/1e6);
 	}
 
 	void loadDocumentIntoRenderingDatastructures() {
@@ -248,15 +248,14 @@ public class MyTextArea {
 //			setPreferredSize(new Dimension(200,-1));
 			addComponentListener(new ComponentAdapter() {
 				@Override public void componentResized(ComponentEvent e)  {
-					U.p(e);
-					rerenderText();
+					launchTextRender();
 				}
 			});
 		}
 		
 		@Override public void paintComponent(Graphics _g) {
 			Graphics2D g = (Graphics2D) _g;
-			U.pf("SIZE %s  CLIP %s  VIEWABLE %s\n", getSize(), g.getClip(), getVisibleRect());
+//			U.pf("SIZE %s  CLIP %s  VIEWABLE %s\n", getSize(), g.getClip(), getVisibleRect());
 			draw(g, getWidth());
 		}
 	}
@@ -273,6 +272,7 @@ public class MyTextArea {
 		Document d = new Document();
 		d.text = BasicFileIO.readFile(System.in);
 		d.tokens = NLP.stanfordTokenize(d.text);
+//		U.p(d.tokens);
 		
 		JFrame main = new JFrame() {{ setSize(new Dimension(200,200)); }};
 		MyTextArea a = new MyTextArea();

@@ -19,31 +19,49 @@ import util.U;
 
 public class MyTextAreaTest {
 
+	Document tokenize(String text) {
+		Document doc = new Document();
+		doc.text = text;
+		doc.tokens = NLP.stanfordTokenize(doc.text);
+		return doc;
+	}
 	@Test
-	public void testPossible() {
-		Function<String,Document> go = (String text) -> {
-			Document doc = new Document();
-			doc.text = text;
-			doc.tokens = NLP.stanfordTokenize(doc.text);
-			return doc;
-		};
+	public void testpunct() {
 		Document doc;
-		doc = go.apply("abc efgh jklmnopqrs");		assertEquals(Lists.newArrayList(3), MyTextArea.possibleBreakpoints(doc,3, 4));
+		doc = tokenize("Hello world?");
+		List<Integer> breaks = MyTextArea.possibleBreakpoints(doc);
+		assertEquals(Lists.newArrayList(6), calcbreaks(doc, 10));
+		
+		// from SOTU 2010.txt
+		doc = tokenize("Madam Speaker, Vice President Biden, Members of Congress, distinguished guests, and fellow Americans: Our Constitution declares that from time to time, the President shall give to Congress information about the state of our Union. For 220 years, our leaders have fulfilled this duty. They've done so during periods of prosperity and tranquility, and they've done so in the midst of war and depression, at moments of great strife and great struggle.\n");
+		breaks = MyTextArea.possibleBreakpoints(doc);
+		breaks = calcbreaks(doc, 100);
+		U.p(breaks);
+		
+		
+	}
+	List<Integer> calcbreaks(Document d, int w) {
+		return MyTextArea.calculateBreaks(d, 0, d.text.length(), w, String::length);
+	}
+	@Test
+	public void teststuff() {
+		Document doc;
+		doc = tokenize("abc efgh jklmnopqrs");		assertEquals(Lists.newArrayList(3), MyTextArea.possibleBreakpoints(doc,3, 4));
 
-		doc = go.apply("hel");
+		doc = tokenize("hel");
 		assertEquals(Lists.newArrayList(0), MyTextArea.possibleBreakpoints(doc));
 		BiFunction<Document, Integer, List<Integer>> calcbreaks = (Document d, Integer width) -> 
 				MyTextArea.calculateBreaks(d, 0, d.text.length(), width, String::length);
 		assertEquals(Lists.newArrayList(), calcbreaks.apply(doc,55));
 
-		doc  = go.apply("hel ");
+		doc  = tokenize("hel ");
 		assertEquals(Lists.newArrayList(0,3), MyTextArea.possibleBreakpoints(doc));
 		assertEquals(Lists.newArrayList(), calcbreaks.apply(doc,55));
 		
-		doc = go.apply("hel o");
+		doc = tokenize("hel o");
 		assertEquals(Lists.newArrayList(0,3,4), MyTextArea.possibleBreakpoints(doc));
 		
-		doc = go.apply("abc abcd");
+		doc = tokenize("abc abcd");
 		assertEquals(Lists.newArrayList(0,3,4), MyTextArea.possibleBreakpoints(doc));
 		assertEquals(Lists.newArrayList(3,4), calcbreaks.apply(doc,0));
 		assertEquals(Lists.newArrayList(4),  calcbreaks.apply(doc,5));
@@ -52,7 +70,7 @@ public class MyTextAreaTest {
 		assertEquals(Lists.newArrayList(), calcbreaks.apply(doc,8));
 		assertEquals(Lists.newArrayList(), calcbreaks.apply(doc,100));
 
-		doc = go.apply("abc efgh jklmnopqrs");
+		doc = tokenize("abc efgh jklmnopqrs");
 		assertEquals(Lists.newArrayList(0,3,4,8,9), MyTextArea.possibleBreakpoints(doc));
 		assertEquals(Lists.newArrayList(9), calcbreaks.apply(doc,15));
 		assertEquals(Lists.newArrayList(0,3,4,8,9), MyTextArea.possibleBreakpoints(doc,0, 99999));
@@ -63,10 +81,10 @@ public class MyTextAreaTest {
 		assertEquals(Lists.newArrayList(), MyTextArea.possibleBreakpoints(doc,3, 1));
 		assertEquals(Lists.newArrayList(), MyTextArea.possibleBreakpoints(doc,3, -100));
 
-		doc = go.apply("hel oooooooooooooooooooooooooooooooooooooooooooooooo");
+		doc = tokenize("hel oooooooooooooooooooooooooooooooooooooooooooooooo");
 		assertEquals(Lists.newArrayList(0,3,4), MyTextArea.possibleBreakpoints(doc));
 		
-		doc = go.apply("hel oo ");
+		doc = tokenize("hel oo ");
 		assertEquals(Lists.newArrayList(0,3,4,6), MyTextArea.possibleBreakpoints(doc));
 	}
 

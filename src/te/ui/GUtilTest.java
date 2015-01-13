@@ -24,12 +24,17 @@ public class GUtilTest {
 		spans = GUtil.breakpointsToSpans(-4, Lists.newArrayList(3), 10);
 		assertEquals(Lists.newArrayList(new Span(-4,3), new Span(3,10)), spans);
 
+		spans = GUtil.breakpointsToSpans(3, Lists.newArrayList(), 3);
+		assertEquals(Lists.newArrayList(new Span(3,3)), spans);
+		
+		spans = GUtil.breakpointsToSpans(3, Lists.newArrayList(), 2);
+		assertEquals(Lists.newArrayList(), spans);
+		
 
 	}
 	
 	@Test
 	public void regextests() {
-		List<Span> spans;
 		assertEquals(Lists.newArrayList(new Span(0,1), new Span(2,3)), 
 				GUtil.splitIntoSpans("X", "aXb"));
 		assertEquals(Lists.newArrayList(new Span(0,1), new Span(2,5)), 
@@ -40,6 +45,11 @@ public class GUtilTest {
 				GUtil.splitIntoSpans("X", "X"));
 		assertEquals(Lists.newArrayList(new Span(0,1), new Span(2,2), new Span(3,3)), 
 				GUtil.splitIntoSpans("X", "aXX"));
+		
+		assertEquals(Lists.newArrayList(
+					//[0,1), [2,4), [5,6), [7,7)
+					new Span(0,1), new Span(2,4), new Span(5,6), new Span(7,7)),
+				GUtil.splitIntoSpans("-", "a-bb-c-"));
 	}
 
 }
