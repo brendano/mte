@@ -77,14 +77,14 @@ public class MyTextArea {
 		return true;
 	}
 	
-	static class Break {
+	public static class Break {
 		int charind;  // for the insertion point. break right before this character.
 		boolean isSoftBreak;  // otherwise it's a hard break
 	}
 	
 	/** this can't handle hard breaks. only infers soft breaks. */
-	static List<Integer> calculateBreaks(Document doc, int width, Function<String,Integer> widthMeasure) {
-		List<Integer> possBreaks = possibleBreakpoints(doc);
+	public static List<Integer> calculateBreaks(Document doc, int charstart, int charend, int width, Function<String,Integer> widthMeasure) {
+		List<Integer> possBreaks = possibleBreakpoints(doc, charstart, charend);
 		if (possBreaks.size()>0) assert possBreaks.get(possBreaks.size()-1) != doc.text.length();
 		possBreaks.add(doc.text.length());
 		int widthLeft = width;
@@ -105,35 +105,54 @@ public class MyTextArea {
 		return breaks;
 	}
 	
-	static List<Integer> possibleBreakpoints(Document doc) {
+	public static List<Integer> possibleBreakpoints(Document doc) {
+		return possibleBreakpoints(doc, 0, doc.text.length());
+	}
+	
+	public static List<Integer> possibleBreakpoints(Document doc, int charStart, int charEnd) {
 		// uses tokenization and stuff
-		int curtok = 0;
-		int curchar = 0;
+		charEnd = Math.min(charEnd, doc.text.length());
+		assert charStart >= 0;
+		int curchar = charStart;
+		int curtok = doc.getIndexOfFirstTokenAtOrAfterCharIndex(charStart);
 		List<Integer> breaks = new ArrayList<>();
+		
+		if (curtok==-1) {
+			while (curchar < charEnd) {
+				breaks.add(curchar);
+				curchar++;
+			}
+			return breaks;
+		}
+		int numiter=0;
 		while(true) {
-			while (curchar <= doc.tokens.get(curtok).startChar) {
+			while (curchar<charEnd && curchar <= doc.tokens.get(curtok).startChar) {
 				breaks.add(curchar);
 				curchar++;
 			}
 			curchar = doc.tokens.get(curtok).endChar;
 			curtok++;
-			if (curchar>=doc.text.length()) break;
+			if (curchar>=charEnd) {
+				return breaks;
+			}
 			if (curtok>=doc.tokens.size()) {
-				while (curchar < doc.text.length()) {
+				while (curchar <  charEnd) {
 					breaks.add(curchar);
 					curchar++;
 				}
-				break;
+				return breaks;
+			}
+			if (++numiter > (int) 100e6) {
+				assert false : "bug in possible breakpoints";
 			}
 		}
-		return breaks;
 	}
 	
 	/** calculate all visible break positions for a given rendering width and font.
 	 * includes both softbreaks (ones caused by wordwrap) as well as hardbreaks (forced by newlines)
 	 */
 	static List<Integer> calculateBreaks(Document doc, int width, FontMetrics fm) {
-		return calculateBreaks(doc, width, fm::stringWidth);
+		return calculateBreaks(doc, 0, doc.text.length(), width, fm::stringWidth);
 	}
 	
 	Rendering render(int width) {

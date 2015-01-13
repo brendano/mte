@@ -141,6 +141,16 @@ public class Document {
 		if (tokens.size()==0) return false;
 		return tokens.get(0).ner != null;
 	}
+
+	/** returns -1 if no such token */
+	public int getIndexOfFirstTokenAtOrAfterCharIndex(int charind) {
+		for (int t=0; t<tokens.size(); t++) {
+			if (tokens.get(t).startChar >= charind) {
+				return t;
+			}
+		}
+		return -1;
+	}
 	
 //	public static void main(String[] args) {
 //		loadXY(args[0]);
