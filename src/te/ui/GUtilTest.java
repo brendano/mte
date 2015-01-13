@@ -20,6 +20,10 @@ public class GUtilTest {
 
 		spans = GUtil.breakpointsToSpans(0, Lists.newArrayList(), 10);
 		assertEquals(Lists.newArrayList(new Span(0,10)), spans);
+		
+		spans = GUtil.breakpointsToSpans(-4, Lists.newArrayList(3), 10);
+		assertEquals(Lists.newArrayList(new Span(-4,3), new Span(3,10)), spans);
+
 
 	}
 	
