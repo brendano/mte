@@ -1,6 +1,7 @@
 package te.ui.textview;
 
 
+import java.awt.Canvas;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
@@ -9,10 +10,14 @@ import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.GraphicsEnvironment;
 import java.awt.Image;
+import java.awt.Rectangle;
 import java.awt.RenderingHints;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -52,9 +57,16 @@ public class MyTextArea {
 	static int FONT_HEIGHT = 14;
 	static Font NORMAL_FONT = new Font("Times", Font.PLAIN, FONT_HEIGHT);
 	
+	int getLineHeight() {
+		Graphics tmpg = area.getGraphicsConfiguration().createCompatibleVolatileImage(200,10).getGraphics();
+		int h = getLineHeight(tmpg);
+		tmpg.dispose();
+		return h;
+	}
 	int getLineHeight(Graphics g) {
 		int fontHeight = g.getFontMetrics(NORMAL_FONT).getHeight();
-		return (int) Math.ceil(fontHeight*1.0/2);
+		return fontHeight;
+//		return (int) Math.ceil(fontHeight*1.0);
 	}
 
 	/** this can't handle hard breaks. only infers soft breaks. */
@@ -132,25 +144,23 @@ public class MyTextArea {
 	
 	/** a Rendering is legitimate for a specific desired rending width */
 	static class Rendering {
-		List<Paragraph> paragraphs;
+		// gees do we need the paragraph list at all?
+		List<Paragraph> paragraphs = new ArrayList<>();
 		static class Paragraph {
-			int numScreenLines;
-			int screenLinePosition; // cumsum of the numscreenlines seen before
-			List<Span> screenlineCharSpans;
+			int numScreenLines=0;
+			int screenLinePosition=0; // cumsum of the numscreenlines seen before
+			List<Span> screenlineCharSpans = new ArrayList<>();
 		}
-		Image image;
+		List<Span> screenlineCharSpans = new ArrayList<>();
+		int totalScreenLines=0;
 	}
-
-	Rendering render(int width) {
-		// need to supply the width.  this function determines the height.
-		long t0 = System.nanoTime(); U.pf("\n");
-
+	
+	Rendering renderWordWrapping(int width) {
 		Rendering r = new Rendering();
-		r.paragraphs = new ArrayList<>();
-		
+
 		// need to dispose this tiny temp graphics object?
-		Graphics tmpg = area.getGraphicsConfiguration().createCompatibleVolatileImage(width,10).getGraphics();
-		FontMetrics fm = tmpg.getFontMetrics(NORMAL_FONT);
+//		FontMetrics fm = tmpg.getFontMetrics(NORMAL_FONT);
+		FontMetrics fm = new Canvas(GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice().getDefaultConfiguration()).getFontMetrics(NORMAL_FONT);
 		
 		// This layout code is 20ms for
 		//      107    7214   41811 /d/sotu/text/2010.txt
@@ -169,73 +179,93 @@ public class MyTextArea {
 				pp.screenLinePosition = prev.numScreenLines + prev.screenLinePosition;
 			}
 			pp.screenlineCharSpans = GUtil.breakpointsToSpans(pspan.start, softbreaks, pspan.end);
+			for (Span scs : pp.screenlineCharSpans) {
+				r.screenlineCharSpans.add(scs);
+			}
 			r.paragraphs.add(pp);
 		}
 		Rendering.Paragraph pp = r.paragraphs.get( r.paragraphs.size()-1 );
-		int totalScreenLines = pp.screenLinePosition + pp.numScreenLines;
+		r.totalScreenLines = pp.screenLinePosition + pp.numScreenLines;
 		
-		// createCompatibleImage() is recommended by Haase, but on Retina displays it displays text crappily - maybe it uses a naive scaler or something.
-		// createCompatibleVolatileImage() looks correct ... but is slower? or slower only when writing to outside the clipping region?
-		// seen in http://comments.gmane.org/gmane.comp.java.openjdk.macosx-port.devel/6400
-		// should use bufferedimage on windows?
-//		Function<Integer,Image> makeImage = (Integer h) -> area.getGraphicsConfiguration().createCompatibleVolatileImage(width, h);
-//		Function<Integer,Image> makeImage = (Integer h) -> area.getGraphicsConfiguration().createCompatibleImage(width, h);
+		return r;
+	}
+	
 
-		int lineHeight = getLineHeight(tmpg);
-		int totalHeight = totalScreenLines * lineHeight;
-		
-		Image image = area.getGraphicsConfiguration().createCompatibleVolatileImage(width, totalHeight);
-		U.pf("IMAGE %s\n", image);
-		Graphics2D g = (Graphics2D) image.getGraphics();
+	Rendering _rendering = null;
+	
+	synchronized void rerenderText() {
+		// take the current width as given, then compute a new height to force it to.
+		long t0 = System.nanoTime(); U.pf("\n");
+		int w = area.getWidth();
+		_rendering = renderWordWrapping(w);
+		int newHeight = (_rendering.totalScreenLines + 1)* getLineHeight();
+		area.setPreferredSize(new Dimension(-1, newHeight));
+		U.pf("textflow %.2f ms\n", (System.nanoTime()-t0)/1e6);
+		U.p("newheight " + newHeight);
+	}
+	
+	Rendering getRendering() {
+		if (_rendering != null) return _rendering;
+		return renderWordWrapping(area.getWidth());
+	}
+	
+	void draw(Graphics2D g, int width) {
+		// need to supply the width.  this function determines the height.
+		long t0 = System.nanoTime(); U.pf("\n");
+
+		Rectangle clip = g.getClipBounds();
+		Rendering rend = getRendering();
+		int lineHeight = getLineHeight();
+		int totalHeight = rend.totalScreenLines * lineHeight;
 		g.setColor(Color.WHITE);
-		g.fillRect(0,0,width,totalHeight);
+		g.fillRect(clip.x,clip.y,clip.width,clip.height);
 		g.setColor(Color.BLACK);
 	    g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 	    g.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_NORMALIZE);
 	    g.setFont(NORMAL_FONT);
-
-	    for (int p=0; p < paragraphSpans.size(); p++) {
-	    	pp = r.paragraphs.get(p);
-//	    	int absoluteY = (pp.screenLinePosition+1) * lineHeight;
-	    	for (int screenline=0; screenline<pp.numScreenLines; screenline++) {
-	    		Span s = pp.screenlineCharSpans.get(screenline);
-		    	String line = GUtil.substring(doc.text, s);
-	    		g.drawString(line, 0,  (pp.screenLinePosition+1+screenline) * lineHeight);
-	    	}
-//	    	String line = GUtil.substring(doc.text, paragraphSpans.get(p));
-//	    	line = line.substring(0,Math.min(line.length(),100));
-//	    	U.pf("%s %s\n", pp.screenLinePosition, lineHeight);
-//    		g.drawString(line, 0, absoluteY);
-//	    	int ww = g.getFontMetrics(NORMAL_FONT).stringWidth(line);
-		}
+	    U.p(clip);
 	    
-	    // finish the current segment
-	    g.dispose();
-		r.image = image;
-		U.pf("END time %.2f ms\n", (System.nanoTime()-t0)/1e6);
-		return r;
+	    int firstline = clip.y / lineHeight;
+	    int lastline = (clip.y + clip.height) / lineHeight;
+	    firstline--; firstline=Math.max(firstline,0);
+	    lastline++; lastline=Math.min(lastline, rend.totalScreenLines-1);
+	    U.pf("screenlines %d..%d\n", firstline,lastline);
+	    for (int line=firstline; line<=lastline; line++) {
+	    	Span span = rend.screenlineCharSpans.get(line);
+	    	String str = GUtil.substring(doc.text, span);
+	    	g.drawString(str, 0, (line+1)*lineHeight);
+	    }
+		U.pf("END repaint %.2f ms\n", (System.nanoTime()-t0)/1e6);
 	}
-	
+
 	void loadDocumentIntoRenderingDatastructures() {
 		assert doc!=null : "document must be set before calling this";
 		paragraphSpans = GUtil.splitIntoSpans("\n", doc.text);
 	}
+	
 	class InternalTextArea extends JPanel {
 		InternalTextArea() {
 //			setPreferredSize(new Dimension(200,-1));
+			addComponentListener(new ComponentAdapter() {
+				@Override public void componentResized(ComponentEvent e)  {
+					U.p(e);
+					rerenderText();
+				}
+			});
 		}
 		
 		@Override public void paintComponent(Graphics _g) {
 			Graphics2D g = (Graphics2D) _g;
 			U.pf("SIZE %s  CLIP %s  VIEWABLE %s\n", getSize(), g.getClip(), getVisibleRect());
-			Image img = render(getWidth()).image;
-			g.drawImage(img,0,0,null);
+			draw(g, getWidth());
 		}
 	}
 	
 	public MyTextArea() {
 		area = new InternalTextArea();
 		scrollpane = new JScrollPane(area);
+		scrollpane.getVerticalScrollBar().setUnitIncrement(20);
+//		scrollpane.getVerticalScrollBar().setBlockIncrement(10);
 		scrollpane.setViewportView(area);
 	}
  	
