@@ -21,6 +21,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import scrolltest.MyScrollpane;
 import te.data.Document;
@@ -148,19 +150,17 @@ public class MyTextArea {
 		Rendering r = new Rendering();
 		if (paragraphSpans==null) return r;
 
-		// need to dispose this tiny temp graphics object?
-//		FontMetrics fm = tmpg.getFontMetrics(NORMAL_FONT);
 		FontMetrics fm = new Canvas(GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice().getDefaultConfiguration()).getFontMetrics(NORMAL_FONT);
 		
 		for (int p=0; p<paragraphSpans.size(); p++) {
 			if (Thread.interrupted()) { return null; }
 			Span pspan = paragraphSpans.get(p);
 			List<Integer> softbreaks = calculateBreaks(doc, pspan.start, pspan.end, width, fm::stringWidth);
-			int nl = softbreaks.size() + 1;
 			List<Span> screenlineCharSpans = GUtil.breakpointsToSpans(pspan.start, softbreaks, pspan.end);
 			for (Span scs : screenlineCharSpans) {
 				if (Thread.interrupted()) { return null; }
 				r.screenlineCharSpans.add(scs);
+//				U.pf("%10s ||| %s\n", scs, GUtil.substring(doc.text, scs).replace("\n","[N]").replace(" ","[S]"));
 			}
 		}
 		r.totalScreenLines = r.screenlineCharSpans.size();
@@ -264,12 +264,73 @@ public class MyTextArea {
 	    
 	    for (int line=firstline; line<=lastline; line++) {
 	    	Span span = rend.screenlineCharSpans.get(line);
-	    	String str = GUtil.substring(doc.text, span);
-	    	g.drawString(str, 0, (line+1)*lineHeight);
+	    	drawTextInSpan(span, g, 0, (line+1)*lineHeight);
 	    }
 //		U.pf("END draw %.2f ms\n", (System.nanoTime()-t0)/1e6);
 	}
+	
+	/** ASSUME this is all within one screenline. */
+	private void drawTextInSpan(Span charspanToDraw, Graphics2D g, int x, int y) {
+		// simple solution: just draw the damn text
+//    	String str = GUtil.substring(doc.text, charspanToDraw);
+//    	g.drawString(str, x, y);
+    	
+    	// more complex: check tokens for highlighting. also have to draw non-token gaps.
+		FontMetrics fm = g.getFontMetrics(NORMAL_FONT);
+    	int[] tis = getTokenIndexesInSpan(doc, charspanToDraw);
+    	
+    	// 1. nontoken segment before first token, if any
+    	// 2. each token
+    	// 3.   plus nontoken stuff after it, if any, and not going past the span bound
+    	int curx=x;
+    	// 1. nontoken segment before first token
+    	// this span should NOT include any tokens. if it does, that was a bug in the word wrap render code.
+    	if (tis.length>0) {
+    		int firstTokStart = doc.tokens.get(tis[0]).startChar;
+    		if (firstTokStart > charspanToDraw.start) {
+    			String s = doc.text.substring(charspanToDraw.start, firstTokStart);
+    			g.drawString(s, curx, y);
+    			curx += fm.stringWidth(s);
+    		}
+    	}
+    	// 2. each token 3. nontoken segment after token 
+    	// this code assumes tis are consecutive, or at least ordered?...
+    	for (int i=0; i<tis.length; i++) {
+    		int toki = tis[i];
+    		// 2. the token
+    		int charstart = doc.tokens.get(toki).startChar;
+    		int charend = doc.tokens.get(toki).endChar;
+    		String s = doc.text.substring(charstart, charend);
+    		g.drawString(s, curx, y);
+    		curx += fm.stringWidth(s);
 
+    		// 3. nontoken segment after the token
+    		charstart = charend;
+    		if (i < tis.length-1) {
+    			int nexttoki = tis[i+1];
+    			charend = doc.tokens.get(nexttoki).startChar;
+    		} else {
+    			// this is the last token.  the span from the end of this token to the end of the to-draw span should all be nontoken characters.
+    			charend = charspanToDraw.end;
+    		}
+    		s = doc.text.substring(charstart, charend);
+    		g.drawString(s, curx, y);
+    		curx += fm.stringWidth(s);
+    	}
+    	
+	}
+	static int[] getTokenIndexesInSpan(Document d, Span charspan) {
+		// should use indexing to be faster on long documents
+		return IntStream.range(0, d.tokens.size())
+				.filter(ti -> {
+					Token t = d.tokens.get(ti);
+					return GUtil.spanContainedIn(t.startChar, t.endChar, charspan); 
+				}).toArray();
+	}
+	static List<Token> getTokensInSpan(Document d, Span charspan) {
+		return d.tokens.stream().filter(t -> GUtil.spanContainedIn(t.startChar, t.endChar, charspan))
+				.collect(Collectors.toList());
+	}
 	void setDocument(Document doc) {
 		this.doc = doc;
 		loadDocumentIntoRenderingDatastructures();
@@ -277,6 +338,9 @@ public class MyTextArea {
 	void loadDocumentIntoRenderingDatastructures() {
 		assert doc!=null : "document must be set before calling this";
 		paragraphSpans = GUtil.splitIntoSpans("\n", doc.text);
+//		for (Span s : paragraphSpans) {
+//			U.pf("%10s ||| %s\n", s, GUtil.substring(doc.text, s).replace("\n","[N]").replace(" ","[S]"));
+//		}
 	}
 	
 	class InternalTextArea extends JPanel {
@@ -309,10 +373,10 @@ public class MyTextArea {
 	public static void main(String[] args) throws IOException {
 		Document d = new Document();
 		d.text = BasicFileIO.readFile(System.in);
-		d.tokens = NLP.stanfordTokenize(d.text);
-//		U.p(d.tokens);
+		d.tokens = NLP.simpleTokenize(d.text);
+		U.p(d.tokens);
 		
-		JFrame main = new JFrame() {{ setSize(new Dimension(200,200)); }};
+		JFrame main = new JFrame() {{ setSize(new Dimension(200,500)); }};
 		MyTextArea a = new MyTextArea();
 		a.doc = d;
 		a.loadDocumentIntoRenderingDatastructures();

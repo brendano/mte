@@ -205,14 +205,12 @@ public class Main implements QueryReceiver {
 		afteranalysisCallback.get();
 		corpus.finalizeIndexing();
 	}
-	
 	double getTermProbThresh() {
 		return (double) tpSpinner.getValue();
 	}
 	int getTermCountThresh() {
 		return (int) tcSpinner.getValue();
 	}
-	
 	@Override
 	public void receiveQuery(Collection<String> docids) {
 		curDS = corpus.getDocSet(docids);
@@ -220,11 +218,9 @@ public class Main implements QueryReceiver {
 		refreshDocdrivenTermList();
 		refreshTextPanel();
 	}
-
 	void refreshTextPanel() {
 		kwicPanel.show(getCurrentTQ().terms, curDS);
 	}
-
 	void selectTerminstForFullview(Document d, TermInstance ti) {
 		selectSingleDocumentForFullview(d);
 		fulldocPanel.textarea.scrollToTerminst(ti);
