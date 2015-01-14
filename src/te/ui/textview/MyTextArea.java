@@ -26,6 +26,8 @@ import scrolltest.MyScrollpane;
 import te.data.Document;
 import te.data.NLP;
 import te.data.Span;
+import te.data.TermInstance;
+import te.data.Token;
 import te.ui.GUtil;
 import util.Arr;
 import util.BasicFileIO;
@@ -165,6 +167,32 @@ public class MyTextArea {
 		return r;
 	}
 	
+	public void scrollToTerminst(TermInstance ti) {
+		int ci = doc.tokens.get(ti.tokIndsInDoc.get(0)).startChar;
+		scrollToCharindex(ci);
+	}
+	public void scrollToCharindex(int ci) {
+		final Rendering r = finishedRendering;
+		if (r==null) return;
+//		U.p("searching for charindex " + ci);
+		OptionalInt screenLine = IntStream.range(0,r.totalScreenLines)
+				.filter((si) -> r.screenlineCharSpans.get(si).contains(ci))
+				.findFirst();
+		if (!screenLine.isPresent()) {
+			// wasn't able to find one? weird.
+			U.p("couldnt find matching screenline containing charindex " + ci);
+			return;
+		}
+		int si = screenLine.getAsInt();
+//		U.p("screenline " + si);
+		
+		int y = (int) ((double) baselineYvalueForScreenline(si) - 0.5*getLineHeight());
+		U.p(scrollpane.getSize());
+		int topShouldBe = y - scrollpane.getHeight()/2;
+		topShouldBe = GUtil.bounded(topShouldBe, 0, area.getHeight());
+		area.scrollRectToVisible(new Rectangle(0, topShouldBe, scrollpane.getWidth(), scrollpane.getHeight()));
+	}
+	
 	/* Here's the model:
 	 * a resize launches a new text-rendering thread.
 	 * once it's done, then it asks swing for a new repaint.  at that time, painting will be done better.
@@ -203,7 +231,10 @@ public class MyTextArea {
 			rerenderThread = t;
 			t.start();
 		}
-		
+	}
+	
+	int baselineYvalueForScreenline(int screenline) {
+		return (screenline + 1) * getLineHeight();
 	}
 
 	/** draw in the clipping region based on the current text rendering. */
