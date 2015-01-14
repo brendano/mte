@@ -173,14 +173,22 @@ public class MyTextArea {
 		r.totalScreenLines = r.screenlineCharSpans.size();
 		return r;
 	}
-	
-	public void scrollToTerminst(TermInstance ti) {
-		int ci = doc.tokens.get(ti.tokIndsInDoc.get(0)).startChar;
-		scrollToCharindex(ci);
+	public void requestScrollToTerminst(TermInstance ti) {
+		if (!renderIsReady) {
+			termToScrollToWhenRenderIsDone = ti;
+			return;
+		}
+		else {
+			scrollToTerminst(ti, finishedRendering);	
+		}
 	}
-	public void scrollToCharindex(int ci) {
-		final Rendering r = finishedRendering;
-		if (r==null) return;
+	/** don't call this unless rendering is complete */
+	private  void scrollToTerminst(TermInstance ti, Rendering r) {
+		int ci = doc.tokens.get(ti.tokIndsInDoc.get(0)).startChar;
+		scrollToCharindex(ci, r);
+	}
+	/** don't call this unless rendering is complete */
+	private void scrollToCharindex(int ci, Rendering r) {
 //		U.p("searching for charindex " + ci);
 		OptionalInt screenLine = IntStream.range(0,r.totalScreenLines)
 				.filter((si) -> r.screenlineCharSpans.get(si).contains(ci))
@@ -194,7 +202,6 @@ public class MyTextArea {
 //		U.p("screenline " + si);
 		
 		int y = (int) ((double) baselineYvalueForScreenline(si) - 0.5*getLineHeight());
-		U.p(scrollpane.getSize());
 		int topShouldBe = y - scrollpane.getHeight()/2;
 		topShouldBe = GUtil.bounded(topShouldBe, 0, area.getHeight());
 		area.scrollRectToVisible(new Rectangle(0, topShouldBe, scrollpane.getWidth(), scrollpane.getHeight()));
@@ -213,13 +220,16 @@ public class MyTextArea {
 
 	Rendering finishedRendering = null;
 	Thread rerenderThread = null;
+	TermInstance termToScrollToWhenRenderIsDone = null;
 	Object renderThreadManagementLock = new Object();
+	boolean renderIsReady = false;
 	
-	void launchTextRender() {
+	void launchTextRender(final boolean isNewDoc) {
 		// take the current width as given, then compute a new height to force it to.
 		long t0 = System.nanoTime();
 		
 		synchronized(renderThreadManagementLock) {
+			renderIsReady = false;
 			if (rerenderThread!=null && rerenderThread.isAlive()) {
 //				U.p("trying to kill thread");
 				rerenderThread.interrupt();
@@ -229,11 +239,20 @@ public class MyTextArea {
 //				U.pf("w=%d start render thread\n", w);
 				Rendering r = renderWordWrapping(w);  // here is the expensive call
 				if (r==null) return;
-				finishedRendering = r;
-				int newHeight = (finishedRendering.totalScreenLines + 1)* getLineHeight();
+				// should the last lines here be wrapped in a sync block?
+				int newHeight = (r.totalScreenLines + 1)* getLineHeight();
 				area.setPreferredSize(new Dimension(-1, newHeight));
 //				U.pf("w=%d textflow %.2f ms\n", w, (System.nanoTime()-t0)/1e6);
 				area.revalidate();
+				if (Thread.interrupted()) return;
+				if (termToScrollToWhenRenderIsDone != null) {
+					scrollToTerminst(termToScrollToWhenRenderIsDone, r);
+					termToScrollToWhenRenderIsDone = null;
+				} else if (isNewDoc) {
+					scrollpane.getVerticalScrollBar().setValue(0);
+				}
+				finishedRendering = r;
+				renderIsReady = true;
 			});
 			rerenderThread = t;
 			t.start();
@@ -245,7 +264,7 @@ public class MyTextArea {
 	}
 
 	/** draw in the clipping region based on the current text rendering. */
-	void draw(Graphics2D g, int width) {
+	synchronized void draw(Graphics2D g, int width) {
 		long t0 = System.nanoTime();
 
 		Rectangle clip = g.getClipBounds();
@@ -277,7 +296,8 @@ public class MyTextArea {
 	}
 	
 	/** ASSUME this is all within one screenline. */
-	private void drawTextInSpan(Span charspanToDraw, Graphics2D g, int x, int y) {
+	@SuppressWarnings("unchecked")
+	synchronized private void drawTextInSpan(Span charspanToDraw, Graphics2D g, int x, int y) {
 		// simple solution: just draw the damn text
 //    	String str = GUtil.substring(doc.text, charspanToDraw);
 //    	g.drawString(str, x, y);
@@ -353,9 +373,10 @@ public class MyTextArea {
 		return d.tokens.stream().filter(t -> GUtil.spanContainedIn(t.startChar, t.endChar, charspan))
 				.collect(Collectors.toList());
 	}
-	void setDocument(Document doc) {
-		this.doc = doc;
-		loadDocumentIntoRenderingDatastructures();
+	void setDocument(Document newdoc) {
+		if (this.doc==newdoc) return;
+		this.doc = newdoc;
+		if (newdoc!=null) loadDocumentIntoRenderingDatastructures();
 	}
 	void loadDocumentIntoRenderingDatastructures() {
 		assert doc!=null : "document must be set before calling this";
@@ -370,7 +391,7 @@ public class MyTextArea {
 //			setPreferredSize(new Dimension(200,-1));
 			addComponentListener(new ComponentAdapter() {
 				@Override public void componentResized(ComponentEvent e)  {
-					launchTextRender();
+					launchTextRender(false);
 				}
 			});
 		}

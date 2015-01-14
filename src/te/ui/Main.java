@@ -223,7 +223,7 @@ public class Main implements QueryReceiver {
 	}
 	void selectTerminstForFullview(Document d, TermInstance ti) {
 		selectSingleDocumentForFullview(d);
-		fulldocPanel.textarea.scrollToTerminst(ti);
+		fulldocPanel.textarea.requestScrollToTerminst(ti);
 	}
 	void selectSingleDocumentForFullview(Document doc) {
 		fulldocDock.setTitleText("Document: " + doc.docid);

@@ -18,7 +18,6 @@ import util.U;
 public class FullDocViewer {
 //	public JEditorPane htmlpane;
 	public MyTextArea textarea;
-	Document currentDoc;  // could possibly be null if no doc is selected
 	
 	public FullDocViewer() {
 		textarea = new MyTextArea();
