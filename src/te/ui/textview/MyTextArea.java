@@ -51,6 +51,12 @@ public class MyTextArea {
 	InternalTextArea area;
 	JScrollPane scrollpane;
 	Document doc;
+	/** this function lazily specifies in-text highlights at the term level.
+	 * if it's set to null, means dont highlight anything.
+	 * returns null means dont highlight this term. 
+	 * eventually we'll want to return a style object, not just a color.
+	 */
+	Function<TermInstance, Color> termHighlighter;
 	public JComponent top() { return scrollpane; }
 
 	/* rendering model.  no extra paragraph spacing. thus screen lines are all that matters.
@@ -147,6 +153,7 @@ public class MyTextArea {
 	
 	/** can fail with null if thread is interrupted */
 	Rendering renderWordWrapping(int width) {
+		if (doc==null) return null;
 		Rendering r = new Rendering();
 		if (paragraphSpans==null) return r;
 
@@ -298,13 +305,28 @@ public class MyTextArea {
     	for (int i=0; i<tis.length; i++) {
     		int toki = tis[i];
     		// 2. the token
-    		int charstart = doc.tokens.get(toki).startChar;
-    		int charend = doc.tokens.get(toki).endChar;
+    		Token tok = doc.tokens.get(toki);
+    		int charstart = tok.startChar;
+    		int charend = tok.endChar;
     		String s = doc.text.substring(charstart, charend);
+    		
+    		// check for term-level things.
+    		Color color = Color.BLACK;
+    		if (termHighlighter != null) {
+        		for (TermInstance terminst : doc.tisByAllTokindexes.getOrDefault(toki, Collections.EMPTY_LIST)) {
+        			Color cc = termHighlighter.apply(terminst);
+        			if (cc != null) {
+        				color=cc;
+        			}
+        		}
+    		}
+    		// ok draw it now
+    		g.setColor(color);
     		g.drawString(s, curx, y);
     		curx += fm.stringWidth(s);
 
     		// 3. nontoken segment after the token
+    		g.setColor(Color.BLACK);
     		charstart = charend;
     		if (i < tis.length-1) {
     			int nexttoki = tis[i+1];

@@ -36,8 +36,10 @@ public class Document {
 	public List<Token> tokens;
 	public TermVector termVec;
 	public Map<Integer, List<TermInstance>> tisByStartTokindex; // not filled in until preanalysis stage
+	public Map<Integer, List<TermInstance>> tisByAllTokindexes; // not filled in until preanalysis stage
 	public Map<Integer, List<TermInstance>> tisByStartCharindex; // not filled in until preanalysis stage
 	public Map<Integer, List<TermInstance>> tisByEndCharindex; // not filled in until preanalysis stage
+	public List<TermInstance> termInstances;
 	
 	public Document() {
 		covariates = new HashMap<>();

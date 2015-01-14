@@ -30,18 +30,16 @@ public class FullDocViewer {
 	
 	public void show(Collection<String> terms, Document doc) {
 //		U.p("show doc " + doc);
-		boolean newdoc = doc!=currentDoc;
-		currentDoc = doc;
-		showForCurrentDoc(terms, newdoc);
+		boolean isNewDoc = textarea.doc!=doc;
+		textarea.setDocument(doc);
+		showForCurrentDoc(terms, isNewDoc);
 	}
 
 	public void showForCurrentDoc(Collection<String> terms, boolean isNewDoc) {
-//		U.p("show current doc " + currentDoc);
-		if (currentDoc==null) return;
+//		textarea.termHighlighter = ti -> ti.termName.equals("the") ? Color.blue : null;
+		textarea.termHighlighter = ti -> terms.contains(ti.termName) ? Color.blue : null;
 		if (isNewDoc) {
-			textarea.setDocument(currentDoc);
-			textarea.scrollpane.getVerticalScrollBar().setValue(0);
-			textarea.launchTextRender();
+			textarea.launchTextRender(isNewDoc);
 		}
 	}
 	

@@ -182,12 +182,21 @@ public class NLP {
 		doc.tisByStartTokindex = new HashMap<>();
 		doc.tisByStartCharindex = new HashMap<>();
 		doc.tisByEndCharindex = new HashMap<>();
+		doc.tisByAllTokindexes = new HashMap<>();
+		doc.termInstances = new ArrayList<>();
+		
 		for (TermInstance ti : analyzer.analyze(doc)) {
 			doc.termVec.increment(ti.termName);
+			doc.termInstances.add(ti);
 			
 			int firstIndex = ti.tokIndsInDoc.get(0);
 			GUtil.ensureList(doc.tisByStartTokindex, firstIndex);
 			doc.tisByStartTokindex.get(firstIndex).add(ti);
+			
+			for (int tokindex : ti.tokIndsInDoc) {
+				GUtil.ensureList(doc.tisByAllTokindexes, tokindex);
+				doc.tisByAllTokindexes.get(tokindex).add(ti);
+			}
 			
 			int firstCharindex = doc.tokens.get(firstIndex).startChar;
 			GUtil.ensureList(doc.tisByStartCharindex, firstCharindex);

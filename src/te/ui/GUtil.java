@@ -113,7 +113,7 @@ public class GUtil {
 		List<Double> ret = new ArrayList<>();
 		double curbase = Math.pow(10, Math.floor(Math.log10(min)));
 		double curmult = min/curbase;
-		U.p(curbase + " " + curmult);
+//		U.p(curbase + " " + curmult);
 		while ( (curbase*curmult) <= max) {
 			ret.add( curbase*curmult );
 			if (curmult==10) {

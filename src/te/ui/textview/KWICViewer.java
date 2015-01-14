@@ -162,15 +162,18 @@ public class KWICViewer  {
 					(int) (oldClip.getWidth()- withindocLeftMargin), (int) oldClip.getHeight());
 //			U.p("CLIP AFTER " + g.getClip());
 
-			double hittermWidth = twBoldCalc.apply(hitstr);
+//			double hittermWidth = twBoldCalc.apply(hitstr);
+			double hittermWidth = twCalc.apply(hitstr);
 			double hittermLeft = withindocLeftMargin + withindocWidth/2 - hittermWidth/2;
 			double hittermRight = hittermLeft + hittermWidth;
 			g.setFont(NORMAL_FONT);
 			g.drawString(leftstr, (int) (hittermLeft - twCalc.apply(leftstr)), (int) cury);
 			g.drawString(rightstr, (int) hittermRight, (int) cury);
-			g.setFont(BOLD_FONT);
+//			g.setFont(BOLD_FONT);
+			g.setColor(Color.BLUE);
 			g.drawString(hitstr, (int) hittermLeft, (int) cury);
-			g.setFont(NORMAL_FONT);
+			g.setColor(Color.BLACK);
+//			g.setFont(NORMAL_FONT);
 		}
 	}
 	
