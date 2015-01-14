@@ -264,7 +264,7 @@ public class MyTextArea {
 	}
 
 	/** draw in the clipping region based on the current text rendering. */
-	synchronized void draw(Graphics2D g, int width) {
+	void draw(Graphics2D g, int width) {
 		long t0 = System.nanoTime();
 
 		Rectangle clip = g.getClipBounds();
@@ -297,7 +297,7 @@ public class MyTextArea {
 	
 	/** ASSUME this is all within one screenline. */
 	@SuppressWarnings("unchecked")
-	synchronized private void drawTextInSpan(Span charspanToDraw, Graphics2D g, int x, int y) {
+	private void drawTextInSpan(Span charspanToDraw, Graphics2D g, int x, int y) {
 		// simple solution: just draw the damn text
 //    	String str = GUtil.substring(doc.text, charspanToDraw);
 //    	g.drawString(str, x, y);
