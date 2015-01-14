@@ -203,4 +203,37 @@ public class GUtil {
 		}
 		U.p(new Span(curstart, text.length()));
 	}
+
+	public static int bounded(int x, int min, int max) {
+		if (x<min) return min;
+		if (x>max) return max;
+		return x;
+	}
+
+	/** for inc-exc spans ... is [s1,e1) SUBSETEQ [s2,e2)  ? */
+	public static boolean spanContainedIn(Span span1, Span span2) {
+		return spanContainedIn(span1.start, span1.end, span2.start, span2.end);
+	}
+	/** for inc-exc spans ... is [s1,e1) SUBSETEQ [s2,e2)  ? */
+	public static boolean spanContainedIn(int s1, int e1, Span charspan) {
+		return spanContainedIn(s1,e1, charspan.start, charspan.end);
+	}
+	/** for inc-exc spans ... is [s1,e1) SUBSETEQ [s2,e2)  ? */
+	public static boolean spanContainedIn(int s1, int e1, int s2, int e2) {
+		assert s1<=e1 && s2<=e2;
+		return (s1>=s2 && e1<=e2);
+	}
+	public static boolean spansIntersect(Span span1, Span span2) {
+		return spansIntersect(span1.start, span1.end, span2.start, span2.end);
+	}
+	public static boolean spansIntersect(Span span1, int start2, int end2) {
+		return spansIntersect(span1.start, span1.end, start2, end2);
+	}
+	/** for inc-exc spans */
+	public static boolean spansIntersect(int s1, int e1, int s2, int e2) {
+		assert s1<=e1 && s2<=e2;
+		return	
+					(s1 <= s2 && s2 < e1) ||
+					(s2 <= s1 && s1 < e2);
+	}
 }

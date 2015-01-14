@@ -21,4 +21,7 @@ public class Span {
 	@Override public int hashCode() {
 		return toString().hashCode();  // todo could make faster by hashing the ints together like in Pair
 	}
+	public boolean contains(int i) {
+		return start <= i && i < end;
+	}
 }

@@ -13,6 +13,30 @@ import util.U;
 public class GUtilTest {
 
 	@Test
+	public void spantests2() {
+		assertTrue(GUtil.spanContainedIn( 5,5, 3,6));
+		assertTrue(GUtil.spanContainedIn( 5,6, 4,7));
+		assertTrue(GUtil.spanContainedIn( 5,6, 4,6));
+		assertTrue(GUtil.spanContainedIn( 5,6, 5,6));
+		assertFalse(GUtil.spanContainedIn( 5,6, 5,5));
+		assertFalse(GUtil.spanContainedIn( 5,6, 6,8));
+		assertFalse(GUtil.spanContainedIn( 5,10, 7,12));
+		assertFalse(GUtil.spanContainedIn( 4,5, 20,25 ));
+		assertFalse(GUtil.spanContainedIn( 0,10, 5,6 ));
+		
+		
+		assertTrue(GUtil.spansIntersect( 5,5, 3,6));
+		assertTrue(GUtil.spansIntersect( 5,6, 4,7));
+		assertTrue(GUtil.spansIntersect( 5,6, 4,6));
+		assertTrue(GUtil.spansIntersect( 5,6, 5,6));
+		assertTrue(GUtil.spansIntersect( 5,6, 5,5));
+		assertFalse(GUtil.spansIntersect( 5,6, 6,8));
+		assertTrue(GUtil.spansIntersect( 5,10, 7,12));
+		assertTrue(GUtil.spansIntersect( 7,12, 5,10));
+		assertFalse(GUtil.spansIntersect( 4,5, 20,25 ));
+		assertTrue(GUtil.spansIntersect( 0,10, 5,6 ));
+	}
+	@Test
 	public void spantests() {
 		/* 0, {4,8}, 10 ===> [0,4), [4,8), [8,10) */
 		List<Span> spans = GUtil.breakpointsToSpans(0, Lists.newArrayList(4,8), 10);
