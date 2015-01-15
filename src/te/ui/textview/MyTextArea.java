@@ -86,7 +86,7 @@ public class MyTextArea {
 		if (possBreaks.size()>0) assert possBreaks.get(possBreaks.size()-1) != doc.text.length();
 		possBreaks.add(charend);
 		int widthLeft = width;
-		int curStart=0;
+		int curStart=charstart;
 		List <Integer> breaks = new ArrayList<>();
 		
 		for (int possBreak : possBreaks) {
@@ -94,7 +94,7 @@ public class MyTextArea {
 			int w = widthMeasure.apply(cand);
 //			U.pf("W=%3d  %d:%d  CAND [[%s]]\n", w, curStart, possBreak, cand.replace("\n", " "));
 			if (w > widthLeft) {
-				if (curStart>0) {
+				if (curStart>charstart) {
 					breaks.add(curStart);
 				}
 				widthLeft = width - w;
