@@ -500,7 +500,7 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 		g.setColor(BRUSH_COLOR);
 		g.setStroke(new BasicStroke(3));
 		Rectangle r = brush.getRegionPhys();
-		U.p("RENDER " + r);
+//		U.p("RENDER " + r);
     	g.drawRect(r.x,r.y,r.width,r.height);
 	}
 
