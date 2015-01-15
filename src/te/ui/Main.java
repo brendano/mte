@@ -199,10 +199,12 @@ public class Main implements QueryReceiver {
 			corpus.convertCovariateTypes();	
 		}
 		corpus.calculateCovariateSummaries();
+		U.p("Analyzing document texts");
 		for (Document doc : corpus.docsById.values()) {
 			NLP.analyzeDocument(da, doc);	
 		}
 		afteranalysisCallback.get();
+		U.p("done analyzing");
 		corpus.finalizeIndexing();
 	}
 	double getTermProbThresh() {

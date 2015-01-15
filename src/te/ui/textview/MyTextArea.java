@@ -83,6 +83,7 @@ public class MyTextArea {
 	/** this can't handle hard breaks. only infers soft breaks. */
 	public static List<Integer> calculateBreaks(Document doc, int charstart, int charend, int width, Function<String,Integer> widthMeasure) {
 		List<Integer> possBreaks = possibleBreakpoints(doc, charstart, charend);
+//		U.p("POSSBREAKS  " + possBreaks);
 		if (possBreaks.size()>0) assert possBreaks.get(possBreaks.size()-1) != doc.text.length();
 		possBreaks.add(charend);
 		int widthLeft = width;
@@ -92,7 +93,7 @@ public class MyTextArea {
 		for (int possBreak : possBreaks) {
 			String cand = doc.text.substring(curStart,possBreak);
 			int w = widthMeasure.apply(cand);
-//			U.pf("W=%3d  %d:%d  CAND [[%s]]\n", w, curStart, possBreak, cand.replace("\n", " "));
+//			U.pf("W=%3d  %d:%d  CAND [[%s]]\n", w, curStart, possBreak, cand.replace("\n", "[N]"));
 			if (w > widthLeft) {
 				if (curStart>charstart) {
 					breaks.add(curStart);
@@ -162,12 +163,14 @@ public class MyTextArea {
 		for (int p=0; p<paragraphSpans.size(); p++) {
 			if (Thread.interrupted()) { return null; }
 			Span pspan = paragraphSpans.get(p);
+//			U.pf("PARA %-15s ||| %s\n", pspan, GUtil.substring(doc.text, pspan).replace("\n","[N]").replace(" ","[S]"));
 			List<Integer> softbreaks = calculateBreaks(doc, pspan.start, pspan.end, width, fm::stringWidth);
+//			U.p("BREAKS " + softbreaks);
 			List<Span> screenlineCharSpans = GUtil.breakpointsToSpans(pspan.start, softbreaks, pspan.end);
 			for (Span scs : screenlineCharSpans) {
 				if (Thread.interrupted()) { return null; }
 				r.screenlineCharSpans.add(scs);
-//				U.pf("%10s ||| %s\n", scs, GUtil.substring(doc.text, scs).replace("\n","[N]").replace(" ","[S]"));
+//				U.pf("SL %-15s ||| %s\n", scs, GUtil.substring(doc.text, scs).replace("\n","[N]").replace(" ","[S]"));
 			}
 		}
 		r.totalScreenLines = r.screenlineCharSpans.size();
@@ -382,7 +385,7 @@ public class MyTextArea {
 		assert doc!=null : "document must be set before calling this";
 		paragraphSpans = GUtil.splitIntoSpans("\n", doc.text);
 //		for (Span s : paragraphSpans) {
-//			U.pf("%10s ||| %s\n", s, GUtil.substring(doc.text, s).replace("\n","[N]").replace(" ","[S]"));
+//			U.pf("PARA %-15s ||| %s\n", s, GUtil.substring(doc.text, s).replace("\n","[N]").replace(" ","[S]"));
 //		}
 	}
 	
@@ -423,7 +426,10 @@ public class MyTextArea {
 		MyTextArea a = new MyTextArea();
 		a.doc = d;
 		a.loadDocumentIntoRenderingDatastructures();
-		main.add(a.top());
-		main.setVisible(true);
+		SwingUtilities.invokeLater(() -> {
+			main.add(a.top());
+			main.setVisible(true);
+			a.area.revalidate();
+		});
 	}
 }
