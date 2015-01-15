@@ -2,7 +2,6 @@ package te.ui;
 
 import java.awt.BasicStroke;
 import java.awt.Color;
-import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Point;
@@ -10,46 +9,40 @@ import java.awt.Rectangle;
 import java.awt.RenderingHints;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
-import java.awt.event.KeyListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
-import java.awt.geom.AffineTransform;
-import java.awt.geom.Ellipse2D;
 import java.awt.geom.Rectangle2D;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
-import javax.swing.*;
+import javax.swing.JPanel;
 
 import te.data.Corpus;
 import te.data.Document;
 import te.data.Schema;
 import te.data.TermQuery;
-import te.data.Schema.Levels;
-import te.data.Schema.Levels.Level;
 import util.U;
 
-import java.util.Comparator;
-import java.util.stream.Collectors;
-
-@SuppressWarnings("serial")
 public class BrushPanel extends JPanel implements MouseListener, MouseMotionListener {
 	
 	String xattr, yattr;  // allowed to be NULL.
 	Schema schema;
 	
-	// (meta)data value space
+	// "user": (meta)data value space
 	double minUserX=1984;
 	double maxUserX=2015;
 	double minUserY=-2;
 	double maxUserY=2;
 	
-	// swing coordinate space
+	// "phys": graphics(~pixels) coordinate space, boundaries of the plotting area.
+	// we maintain min<=max always, so the directionality of the y-axis is flipped compared to user space.
 	double minPhysX = -1;
 	double minPhysY = -1;
 	double maxPhysX = -1;
@@ -100,32 +93,34 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 //        U.pf("BrushPanel set to: xs %s %s || ys %s %s\n", minPhysX,maxPhysX, minPhysY, maxPhysY);
 	}
 
-	/** user coordinates from physical (UI library) coordinates */
-	double x_p2u(double physX) {
-		double uscale = maxUserX-minUserX;
-		double pscale = maxPhysX-minPhysX;
-		double relpos = (physX-minPhysX)/pscale;
-		return (relpos*uscale) + minUserX;
+	/* Conversion between user and physical coordinate systems */
+	double uscaleX() {
+		return maxUserX-minUserX;
 	}
-	double y_p2u(double physY) {
-		double uscale = maxUserY-minUserY;
-		double pscale = maxPhysY-minPhysY;
-		double relpos = (physY-minPhysY)/pscale;
-		return (relpos*uscale) + minUserY;
+	double pscaleX() {
+		return maxPhysX-minPhysX;
+	}
+	double uscaleY() {
+		return maxUserY-minUserY;
+	}
+	double pscaleY() {
+		return maxPhysY-minPhysY;
+	}
+	double x_p2u(double physX) {
+		double relpos = (physX-minPhysX)/pscaleX();
+		return (relpos*uscaleX()) + minUserX;
 	}
 	double x_u2p(double userX) {
-		double uscale = maxUserX-minUserX;
-		double pscale = maxPhysX-minPhysX;
-		double relpos = (userX-minUserX)/uscale;
-		return (relpos*pscale) + minPhysX;
+		double relpos = (userX-minUserX)/uscaleX();
+		return (relpos*pscaleX()) + minPhysX;
+	}
+	double y_p2u(double physY) {
+		double relpos = (physY-minPhysY)/pscaleY();
+		return maxUserY - (relpos*uscaleY());
 	}
 	double y_u2p(double userY) {
-		double uscale = maxUserY-minUserY;
-		double pscale = maxPhysY-minPhysY;
-		double relpos = (userY-minUserY)/uscale;
-//		double o = maxPhysY - (relpos*pscale);
-//		U.pf("uy=%s -> py=%s\n", userY, o);
-		return maxPhysY - (relpos*pscale);
+		double relpos = (userY-minUserY)/uscaleY();
+		return maxPhysY - (relpos*pscaleY());
 	}
 
 	Mode mode = Mode.NO_BRUSH;
@@ -174,22 +169,12 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 		public void componentResized(ComponentEvent e) {
 			BrushPanel bp = ((BrushPanel) e.getComponent());
 			bp.setPhysDimsToCurrentSize();
+			bp.repaint();
 		}
 	}
 	
 	@Override
 	public void mouseClicked(MouseEvent e) {
-	}
-
-	@Override
-	public void mousePressed(MouseEvent e) {
-		if (mode==Mode.STILL_BRUSH && !brush.getRegion().contains(e.getPoint())) {
-			clearSelection();
-			setMode(Mode.NO_BRUSH);
-			brush = null;
-			repaint();
-			queryReceiver.receiveQuery(new ArrayList<>());
-		}
 	}
 
 	@Override
@@ -201,13 +186,25 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 	}
 
 	@Override
+	public void mousePressed(MouseEvent e) {
+		if (mode==Mode.STILL_BRUSH && !brush.getRegionPhys().contains(e.getPoint())) {
+			clearSelection();
+			setMode(Mode.NO_BRUSH);
+			brush = null;
+			repaint();
+			queryReceiver.receiveQuery(new ArrayList<>());
+		}
+	}
+
+	@Override
 	public void mouseReleased(MouseEvent e) {
 		if (mode==Mode.DRAWING_BRUSH) {
 			setMode(Mode.STILL_BRUSH);
 		}
 		else if (mode==Mode.MOVING_BRUSH) {
 			setMode(Mode.STILL_BRUSH);
-			brush.initialMousePosition = null;
+			brush.initialMousePositionX = null;
+			brush.initialMousePositionY = null;
 		}
 	}
 	void setMode(Mode newMode) {
@@ -220,18 +217,21 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 //		U.p("mousedrag at current mode " + mode);
 		if (mode==Mode.NO_BRUSH) {
 			// Start a brush
-			brush = new Brush(e.getX(), e.getY());
+			brush = new Brush(x_p2u(e.getX()), y_p2u(e.getY()));
+//			brush.storeCurrentPositionAsInitial();
 			clearSelection();
 			setMode(Mode.DRAWING_BRUSH);
 		}
 		else if (mode==Mode.DRAWING_BRUSH) {
 			// keep drawing
-			brush.x2=e.getX(); brush.y2=e.getY();
+			brush.x2=x_p2u(e.getX());
+			brush.y2=y_p2u(e.getY());
 			refreshSelection();
 		}
-		else if (mode==Mode.STILL_BRUSH && brush.getRegion().contains(e.getPoint())) {
+		else if (mode==Mode.STILL_BRUSH && brush.getRegionPhys().contains(e.getPoint())) {
 			// start a move
-			brush.initialMousePosition = e.getPoint();
+			brush.initialMousePositionX = x_p2u(e.getX());
+			brush.initialMousePositionY = y_p2u(e.getY());
 			brush.storeCurrentPositionAsInitial();
 			setMode(Mode.MOVING_BRUSH);
 			continueBrushMove(e);
@@ -241,20 +241,21 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 			continueBrushMove(e);
 			refreshSelection();
 		}
+//		U.p("DRAG "+brush);
 		repaint();
 	}
 	
 	void refreshSelection() {
 		clearSelection();
-		for (int i : selectPoints(brush.getRegion())) {
+		for (int i : selectPoints(brush.getRegionPhys())) {
 			points.get(i).isDocquerySelected=true;
 		}
 		queryReceiver.receiveQuery(getSelectedDocIds());
 	}
 
 	void continueBrushMove(MouseEvent e) {
-		int dx = e.getX() - brush.initialMousePosition.x;
-		int dy = e.getY() - brush.initialMousePosition.y;
+		double dx = (x_p2u(e.getX()) - brush.initialMousePositionX);
+		double dy = (y_p2u(e.getY()) - brush.initialMousePositionY);
 		brush.x1 = brush.initx1 + dx;
 		brush.x2 = brush.initx2 + dx;
 		brush.y1 = brush.inity1 + dy;
@@ -338,7 +339,7 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 	
 	List<Double> tickPositions(String attr, XorY x_or_y) {
 		if (attr==null) {
-			return Collections.EMPTY_LIST;
+			return Collections.emptyList();
 		}
 		else if (schema.column(attr).isCateg()) {
 			return schema.column(attr).levels.levels().stream().
@@ -498,39 +499,50 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 		assert brush != null;
 		g.setColor(BRUSH_COLOR);
 		g.setStroke(new BasicStroke(3));
-		Rectangle r = brush.getRegion();
-    	g.drawRect(r.x, r.y, r.width, r.height);
+		Rectangle r = brush.getRegionPhys();
+		U.p("RENDER " + r);
+    	g.drawRect(r.x,r.y,r.width,r.height);
 	}
 
 	@Override
 	public void mouseMoved(MouseEvent e) {
 	}
 
+	
+	/** selector thingy. coordinates are stored in user space */
+	class Brush {
+		double
+				x1=Double.NEGATIVE_INFINITY, y1=Double.NEGATIVE_INFINITY,
+				x2=Double.POSITIVE_INFINITY, y2=Double.POSITIVE_INFINITY;
+		
+		// info for drag movement
+		Double initialMousePositionX;
+		Double initialMousePositionY;
+		double initx1=x1,initx2=x2,inity1=y1,inity2=y2;
+		
+		Brush(double x, double y) {
+			x1=x2=x;
+			y1=y2=y;
+		}
+		
+		Rectangle getRegionPhys() {
+			int px1 = (int) x_u2p(Math.min(x1,x2));
+			int py1 = (int) y_u2p(Math.max(y1,y2)); // y-axis flip
+			int px2 = (int) x_u2p(Math.max(x1,x2));
+			int py2 = (int) y_u2p(Math.min(y1,y2)); // y-axis flip
+			return new Rectangle(px1,py1, px2-px1, py2-py1);
+		}
+		
+		void storeCurrentPositionAsInitial() {
+			initx1=x1; initx2=x2; inity1=y1; inity2=y2; 
+		}
+		
+		public String toString() { return String.format(
+				"Brush[cur=(%.2f %.2f) (%.2f %.2f)  init=(%.2f %.2f) (%.2f %.2f)  initmousepos=(%s %s)",
+				x1,y1,x2,y2, initx1,inity1, initx2,inity2, initialMousePositionX, initialMousePositionY);
+		}
+	}
+
 }
 
-
-/** selector thingy */
-class Brush {
-	int x1=-1, y1=-1;
-	int x2=-1, y2=-1;
-	
-	// info for drag movement
-	Point initialMousePosition;
-	int initx1=-1,initx2=-1,inity1=-1,inity2=-1;
-	
-	Brush(int x, int y) {
-		x1=x2=x;
-		y1=y2=y;
-	}
-	
-	Rectangle getRegion() {
-		return new Rectangle(Math.min(x1,x2),Math.min(y1,y2), 
-				Math.abs(x2-x1), Math.abs(y2-y1));
-	}
-	
-	void storeCurrentPositionAsInitial() {
-		initx1=x1; initx2=x2; inity1=y1; inity2=y2; 
-	}
-	
-}
 
