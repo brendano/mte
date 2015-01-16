@@ -85,6 +85,7 @@ interface BrushPanelListener {
 public class Main implements BrushPanelListener {
 	public Corpus corpus = new Corpus();
 	public DocSet curDS = new DocSet();
+	Document currentFulldoc;
 	
 	private String xattr, yattr;
 
@@ -161,9 +162,9 @@ public class Main implements BrushPanelListener {
 		curDS = corpus.getDocSet(docids);
 		refreshQueryInfo();
 		refreshDocdrivenTermList();
-		refreshTextPanel();
+		refreshKWICPanel();
 	}
-	void refreshTextPanel() {
+	void refreshKWICPanel() {
 		kwicPanel.show(getCurrentTQ().terms, curDS);
 	}
 	void selectTerminstForFullview(Document d, TermInstance ti) {
@@ -173,7 +174,9 @@ public class Main implements BrushPanelListener {
 	void selectSingleDocumentForFullview(Document doc) {
 		fulldocDock.setTitleText("Document: " + doc.docid);
 		fulldocPanel.show(getCurrentTQ().terms, doc);
+		currentFulldoc = doc;
 		brushPanel.setFulldoc(doc);
+		kwicPanel.top().repaint();
 	}
 	void refreshSingleDocumentInFullview() {
 		fulldocPanel.showForCurrentDoc(getCurrentTQ().terms, false);
@@ -238,7 +241,7 @@ public class Main implements BrushPanelListener {
 		String msg = curTQ.terms.size()==0 ? "No selected terms" 
 				: curTQ.terms.size()+" selected terms: " + StringUtils.join(curTQ.terms, ", ");
 		subqueryInfo.setText(msg);
-		refreshTextPanel();
+		refreshKWICPanel();
 		brushPanel.showTerms(curTQ);
 		runTermTermQuery(curTQ);
 		refreshSingleDocumentInFullview();
@@ -380,6 +383,8 @@ public class Main implements BrushPanelListener {
         kwicPanel = new KWICViewer();
         kwicPanel.fulldocClickReceiver = this::selectSingleDocumentForFullview;
         kwicPanel.fulldocTerminstClickReceiver = this::selectTerminstForFullview;
+        kwicPanel.getCurrentFulldocDoc = () -> this.currentFulldoc;
+        
         fulldocPanel = new FullDocViewer();
         
 		DockController controller = new DockController();

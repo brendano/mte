@@ -19,11 +19,13 @@ import java.awt.image.BufferedImage;
 import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
+import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
 import javax.swing.JComponent;
 import javax.swing.JEditorPane;
@@ -60,6 +62,7 @@ public class KWICViewer  {
 	public int wordRadius = 5;
 	private Set<String> termset;
 	private List<Document> doclist;
+	public Supplier<Document> getCurrentFulldocDoc;
 
 	public KWICViewer() {
 		panel = new JPanel();
@@ -90,15 +93,27 @@ public class KWICViewer  {
 			setBackground(Color.white);
 			setLayout(new BoxLayout(this,BoxLayout.Y_AXIS));
 			add(new JLabel(doc.docid) {{
-				setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-				addMouseListener(new MouseAdapter() {
-					public void mouseClicked(MouseEvent e) {
-						if (fulldocClickReceiver != null)
-							fulldocClickReceiver.accept(document);
+					setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+					addMouseListener(new MouseAdapter() {
+						public void mouseClicked(MouseEvent e) {
+							if (fulldocClickReceiver != null)
+								fulldocClickReceiver.accept(document);
+						}
+					});
+				}
+				@Override public void paintComponent(Graphics _g) {
+					super.paintComponent(_g);
+					Graphics2D g = (Graphics2D) _g;
+					if (getCurrentFulldocDoc!=null &&
+							getCurrentFulldocDoc.get() != null &&
+							doc.docid.equals(getCurrentFulldocDoc.get().docid)) {
+						g.setColor(Color.black);
+						g.drawRect(0,0,getWidth(),getHeight());
+						g.drawRect(1,1,getWidth()-2,getHeight()-2);
 					}
-				});
-				
-			}} );
+				}
+			
+			} );
 			for (WithinDocHit h : hits) {
 //				add(new JLabel(h.toString()));
 				HitView hv = new HitView(doc, h);
@@ -233,4 +248,5 @@ public class KWICViewer  {
 //				.comparing((WithinDocHit h) -> h.termStart).thenComparing((WithinDocHit h) ->h.termEnd));
 		return hits;
 	}
+	
 }
