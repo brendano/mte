@@ -18,13 +18,13 @@ import util.U;
 public class TermTable {
 	JTable table;
 	JScrollPane scrollpane;
-	Main.TermTableModel model;
+	TermTableModel model;
 	/** TermTable sends a *term* to this consumer. */
 	Consumer<String> doubleClickListener;
 
 	public JComponent top() { return scrollpane; }
 
-	public TermTable(Main.TermTableModel ttm) {
+	public TermTable(TermTableModel ttm) {
 		model = ttm;
 		table = new JTable(model) {
 			{
