@@ -12,14 +12,17 @@ import java.awt.event.ComponentEvent;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
+import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import javax.swing.JPanel;
@@ -58,26 +61,29 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 	double tickLabelOffset = 2.0;
 	
 	Brush brush = null;
-	List<MyPoint> points;
-	Map<String,MyPoint> pointsByDocid;
-	QueryReceiver queryReceiver;
+	List<MyPoint> points = new ArrayList<>();
+	Map<String,MyPoint> pointsByDocid = new HashMap<>();
+	BrushPanelListener queryReceiver;
+	MyPoint fulldocSelectedPoint = null;
+	Set<String> termquerySelectedPointDocIDs = new HashSet<>();
+	Set<String> docSelection = new HashSet<>();
 	
 	Color BRUSH_COLOR = new Color(61,56,240);
 	
 	class MyPoint {
 		Document doc;
-		boolean isDocquerySelected = false;
-		boolean isTermquery1Selected = false;
-		boolean isTermquery2Selected = false;
+		boolean isDocquerySelected() { return docSelection.contains(doc.docid); }
+		boolean isTermquery1Selected() { return termquerySelectedPointDocIDs.contains(doc.docid); }
+		boolean isFulldocSelected() { return this==fulldocSelectedPoint; }
 	
-		public int physX() {
-			return (int) x_u2p(xOfDoc(doc));
+		public double physX() {
+			return x_u2p(xOfDoc(doc));
 		}
-		public int physY() {
-			return (int) y_u2p(yOfDoc(doc));
+		public double physY() {
+			return y_u2p(yOfDoc(doc));
 		}
-		public Point physPoint() {
-			return new Point(physX(), physY());
+		public Point2D.Double physPoint() {
+			return new Point2D.Double(physX(), physY());
 		}
 	}
 
@@ -146,25 +152,20 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 		return ret;
 	}
 	
-	public BrushPanel(QueryReceiver qr, Collection<Document> docs) {
+	public BrushPanel(BrushPanelListener qr, Collection<Document> docs) {
 		super();
 		addMouseListener(this);
 		addMouseMotionListener(this);
-		
+		addComponentListener(new ResizerHandler());
 		queryReceiver = qr;
-		
-		points = new ArrayList<>();
-		pointsByDocid = new HashMap<>();
 		for (Document d : docs) {
 			MyPoint p = new MyPoint();
 			p.doc = d;
-			p.isDocquerySelected = false;
 			points.add(p);
 			pointsByDocid.put(d.docid, p);
 		}
-
-		addComponentListener(new ResizerHandler());
 	}
+	
 	class ResizerHandler extends ComponentAdapter {
 		public void componentResized(ComponentEvent e) {
 			BrushPanel bp = ((BrushPanel) e.getComponent());
@@ -192,7 +193,7 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 			setMode(Mode.NO_BRUSH);
 			brush = null;
 			repaint();
-			queryReceiver.receiveQuery(new ArrayList<>());
+			queryReceiver.receiveCovariateQuery(new ArrayList<>());
 		}
 	}
 
@@ -215,6 +216,7 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 	@Override
 	public void mouseDragged(MouseEvent e) {
 //		U.p("mousedrag at current mode " + mode);
+		// TODO this is where to only analyze the diff from the previous brush position for a faster selected docset update.
 		if (mode==Mode.NO_BRUSH) {
 			// Start a brush
 			brush = new Brush(x_p2u(e.getX()), y_p2u(e.getY()));
@@ -245,14 +247,6 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 		repaint();
 	}
 	
-	void refreshSelection() {
-		clearSelection();
-		for (int i : selectPoints(brush.getRegionPhys())) {
-			points.get(i).isDocquerySelected=true;
-		}
-		queryReceiver.receiveQuery(getSelectedDocIds());
-	}
-
 	void continueBrushMove(MouseEvent e) {
 		double dx = (x_p2u(e.getX()) - brush.initialMousePositionX);
 		double dy = (y_p2u(e.getY()) - brush.initialMousePositionY);
@@ -262,18 +256,20 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 		brush.y2 = brush.inity2 + dy;
 	}
 	
-	
-	List<String> getSelectedDocIds() {
-		List<String> ret = new ArrayList<>();
-		for (MyPoint p : points) {
-			if (p.isDocquerySelected) {
-				ret.add( p.doc.docid );
-			}
+	void refreshSelection() {
+		clearSelection();
+		for (int i : selectPoints(brush.getRegionPhys())) {
+			docSelection.add(points.get(i).doc.docid);
 		}
-		return ret;
+		queryReceiver.receiveCovariateQuery(getSelectedDocIds());
 	}
+
+	Set<String> getSelectedDocIds() {
+		return docSelection;
+	}
+	
 	void clearSelection() {
-		for (MyPoint p : points) p.isDocquerySelected=false;
+		docSelection.clear();
 	}
 	
 	public void paintComponent(Graphics _g) {
@@ -285,33 +281,35 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 		drawAxes(g);
 		
 		Collections.sort(points, Comparator
-				.comparingInt((MyPoint p) -> p.isTermquery1Selected ? 1:0)
-				.thenComparingInt((MyPoint p) -> p.isDocquerySelected ? 1:0)
+				.comparingInt((MyPoint p) -> p.isTermquery1Selected() ? 1:0)
+				.thenComparingInt((MyPoint p) -> p.isDocquerySelected() ? 1:0)
 		);
 		
 		for (int i=0; i<points.size(); i++) {
 			MyPoint mp = points.get(i);
-			Color c = mp.isTermquery1Selected ? GUtil.Dark2[0] :
-							mp.isDocquerySelected ? Color.black : 
+			Color c = mp.isTermquery1Selected() ? GUtil.Dark2[0] :
+							mp.isDocquerySelected() ? Color.black : 
 							Color.gray;
 			g.setColor(c);
-			Point p = mp.physPoint();
-			if (mp.isTermquery1Selected) {
-				GUtil.drawCenteredTriangle(g, p.x, p.y, 3, mp.isTermquery1Selected);
+			Point2D.Double p = mp.physPoint();
+			if (mp.isTermquery1Selected()) {
+				GUtil.drawCenteredTriangle(g, p.x, p.y, 3, mp.isTermquery1Selected());
 			}
 			else {
-				GUtil.drawCenteredCircle(g, p.x, p.y, 3, mp.isTermquery1Selected);
+				GUtil.drawCenteredCircle(g, p.x, p.y, 3, mp.isTermquery1Selected());
+			}
+			g.setColor(Color.black);
+			if (mp.isFulldocSelected()) {
+				GUtil.drawCenteredCircle(g, p.x, p.y, 4, false);
 			}
 		}
 		renderBrush(g);
 	}
 	
 	public void showTerms(TermQuery tq) {
-		for (MyPoint p : points) {
-			p.isTermquery1Selected = false;
-		}
+		termquerySelectedPointDocIDs.clear();
 		for (Document d : tq.getMatchingDocs().docs()) {
-			pointsByDocid.get(d.docid).isTermquery1Selected = true;
+			termquerySelectedPointDocIDs.add(d.docid);
 		}
 		repaint();
 	}
@@ -541,6 +539,11 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 				"Brush[cur=(%.2f %.2f) (%.2f %.2f)  init=(%.2f %.2f) (%.2f %.2f)  initmousepos=(%s %s)",
 				x1,y1,x2,y2, initx1,inity1, initx2,inity2, initialMousePositionX, initialMousePositionY);
 		}
+	}
+
+	public void setFulldoc(Document doc) {
+		fulldocSelectedPoint = pointsByDocid.get(doc.docid);
+		repaint();
 	}
 
 }

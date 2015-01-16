@@ -55,7 +55,7 @@ public class GUtil {
 		g.drawString(s, (float) finalx, (float) finaly); 
 	}
 
-	public static void drawCenteredCircle(Graphics2D g, int x, int y, int radius, boolean fill) {
+	public static void drawCenteredCircle(Graphics2D g, double x, double y, double radius, boolean fill) {
 		Ellipse2D.Double circle = new Ellipse2D.Double(x -radius, y -radius, 2*radius, 2*radius);
 		if (fill) {
 			g.fill(circle);

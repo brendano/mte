@@ -77,11 +77,12 @@ import util.JsonUtil;
 import util.U;
 import edu.stanford.nlp.util.StringUtils;
 
-interface QueryReceiver {
-	public void receiveQuery(Collection<String> docids);
+/** someone who listens to updates from a brush panel */
+interface BrushPanelListener {
+	public void receiveCovariateQuery(Collection<String> docids);
 }
 
-public class Main implements QueryReceiver {
+public class Main implements BrushPanelListener {
 	public Corpus corpus = new Corpus();
 	public DocSet curDS = new DocSet();
 	
@@ -131,64 +132,6 @@ public class Main implements QueryReceiver {
 		yattr = yattrName;
 		return true;
 	}
-	public void initWithCode() throws JsonProcessingException, IOException, BadSchema {
-		// the stuff in here is all half-broken
-		
-//		corpus = Corpus.loadXY("/d/sotu/sotu.xy");
-		corpus = null;
-		corpus.loadNLP("/d/sotu/sotu.ner");
-//		corpus.loadSchema("/d/sotu/schema.conf");
-		xattr = "year";
-		yattr = "party";
-		da = new NLP.UnigramAnalyzer();
-//		NLP.NgramAnalyzer da = new NLP.NgramAnalyzer() {{ order=1; stopwordFilter=true; posnerFilter=true; }};
-//		NLP.NgramAnalyzer da = new NLP.NgramAnalyzer() {{ order=5; stopwordFilter=true; posnerFilter=true; }};
-		uiOverridesCallback = () -> {
-	      brushPanel.minUserY = -1;
-	      brushPanel.maxUserY = 2;
-	      return null;
-		};
-		
-//		corpus = Corpus.loadXY("/d/reviews_bryan/ALLnyc.Menu.jsonxy");
-//		corpus.runTokenizer(NLP::simpleTokenize);
-////		corpus.runTokenizer(NLP::stanfordTokenize);
-//		NLP.NgramAnalyzer da = new NLP.NgramAnalyzer() {{ order=2; posnerFilter=false; }};
-		
-//		corpus = Corpus.loadXY("/d/acl/just_meta.xy");
-////		corpus.runTokenizer(NLP::simpleTokenize);
-////		corpus.runTokenizer(NLP::stanfordTokenize);
-//		corpus.loadNLP("/d/acl/just_meta.ner");
-//		corpus.loadLevels("/d/acl/schema.json");
-//		NLP.NgramAnalyzer da = new NLP.NgramAnalyzer() {{
-//			order=3; posnerFilter=true; stopwordFilter=true;
-//		}};
-////		afteranalysisCallback = () -> { corpus.indicatorize(); return null; };
-
-
-//		corpus = Corpus.loadXY("/d/twi/geo2/data/v8/smalltweets2.sample.sort_by_user.useragg.xy.samp2k");
-////		corpus = Corpus.loadXY("/d/twi/geo2/data/v8/smalltweets2.sample.sort_by_user.useragg.xy.samp100");
-//		corpus.runTokenizer(NLP::simpleTokenize);
-//		NLP.DocAnalyzer da = new NLP.UnigramAnalyzer();
-////		NLP.NgramAnalyzer da = new NLP.NgramAnalyzer();
-////		da.order = 2;
-////		da.posnerFilter = false;
-//		afteranalysisCallback = () -> { corpus.indicatorize(); return null; };
-
-
-//		corpus = Corpus.loadXY("/d/bible/by_bookchapter.json.xy.filtered");
-//		corpus.loadLevels("/d/bible/schema.json");
-//		corpus.runTokenizer(NLP::stanfordTokenize);
-//		NLP.DocAnalyzer da = new NLP.UnigramAnalyzer();
-////		NLP.NgramAnalyzer da = new NLP.NgramAnalyzer();
-////		da.order = 3; da.posnerFilter=false; da.stopwordFilter=true;
-//		uiOverridesCallback = () -> { 
-//		      brushPanel.minUserY = -1;
-//		      brushPanel.maxUserY = 66;
-//		      return null;
-//		};
-
-		finalizeCorpusAnalysisAfterConfiguration();
-	}
 
 	void uiOverrides() {
 		uiOverridesCallback.get();
@@ -214,7 +157,7 @@ public class Main implements QueryReceiver {
 		return (int) tcSpinner.getValue();
 	}
 	@Override
-	public void receiveQuery(Collection<String> docids) {
+	public void receiveCovariateQuery(Collection<String> docids) {
 		curDS = corpus.getDocSet(docids);
 		refreshQueryInfo();
 		refreshDocdrivenTermList();
@@ -230,6 +173,7 @@ public class Main implements QueryReceiver {
 	void selectSingleDocumentForFullview(Document doc) {
 		fulldocDock.setTitleText("Document: " + doc.docid);
 		fulldocPanel.show(getCurrentTQ().terms, doc);
+		brushPanel.setFulldoc(doc);
 	}
 	void refreshSingleDocumentInFullview() {
 		fulldocPanel.showForCurrentDoc(getCurrentTQ().terms, false);
@@ -513,7 +457,7 @@ public class Main implements QueryReceiver {
 		if (args.length < 1) usage();
 		
 		if (args[0].equals("--debug")) {
-			main.initWithCode();	
+			new ExtraInit(main).initWithCode();	
 		}
 		else {
 			Configuration.initWithConfig(main, args[0]);
