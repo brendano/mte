@@ -87,7 +87,7 @@ public class Main implements BrushPanelListener {
 	public DocSet curDS = new DocSet();
 	Document currentFulldoc;
 	
-	private String xattr, yattr;
+	String xattr, yattr;
 
 	public List<String> docdrivenTerms = new ArrayList<>();
 	public List<String> pinnedTerms = new ArrayList<>();
@@ -134,21 +134,26 @@ public class Main implements BrushPanelListener {
 		return true;
 	}
 
-	void uiOverrides() {
-		uiOverridesCallback.get();
-	}
-	
 	void finalizeCorpusAnalysisAfterConfiguration() {
+		long t0=System.nanoTime();
+		U.p("Analyzing covariates");
+		
 		if (corpus.needsCovariateTypeConversion) {
 			corpus.convertCovariateTypes();	
 		}
 		corpus.calculateCovariateSummaries();
-		U.p("Analyzing document texts");
+		
+		U.pf("done analyzing covariates (%.2f ms)\n", 1e-6*(System.nanoTime()-t0));
+		t0=System.nanoTime(); U.p("Analyzing document texts");
+		
 		for (Document doc : corpus.docsById.values()) {
+			if (Thread.interrupted()) return;
 			NLP.analyzeDocument(da, doc);	
 		}
 		afteranalysisCallback.get();
-		U.p("done analyzing");
+		
+		U.pf("done analyzing doc texts (%.2f ms)\n", 1e-6*(System.nanoTime()-t0));
+		
 		corpus.finalizeIndexing();
 	}
 	double getTermProbThresh() {
@@ -302,9 +307,15 @@ public class Main implements BrushPanelListener {
         termfilterPanel.setLayout(new BoxLayout(termfilterPanel, BoxLayout.X_AXIS));
         termfilterPanel.add(new JLabel("Term Prob >="));
         termfilterPanel.add(tpSpinner);
+        termfilterPanel.add(new JLabel("WPM"));
+        termfilterPanel.add(new JLabel("   "));
         termfilterPanel.add(new JLabel("Count >="));
         termfilterPanel.add(tcSpinner);
-        
+        tpSpinner.setMinimumSize(new Dimension(150,30));
+//        tpSpinner.setMinimumSize(new Dimension(300,30));
+        tcSpinner.setMinimumSize(new Dimension(60,30));
+        tcSpinner.setMaximumSize(new Dimension(60,30));
+
         termlistInfo = new JLabel();
         
         //////  termtable: below the frequency spinners  /////
@@ -370,10 +381,6 @@ public class Main implements BrushPanelListener {
 
         brushPanel = new BrushPanel(this, corpus.allDocs());
         brushPanel.schema = corpus.schema;
-        brushPanel.setOpaque(true);
-        brushPanel.setBackground(Color.white);
-//        brushPanel.setPreferredSize(new Dimension(rightwidth, 250));
-        brushPanel.setBorder(BorderFactory.createLineBorder(Color.black));
         // todo this is bad organization that the app owns the xattr/yattr selections and copies them to the brushpanel, right?
         // i guess eventually we'll need a current-user-config object as the source of truth for this and brushpanel should be hooked up to pull from it?
         if (xattr != null) brushPanel.xattr = xattr;
@@ -434,21 +441,22 @@ public class Main implements BrushPanelListener {
 	
 
 	void setupTermfilterSpinners() {
-		tpSpinner = new JSpinner(new SpinnerStuff.MySM());
+		tpSpinner = new JSpinner(new SpinnerStuff.MySM1());
+		tpSpinner.setToolTipText("Minimum term frequency in units of Words Per Million.");
         JFormattedTextField tpText = ((JSpinner.DefaultEditor) tpSpinner.getEditor()).getTextField();
         tpText.setFormatterFactory(new AbstractFormatterFactory() {
 			@Override public AbstractFormatter getFormatter(JFormattedTextField tf) {
-				return new SpinnerStuff.NiceFractionFormatter();
+				return new SpinnerStuff.WPMFormatter();
 			}
         });
-        tpSpinner.setValue(.0005);
-        tpSpinner.setPreferredSize(new Dimension(150,30));
+        tpText.setEditable(true);
+        tpSpinner.setValue(1e-5);
         tpSpinner.addChangeListener(e -> refreshDocdrivenTermList());
 
         tcSpinner = new JSpinner(new SpinnerNumberModel(1, 0, 1000, 1));
-        tcSpinner.setPreferredSize(new Dimension(60,30));
         tcSpinner.setValue(2);
         tcSpinner.addChangeListener(e -> refreshDocdrivenTermList());
+        tcSpinner.setToolTipText("Minimum term count (number of occurrences).");
 	}
 	
 	static void usage() {
@@ -456,13 +464,14 @@ public class Main implements BrushPanelListener {
 		System.exit(1);
 	}
 	
-	public static void myMain(String[] args) throws IOException, BadSchema, BadConfig {
+	public static void myMain(String[] args) throws Exception {
+		long t0=System.nanoTime();
 		final Main main = new Main();
 		
 		if (args.length < 1) usage();
 		
 		if (args[0].equals("--debug")) {
-			new ExtraInit(main).initWithCode();	
+			ExtraInit.initWithCode(main);	
 		}
 		else {
 			Configuration.initWithConfig(main, args[0]);
@@ -471,8 +480,9 @@ public class Main implements BrushPanelListener {
 
 		SwingUtilities.invokeLater(() -> {
 			main.setupUI();
-			main.uiOverrides();
+			main.uiOverridesCallback.get();
 			main.mainFrame.setVisible(true);
+			U.pf("UI ready (%.2f ms)\n", 1e-6*(System.nanoTime()-t0));
 		});
 	}
 }

@@ -425,7 +425,7 @@ public class MyTextArea {
 	public static void main(String[] args) throws IOException {
 		Document d = new Document();
 		d.text = BasicFileIO.readFile(System.in);
-		d.tokens = NLP.simpleTokenize(d.text);
+		d.tokens = NLP.whitespaceTokenize(d.text);
 		U.p(d.tokens);
 		
 		JFrame main = new JFrame() {{ setSize(new Dimension(200,500)); }};

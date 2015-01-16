@@ -54,7 +54,7 @@ public class Configuration {
 	}
 	public static void initWithConfig(Main main, String filename) throws JsonProcessingException, IOException, BadConfig, BadSchema {
 		
-		// TODO, this function shouldn't be responsible for actually running potentially-expensive analysis routines.
+		// TODO in the future, this function shouldn't be responsible for actually running potentially-expensive analysis routines.
 		// it should queue them up somehow.
 		
 		String dirOfConfFile = dirname(filename);
@@ -101,8 +101,8 @@ public class Configuration {
 			else if (conf.hasPath("tokenizer")) {
 				tname = conf.getString("tokenizer");
 			}
-			if (tname.equals("SimpleTokenizer")) {
-				main.corpus.runTokenizer(NLP::simpleTokenize);
+			if (tname.equals("WhitespaceTokenizer")) {
+				main.corpus.runTokenizer(NLP::whitespaceTokenize);
 			} else if (tname.equals("StanfordTokenizer")) {
 				main.corpus.runTokenizer(NLP::stanfordTokenize);
 			}

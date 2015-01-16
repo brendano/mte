@@ -30,7 +30,7 @@ public class NLP {
 	private static StanfordCoreNLP _stPipeline;
 
 	/** split on whitespace. */
-	public static List<Token> simpleTokenize(String text) {
+	public static List<Token> whitespaceTokenize(String text) {
 		List<Span> tokspans = GUtil.splitIntoSpans("\\s+", text);
 		List<Token> ret = new ArrayList<>();
 		for (Span tokspan : tokspans) {
@@ -51,6 +51,7 @@ public class NLP {
 	    stPipeline().annotate(stdoc);
         List<CoreMap> sentences = stdoc.get(SentencesAnnotation.class);
         for (CoreMap stSent : sentences) {
+        	if (Thread.interrupted()) return null;  // i thought this would make ctrl-c work but it doesnt seem to help
             for (CoreLabel stTok: stSent.get(TokensAnnotation.class)) {
             	Token myTok = new Token();
             	myTok.startChar = stTok.beginPosition();

@@ -209,6 +209,11 @@ public class GUtil {
 		if (x>max) return max;
 		return x;
 	}
+	public static double bounded(double x, double min, double max) {
+		if (x<min) return min;
+		if (x>max) return max;
+		return x;
+	}
 
 	/** for inc-exc spans ... is [s1,e1) SUBSETEQ [s2,e2)  ? */
 	public static boolean spanContainedIn(Span span1, Span span2) {

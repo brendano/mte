@@ -106,6 +106,7 @@ public class Corpus {
 		}
 	}
 	public void finalizeIndexing() {
+		long t0=System.nanoTime();
 //		hierIndex = new HierIndex(16, xSummary.getMin(), xSummary.getMax(), ySummary.getMin(), ySummary.getMax());
 //		hierSums.doSpatialSums(docsById.values());
 //		hierSums.dump();
@@ -118,7 +119,7 @@ public class Corpus {
 		}
 		DocSet allds = new DocSet( docsById.values() );
 		globalTerms = allds.terms;
-		U.p("done finalizing");
+		U.pf("done finalizing (%.2f ms)\n", 1e-6*(System.nanoTime()-t0));
 	}
 
 	/** disjunction query */

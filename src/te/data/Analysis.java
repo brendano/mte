@@ -15,6 +15,7 @@ import org.codehaus.jackson.JsonProcessingException;
 import com.google.common.collect.Lists;
 
 import te.exceptions.BadSchema;
+import te.ui.ExtraInit;
 import te.ui.Main;
 import util.Arr;
 import util.U;
@@ -154,10 +155,10 @@ public class Analysis {
 		}
 	}
 	
-	public static void main(String[] args) throws JsonProcessingException, IOException, BadSchema {
+	public static void main(String[] args) throws Exception {
 		VERBOSE = true;
 		final Main main = new Main();
-		main.initWithCode();
+		ExtraInit.initWithCode(main);
 		List<String> termQuery = Lists.newArrayList(args);
 		U.p("QUERY:\t" + termQuery);
 		

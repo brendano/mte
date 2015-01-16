@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import javax.swing.BorderFactory;
 import javax.swing.JPanel;
 
 import te.data.Corpus;
@@ -154,6 +155,9 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 	
 	public BrushPanel(BrushPanelListener qr, Collection<Document> docs) {
 		super();
+        setOpaque(true);
+        setBackground(Color.white);
+        setBorder(BorderFactory.createLineBorder(Color.black));
 		addMouseListener(this);
 		addMouseMotionListener(this);
 		addComponentListener(new ResizerHandler());
@@ -324,8 +328,8 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 //			g.drawLine((int)x_u2p(x), (int)(maxPhysY+tickSize), (int)x_u2p(x), (int)maxPhysY );
 //		}
 		for (double x : xtickPositions()) {
-			GUtil.drawCenteredString(g, renderXtick(x), x_u2p(x), maxPhysY+aa*tickSize, 0, 1);
 			GUtil.drawLine(g, x_u2p(x), maxPhysY+bb*tickSize, x_u2p(x), maxPhysY);
+			GUtil.drawCenteredString(g, renderXtick(x), x_u2p(x), maxPhysY+aa*tickSize, 0, 1);
 		}
 		for (double y : ytickPositions()) {
 			GUtil.drawLine(g, minPhysX-tickSize, y_u2p(y), minPhysX, y_u2p(y));
