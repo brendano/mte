@@ -359,7 +359,12 @@ public class MyTextArea {
     			// this is the last token.  the span from the end of this token to the end of the to-draw span should all be nontoken characters.
     			charend = charspanToDraw.end;
     		}
-    		s = doc.text.substring(charstart, charend);
+    		try {
+    			s = doc.text.substring(charstart, charend);
+    		} catch (StringIndexOutOfBoundsException e) {
+				U.p("Bad string bounds");
+				return;
+			}
     		g.drawString(s, curx, y);
     		curx += fm.stringWidth(s);
     	}
