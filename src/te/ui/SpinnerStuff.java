@@ -36,11 +36,47 @@ public class SpinnerStuff {
 			BaseMult bm = BaseMult.fromDouble(x);
 			curbase = bm.base;
 			curmult = bm.mult;
+			if (curmult*curbase==0) {
+				curmult=1; curbase=1e-6;
+			}
 			fireStateChanged();
 		}
 	
 		@Override
 		public Object getNextValue() {
+//			return next_1234567890();
+			return next_1_3();
+		}
+		@Override
+		public Object getPreviousValue() {
+//			return prev_1234567890();
+			return prev_1_3();
+		}
+		double next_1_3() {
+			if (curmult < 1)
+				return 1.0*curbase;
+			else if (curmult >= 1 && curmult < 3)
+				return 3.0*curmult*curbase;
+			else if (curmult>=3 && curmult<10)
+				return 1.0*(curbase*10);
+			else {
+				U.p("weird");
+				return 1.0*(curbase*10);
+			}
+		}
+		double prev_1_3() {
+			if (curmult <= 1)
+				return 3.0*curbase/10;
+			else if (curmult > 1 && curmult <= 3)
+				return 1.0*curbase;
+			else if (curmult>3 && curmult<10)
+				return 3.0*curbase;
+			else {
+				U.pf("weird %s %s\n", curmult, curbase);
+				return 1.0*(curbase/10);
+			}
+		}
+		double next_1234567890() {
 			int newmult = curmult+1;
 			double newbase = curbase;
 			if (newmult >= 10) {
@@ -49,9 +85,7 @@ public class SpinnerStuff {
 			}
 			return newbase*newmult;
 		}
-	
-		@Override
-		public Object getPreviousValue() {
+		double prev_1234567890() {
 			int newmult = curmult-1;
 			double newbase = curbase;
 			if (newmult<=0) {
