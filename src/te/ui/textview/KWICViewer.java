@@ -92,32 +92,34 @@ public class KWICViewer  {
 			document = doc;
 			setBackground(Color.white);
 			setLayout(new BoxLayout(this,BoxLayout.Y_AXIS));
-			add(new JLabel(doc.docid) {{
-					setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-					addMouseListener(new MouseAdapter() {
-						public void mouseClicked(MouseEvent e) {
-							if (fulldocClickReceiver != null)
-								fulldocClickReceiver.accept(document);
-						}
-					});
-				}
-				@Override public void paintComponent(Graphics _g) {
-					super.paintComponent(_g);
-					Graphics2D g = (Graphics2D) _g;
-					if (getCurrentFulldocDoc!=null &&
-							getCurrentFulldocDoc.get() != null &&
-							doc.docid.equals(getCurrentFulldocDoc.get().docid)) {
-						g.setColor(Color.black);
-						g.drawRect(0,0,getWidth(),getHeight());
-						g.drawRect(1,1,getWidth()-2,getHeight()-2);
-					}
-				}
-			
-			} );
+			add(new DocIDLabel(doc.docid));
 			for (WithinDocHit h : hits) {
 //				add(new JLabel(h.toString()));
 				HitView hv = new HitView(doc, h);
 				add(hv);
+			}
+		}
+		class DocIDLabel extends JLabel {
+			public DocIDLabel(String docidtext) {
+				super(docidtext);
+				setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+				addMouseListener(new MouseAdapter() {
+					public void mouseClicked(MouseEvent e) {
+						if (fulldocClickReceiver != null)
+							fulldocClickReceiver.accept(document);
+					}
+				});
+			}
+			@Override public void paintComponent(Graphics _g) {
+				super.paintComponent(_g);
+				Graphics2D g = (Graphics2D) _g;
+				if (getCurrentFulldocDoc!=null &&
+						getCurrentFulldocDoc.get() != null &&
+						document.docid.equals(getCurrentFulldocDoc.get().docid)) {
+					g.setColor(Color.black);
+					g.drawRect(0,0,getWidth(),getHeight());
+					g.drawRect(1,1,getWidth()-2,getHeight()-2);
+				}
 			}
 		}
 	}

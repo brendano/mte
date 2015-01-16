@@ -417,7 +417,7 @@ public class Main implements BrushPanelListener {
         mainFrame = new JFrame("Text Explorer Tool");
 		mainFrame.add(station.getComponent());
 		mainFrame.pack();
-		mainFrame.setBounds(0,0, 1000, 768-25);  //  mac osx toolbar is 22,23ish tall
+		mainFrame.setBounds(15,0, 1000, 768-25);  //  mac osx toolbar is 22,23ish tall
         mainFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
         ToolTipManager.sharedInstance().setDismissDelay((int) 1e6);
