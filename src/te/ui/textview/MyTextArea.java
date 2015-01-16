@@ -256,6 +256,7 @@ public class MyTextArea {
 				}
 				finishedRendering = r;
 				renderIsReady = true;
+				top().repaint();
 			});
 			rerenderThread = t;
 			t.start();

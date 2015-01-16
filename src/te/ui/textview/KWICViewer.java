@@ -222,6 +222,7 @@ public class KWICViewer  {
 		Collections.sort(doclist, Ordering.natural().onResultOf(d -> d.docid));
 		termset = new HashSet<>(terms);
 		buildViews();
+		top().repaint();
 	}
 	
 	
