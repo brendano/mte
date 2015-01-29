@@ -113,7 +113,10 @@ public class Analysis {
 		public double epmi(String term) {
 			double myprob = focus.value(term) / focus.totalCount;
 			double globalprob = background.value(term) / background.totalCount;
-			return myprob / globalprob;
+//			return myprob / globalprob;
+			double prob_lr = myprob * Math.log(myprob/globalprob);
+			return prob_lr * 1e6;
+//			return myprob * Math.log(1/globalprob);
 		}
 		
 		public List<String> topEpmi(double minprob, int mincount) {
@@ -121,13 +124,11 @@ public class Analysis {
 			final List<Double> epmis = new ArrayList<>();
 			for (String term : focus.support()) {
 				double myprob = focus.value(term) / focus.totalCount;
-				double globalprob = background.value(term) / background.totalCount;
 				if (myprob < minprob) continue;
 				if (focus.value(term) < mincount) continue;
 
-				double ratio = myprob / globalprob;
 				terms.add(term);
-				epmis.add(ratio);
+				epmis.add(epmi(term));
 			}
 			List<Integer> inds = Arr.asList( Arr.rangeInts(terms.size()) );
 			
