@@ -113,9 +113,9 @@ public class Analysis {
 		public double epmi(String term) {
 			double myprob = focus.value(term) / focus.totalCount;
 			double globalprob = background.value(term) / background.totalCount;
-//			return myprob / globalprob;
-			double prob_lr = myprob * Math.log(myprob/globalprob);
-			return prob_lr * 1e6;
+			return myprob / globalprob;
+//			double prob_lr = myprob * Math.log(myprob/globalprob);
+//			return prob_lr * 1e6;
 //			return myprob * Math.log(1/globalprob);
 		}
 		
