@@ -83,16 +83,6 @@ License is GPL v2 or later.  I'd be happy to do BSD/MIT or something, but the so
 
 Code is at [github.com/brendano/mte](https://github.com/brendano/mte).
 
-Dependencies have to be placed in `lib/` for `./build.sh` to work.
+The jar dependencies are checked-in in the `lib/` directory.
 For development in an IDE, I just manually add them to the build path.
-I've placed a copy of them here: [mte-deps.zip](http://brenocon.com/mte/mte-deps.zip).
-The dependencies are currently:
-
-    config-1.2.1.jar
-    docking-frames-common.jar
-    docking-frames-core.jar
-    guava-13.0.1.jar
-    jackson-all-1.9.11.jar
-    myutil.jar
-    stanford-corenlp-3.2.0.jar
-    trove-3.0.3.jar
+To run on the commandline, `java.sh` and `build.sh` are configured to use them.
