@@ -64,7 +64,7 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 	Brush brush = null;
 	List<MyPoint> points = new ArrayList<>();
 	Map<String,MyPoint> pointsByDocid = new HashMap<>();
-	BrushPanelListener queryReceiver;
+	DocSelectionListener queryReceiver;
 	MyPoint fulldocSelectedPoint = null;
 	Set<String> termquerySelectedPointDocIDs = new HashSet<>();
 	Set<String> docSelection = new HashSet<>();
@@ -153,7 +153,7 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 		return ret;
 	}
 	
-	public BrushPanel(BrushPanelListener qr, Collection<Document> docs) {
+	public BrushPanel(DocSelectionListener qr, Collection<Document> docs) {
 		super();
         setOpaque(true);
         setBackground(Color.white);
@@ -197,7 +197,7 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 			setMode(Mode.NO_BRUSH);
 			brush = null;
 			repaint();
-			queryReceiver.receiveCovariateQuery(new ArrayList<>());
+			queryReceiver.receiveDocSelection(new ArrayList<>());
 		}
 	}
 
@@ -265,7 +265,7 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 		for (int i : selectPoints(brush.getRegionPhys())) {
 			docSelection.add(points.get(i).doc.docid);
 		}
-		queryReceiver.receiveCovariateQuery(getSelectedDocIds());
+		queryReceiver.receiveDocSelection(getSelectedDocIds());
 	}
 
 	Set<String> getSelectedDocIds() {

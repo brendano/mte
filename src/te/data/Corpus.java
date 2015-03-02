@@ -20,7 +20,7 @@ import util.U;
 
 public class Corpus {
 	public Map<String,Document> docsById;
-	private List<Document> docsInOriginalOrder;
+	public List<Document> docsInOriginalOrder;
 	public TermVector globalTerms;
 	InvertedIndex index;
 //	SpatialIndex hierIndex;

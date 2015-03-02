@@ -57,6 +57,8 @@ import javax.swing.table.TableCellRenderer;
 
 import org.codehaus.jackson.JsonProcessingException;
 
+import com.google.common.collect.Lists;
+
 import bibliothek.gui.DockController;
 import bibliothek.gui.dock.DefaultDockable;
 import bibliothek.gui.dock.SplitDockStation;
@@ -86,11 +88,11 @@ import util.U;
 import edu.stanford.nlp.util.StringUtils;
 
 /** someone who listens to updates from a brush panel */
-interface BrushPanelListener {
-	public void receiveCovariateQuery(Collection<String> docids);
+interface DocSelectionListener {
+	public void receiveDocSelection(Collection<String> docids);
 }
 
-public class Main implements BrushPanelListener {
+public class Main implements DocSelectionListener {
 	public Corpus corpus = new Corpus();
 	public DocSet curDS = new DocSet();
 	Document currentFulldoc;
@@ -109,6 +111,7 @@ public class Main implements BrushPanelListener {
 	TermTable pinnedTermTable;
 	TermTable  termdrivenTermTable;
 	BrushPanel brushPanel;
+	DocList doclistPanel;
 	KWICViewer kwicPanel;
 	FullDocViewer fulldocPanel;
 	DefaultDockable fulldocDock;
@@ -150,7 +153,7 @@ public class Main implements BrushPanelListener {
 		return (int) tcSpinner.getValue();
 	}
 	@Override
-	public void receiveCovariateQuery(Collection<String> docids) {
+	public void receiveDocSelection(Collection<String> docids) {
 		curDS = corpus.getDocSet(docids);
 		refreshQueryInfo();
 		refreshDocdrivenTermList();
@@ -374,6 +377,8 @@ public class Main implements BrushPanelListener {
         if (yattr != null) brushPanel.yattr = yattr;
         brushPanel.setDefaultXYLim(corpus);
         
+        doclistPanel = new DocList(this, new ArrayList<>(corpus.allDocs()));
+        
         kwicPanel = new KWICViewer();
         kwicPanel.fulldocClickReceiver = this::selectSingleDocumentForFullview;
         kwicPanel.fulldocTerminstClickReceiver = this::selectTerminstForFullview;
@@ -401,7 +406,11 @@ public class Main implements BrushPanelListener {
 		
 		y=0;
 		grid.addDockable(w1,y, w2,h=3, new DefaultDockable("Query info") {{ add(queryInfo); }});
-		grid.addDockable(w1,y+=h, w2,h=7, new DefaultDockable("Covariate view") {{ add(brushPanel); }});
+		y+=h;
+		h=7;
+		grid.addDockable(w1,y, w2,h, new DefaultDockable("Covariate view") {{ add(brushPanel); }});
+		grid.addDockable(w1,y, w2,h, new DefaultDockable("Doclist") {{ add(doclistPanel.top()); }});
+		y += h;
 		h=15;
 		grid.addDockable(w1, y,           w2/2, h, new DefaultDockable("KWIC view") {{ add(kwicPanel.top()); }});
 		grid.addDockable(w1+w2/2, y, w2/2, h, fulldocDock);
@@ -437,7 +446,7 @@ public class Main implements BrushPanelListener {
 			}
         });
         tpText.setEditable(true);
-        tpSpinner.setValue(1e-5);
+        tpSpinner.setValue(1e-4);
         tpSpinner.addChangeListener(e -> refreshDocdrivenTermList());
 
         tcSpinner = new JSpinner(new SpinnerNumberModel(1, 0, 1000, 1));
