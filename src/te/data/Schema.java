@@ -16,6 +16,7 @@ import util.U;
 
 public class Schema {
 	public Map<String,ColumnInfo> columnTypes = new HashMap<>();
+	public Map<String,LoadingInfo> columnOriginalLoadingInfo = new HashMap<>();
 	
 	public Set<String> varnames() { return columnTypes.keySet(); }
 	
@@ -43,6 +44,20 @@ public class Schema {
 		NUMBER, CATEG, BOOLEAN;
 	}
 	
+	/** column information about it at ETL import time.
+	 * this is important because different import formats are capable of representing different types of information
+	 * thus this affects type inference.  i think.
+	 */
+	public static class LoadingInfo {
+		public boolean fromJson = false;
+		/** e.g. CSV/TSV, or XML, if we support it in the future*/
+		public boolean fromStringOnlySource = false;
+		public String originalName;
+		/** hopefully is the same as originalName, but in case of conflicts the importer has to decide on a new one. */
+		public String convertedName;
+	}
+	
+	/** column information at runtime */
 	public static class ColumnInfo {
 		public DataType dataType;
 		/** only for Categ or Ordinal, I think */

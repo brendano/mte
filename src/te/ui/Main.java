@@ -22,6 +22,7 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -59,12 +60,14 @@ import bibliothek.gui.dock.station.split.SplitDividerStrategy;
 import bibliothek.gui.dock.station.split.SplitDockGrid;
 import te.data.Analysis;
 import te.data.Corpus;
+import te.data.DataLoader;
 import te.data.DocSet;
 import te.data.Document;
 import te.data.NLP;
 import te.data.TermInstance;
 import te.data.TermQuery;
 import te.data.TermVector;
+import te.data.Token;
 import te.data.Analysis.TermvecComparison;
 import te.data.Schema.Levels;
 import te.exceptions.BadConfig;
@@ -116,6 +119,7 @@ public class Main implements BrushPanelListener {
 	NLP.DocAnalyzer da = new NLP.UnigramAnalyzer();
 	Supplier<Void> afteranalysisCallback = () -> null;
 	Supplier<Void> uiOverridesCallback = () -> null;
+	Function<String,List<Token>> tokenizerForAnalysis;
 	
 	/** only call this after schema is set. return false if fails. */
 	public boolean setXAttr(String xattrName) {
@@ -134,28 +138,6 @@ public class Main implements BrushPanelListener {
 		return true;
 	}
 
-	void finalizeCorpusAnalysisAfterConfiguration() {
-		long t0=System.nanoTime();
-		U.p("Analyzing covariates");
-		
-		if (corpus.needsCovariateTypeConversion) {
-			corpus.convertCovariateTypes();	
-		}
-		corpus.calculateCovariateSummaries();
-		
-		U.pf("done analyzing covariates (%.2f ms)\n", 1e-6*(System.nanoTime()-t0));
-		t0=System.nanoTime(); U.p("Analyzing document texts");
-		
-		for (Document doc : corpus.docsById.values()) {
-			if (Thread.interrupted()) return;
-			NLP.analyzeDocument(da, doc);	
-		}
-		afteranalysisCallback.get();
-		
-		U.pf("done analyzing doc texts (%.2f ms)\n", 1e-6*(System.nanoTime()-t0));
-		
-		corpus.finalizeIndexing();
-	}
 	double getTermProbThresh() {
 		return (double) tpSpinner.getValue();
 	}
@@ -464,6 +446,54 @@ public class Main implements BrushPanelListener {
 		System.exit(1);
 	}
 	
+	void finalizeCorpusAnalysisAfterConfiguration() {
+		long t0=System.nanoTime();
+		U.p("Analyzing covariates");
+		
+		if (corpus.needsCovariateTypeConversion) {
+			corpus.convertCovariateTypes();	
+		}
+		corpus.calculateCovariateSummaries();
+		
+		U.pf("done analyzing covariates (%.0f ms)\n", 1e-6*(System.nanoTime()-t0));
+		t0=System.nanoTime(); U.p("Analyzing document texts");
+		
+		for (Document doc : corpus.allDocs()) {
+			if (Thread.interrupted()) return;
+			NLP.analyzeDocument(da, doc);	
+		}
+		afteranalysisCallback.get();
+		
+		U.pf("done analyzing doc texts (%.0f ms)\n", 1e-6*(System.nanoTime()-t0));
+		
+		corpus.finalizeIndexing();
+	}
+	void initializeFromCommandlineArgs(String args[]) throws JsonProcessingException, IOException, BadConfig, BadSchema {
+		boolean gotConfFile = false;
+		Configuration c = null;
+		DataLoader dataloader = new DataLoader();
+		
+		for (int i=0; i<args.length; i++) {
+			String arg = args[i];
+			U.p(arg);
+			if (arg.matches(".*\\.(conf|config)$")) {
+				if (gotConfFile) {
+					assert false : "more than one configuration file specified";
+				}
+				U.pf("Processing as config file: %s\n", arg);
+				gotConfFile = true;
+				c = new Configuration();
+				c.initWithConfig(this, arg, dataloader);
+			}
+		}
+		corpus.setDataFromDataLoader(dataloader);
+
+		if (c!=null) {
+			c.doNLPBasedOnConfig();
+		} else {
+			U.p("No config file specified.");
+		}
+	}
 	public static void myMain(String[] args) throws Exception {
 		long t0=System.nanoTime();
 		final Main main = new Main();
@@ -474,7 +504,7 @@ public class Main implements BrushPanelListener {
 			ExtraInit.initWithCode(main);	
 		}
 		else {
-			Configuration.initWithConfig(main, args[0]);
+			main.initializeFromCommandlineArgs(args);
 			main.finalizeCorpusAnalysisAfterConfiguration();
 		}
 
@@ -482,7 +512,7 @@ public class Main implements BrushPanelListener {
 			main.setupUI();
 			main.uiOverridesCallback.get();
 			main.mainFrame.setVisible(true);
-			U.pf("UI ready (%.2f ms)\n", 1e-6*(System.nanoTime()-t0));
+			U.pf("UI ready (%.1f ms)\n", 1e-6*(System.nanoTime()-t0));
 		});
 	}
 }

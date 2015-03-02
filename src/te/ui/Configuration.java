@@ -6,6 +6,7 @@ import java.util.function.Function;
 
 import org.codehaus.jackson.JsonProcessingException;
 
+import te.data.DataLoader;
 import te.data.NLP;
 import te.data.Schema;
 import te.exceptions.BadConfig;
@@ -17,6 +18,9 @@ import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
 public class Configuration {
+	Config conf;
+	String dirOfConfFile;
+	Main main;
 
 	/** 
 	 * this is how shell "dirname" works:
@@ -52,40 +56,8 @@ public class Configuration {
 			throw new BadSchema("File does not exist: " + filename);
 		}
 	}
-	public static void initWithConfig(Main main, String filename) throws JsonProcessingException, IOException, BadConfig, BadSchema {
-		
-		// TODO in the future, this function shouldn't be responsible for actually running potentially-expensive analysis routines.
-		// it should queue them up somehow.
-		
-		String dirOfConfFile = dirname(filename);
-		File _file = new File(filename);
-		Config conf = ConfigFactory.parseFile(_file);
-		conf = conf.resolve();
-		U.p(conf);
-		
-		if (conf.hasPath("indicatorize") && conf.getBoolean("indicatorize")) {
-			main.afteranalysisCallback = () -> { main.corpus.indicatorize(); return null; };
-		}
-		if (conf.hasPath("data")) {
-			String path = resolvePathExists(dirOfConfFile, conf.getString("data"));
-			try {
-				main.corpus.loadJson(path);
-			} catch (BadData | IOException e) {
-				e.printStackTrace();
-			}
-			main.corpus.needsCovariateTypeConversion = true;
-		}
-		if (conf.hasPath("schema")) {
-			Object schema = conf.getAnyRef("schema");
-			if (schema instanceof String) {
-				String sfilename = resolvePathExists(dirOfConfFile, (String) schema);
-				main.corpus.schema.loadSchemaFromFile(sfilename);
-			}
-			else {
-				main.corpus.schema.loadSchemaFromConfigObject(conf.getObject("schema"));
-			}
-		}
-
+	
+	void doNLPBasedOnConfig() throws BadConfig, BadSchema, JsonProcessingException, IOException {
 		if (conf.hasPath("nlp_file") && conf.hasPath("tokenizer"))
 			throw new BadConfig("Don't specify both tokenizer and nlp_file");
 		if (conf.hasPath("nlp_file")) {
@@ -108,6 +80,42 @@ public class Configuration {
 			}
 			else throw new BadConfig("Unknown tokenizer: " + tname);
 		}
+	}
+	public void initWithConfig(Main _main, String filename, DataLoader dataloader) throws JsonProcessingException, IOException, BadConfig, BadSchema {
+		
+		// TODO in the future, this function shouldn't be responsible for actually running potentially-expensive analysis routines.
+		// it should queue them up somehow.
+		
+		dirOfConfFile = dirname(filename);
+		main = _main;
+		File _file = new File(filename);
+		conf = ConfigFactory.parseFile(_file);
+		conf = conf.resolve();
+		U.p(conf);
+		
+		if (conf.hasPath("indicatorize") && conf.getBoolean("indicatorize")) {
+			main.afteranalysisCallback = () -> { main.corpus.indicatorize(); return null; };
+		}
+		if (conf.hasPath("data")) {
+			String path = resolvePathExists(dirOfConfFile, conf.getString("data"));
+			try {
+				dataloader.loadJsonLines(path);
+			} catch (BadData | IOException e) {
+				e.printStackTrace();
+			}
+			main.corpus.needsCovariateTypeConversion = true;
+		}
+		if (conf.hasPath("schema")) {
+			Object schema = conf.getAnyRef("schema");
+			if (schema instanceof String) {
+				String sfilename = resolvePathExists(dirOfConfFile, (String) schema);
+				main.corpus.schema.loadSchemaFromFile(sfilename);
+			}
+			else {
+				main.corpus.schema.loadSchemaFromConfigObject(conf.getObject("schema"));
+			}
+		}
+
 
 		
 		// data view config should be set only after all data is loaded.

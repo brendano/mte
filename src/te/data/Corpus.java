@@ -76,16 +76,12 @@ public class Corpus {
 		return naiveSelect(xAttr, yAttr, minX, maxX, minY, maxY);
 	}
 	
-	public void loadJson(String filename) throws BadData, IOException {
-		for (Document d : Document.loadJson(filename)) {
-			docsById.put(d.docid, d);
-			docsInOriginalOrder.add(d);
-		}
-	}
 	public void runTokenizer(Function<String,List<Token>> tokenizer) {
+		long t0 = System.currentTimeMillis(); U.p("Running tokenizer");
 		for (Document d : docsById.values()) {
 			d.tokens = tokenizer.apply(d.text);
 		}
+		U.pf("Tokenizer completed (%d ms)\n", (System.currentTimeMillis()-t0) );
 	}
 	public void loadNLP(String filename) throws JsonProcessingException, IOException {
 		for (String line : BasicFileIO.openFileLines(filename)) {
@@ -162,6 +158,12 @@ public class Corpus {
 			}
 		}
 		U.p("Covariate types, after conversion pass: " + schema.columnTypes);
+	}
+
+	public void setDataFromDataLoader(DataLoader dataloader) {
+		U.pf("%d docs\n", dataloader.docsInOriginalOrder.size());
+		this.docsById = dataloader.docsById;
+		this.docsInOriginalOrder = dataloader.docsInOriginalOrder;
 	}
 
 }
