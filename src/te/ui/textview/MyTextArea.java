@@ -337,7 +337,8 @@ public class MyTextArea {
     		// check for term-level things.
     		Color color = Color.BLACK;
     		if (termHighlighter != null) {
-        		for (TermInstance terminst : doc.tisByAllTokindexes.getOrDefault(toki, Collections.EMPTY_LIST)) {
+        		for (TermInstance terminst : doc.tisByAllTokindexes.getOrDefault(toki, 
+        					(List<TermInstance>) Collections.EMPTY_LIST)) {
         			Color cc = termHighlighter.apply(terminst);
         			if (cc != null) {
         				color=cc;

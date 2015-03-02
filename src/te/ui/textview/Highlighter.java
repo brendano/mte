@@ -26,7 +26,8 @@ public class Highlighter {
 		for (int cur=0; cur < doc.text.length(); cur++) {
 			int next = cur+1;
 
-			for (TermInstance ti : doc.tisByStartCharindex.getOrDefault(cur, Collections.EMPTY_LIST)) {
+			for (TermInstance ti : doc.tisByStartCharindex.getOrDefault(cur, 
+					(List<TermInstance>) Collections.EMPTY_LIST)) {
 				output.append("<a name=\"" + idForTermInstance(ti) + "\">" );
 				if (terms.contains(ti.termName)) {
 					currentlyInsideThese.add(ti);
@@ -42,7 +43,8 @@ public class Highlighter {
 				output.append(c);
 			}
 			
-			for (TermInstance ti : doc.tisByEndCharindex.getOrDefault(next, Collections.EMPTY_LIST)) {
+			for (TermInstance ti : doc.tisByEndCharindex.getOrDefault(next, 
+					(List<TermInstance>) Collections.EMPTY_LIST)) {
 				output.append("</a>");
 				if (currentlyInsideThese.contains(ti)) {
 					currentlyInsideThese.remove(ti);
