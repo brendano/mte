@@ -14,6 +14,10 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.nio.file.FileSystem;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -71,6 +75,7 @@ import te.data.Token;
 import te.data.Analysis.TermvecComparison;
 import te.data.Schema.Levels;
 import te.exceptions.BadConfig;
+import te.exceptions.BadData;
 import te.exceptions.BadSchema;
 import te.ui.textview.FullDocViewer;
 import te.ui.textview.Highlighter;
@@ -468,31 +473,44 @@ public class Main implements BrushPanelListener {
 		
 		corpus.finalizeIndexing();
 	}
-	void initializeFromCommandlineArgs(String args[]) throws JsonProcessingException, IOException, BadConfig, BadSchema {
+	static FileSystem FS = FileSystems.getDefault();
+
+	void initializeFromCommandlineArgs(String args[]) throws JsonProcessingException, IOException, BadConfig, BadSchema, BadData {
+		
 		boolean gotConfFile = false;
 		Configuration c = null;
 		DataLoader dataloader = new DataLoader();
 		
 		for (int i=0; i<args.length; i++) {
 			String arg = args[i];
-			U.p(arg);
-			if (arg.matches(".*\\.(conf|config)$")) {
-				if (gotConfFile) {
-					assert false : "more than one configuration file specified";
-				}
-				U.pf("Processing as config file: %s\n", arg);
-				gotConfFile = true;
-				c = new Configuration();
-				c.initWithConfig(this, arg, dataloader);
+			Path p = FS.getPath(arg);
+//			U.pf("%s  isfile %s  isdir %s\n", arg, Files.isRegularFile(p), Files.isDirectory(p));
+			if (Files.isDirectory(p)) {
+				dataloader.loadTextFilesFromDirectory(arg);
 			}
-		}
+			else if (Files.isRegularFile(p)) {
+				if (arg.matches(".*\\.(conf|config)$")) {
+					if (gotConfFile) {
+						assert false : "more than one configuration file specified";
+					}
+					U.pf("Processing as config file: %s\n", arg);
+					gotConfFile = true;
+					c = new Configuration();
+					c.initWithConfig(this, arg, dataloader);
+				}
+				else if (arg.endsWith(".txt")) {
+					dataloader.loadTextFileAsDocumentText(arg);
+				}
+			}
+			else {
+				U.p("WARNING: can't handle argument: " + arg);
+			}
+		} 
 		corpus.setDataFromDataLoader(dataloader);
-
-		if (c!=null) {
-			c.doNLPBasedOnConfig();
-		} else {
-			U.p("No config file specified.");
+		if (c==null) {
+			c = Configuration.defaultConfiguration(this);
 		}
+		c.doNLPBasedOnConfig();
 	}
 	public static void myMain(String[] args) throws Exception {
 		long t0=System.nanoTime();

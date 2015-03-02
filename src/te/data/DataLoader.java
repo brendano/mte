@@ -1,5 +1,12 @@
 package te.data;
+import java.io.File;
 import java.io.IOException;
+import java.nio.file.DirectoryStream;
+import java.nio.file.FileSystem;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.PathMatcher;
 import java.util.*;
 
 import org.codehaus.jackson.JsonNode;
@@ -8,6 +15,7 @@ import org.codehaus.jackson.JsonProcessingException;
 import com.google.common.collect.ImmutableList;
 
 import te.exceptions.BadData;
+import te.ui.Configuration;
 import util.BasicFileIO;
 import util.JsonUtil;
 import util.U;
@@ -143,6 +151,38 @@ public class DataLoader {
 			throw new BadData("invalid JSON: " + docstr);
 		}
 
+	}
+	
+	static boolean isValidDocid(String docid) {
+		if (docid.trim().isEmpty()) return false;
+		return true;
+	}
+	
+	public void loadTextFileAsDocumentText(String filename) throws BadData, IOException {
+		String name = Configuration.basename(filename);
+		String docid = name.replace("\\.txt$", "");
+		if ( ! isValidDocid(docid)) {
+			throw new BadData(String.format("Bad docid: '%s'", docid));
+		}
+		String text = BasicFileIO.readFile(filename);
+		Document d = new Document();
+		d.text = text;
+		d.docid = docid;
+		addDocumentRecord(d, false);
+	}
+	
+	public void loadTextFilesFromDirectory(String dirname) throws BadData, IOException {
+		FileSystem FS = FileSystems.getDefault();
+		int n = 0;
+		U.p("Loading from directory " + dirname);
+		try (DirectoryStream<Path> stream =
+				Files.newDirectoryStream(FS.getPath(dirname), "*.txt")) {
+			for (Path textfile : stream) {
+				loadTextFileAsDocumentText(textfile.toString());
+				n++;
+			}
+		}
+		U.pf("%d files loaded from directory %s\n", n, dirname);
 	}
 
 }

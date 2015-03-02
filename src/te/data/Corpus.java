@@ -161,7 +161,7 @@ public class Corpus {
 	}
 
 	public void setDataFromDataLoader(DataLoader dataloader) {
-		U.pf("%d docs\n", dataloader.docsInOriginalOrder.size());
+		U.pf("%d docs loaded total\n", dataloader.docsInOriginalOrder.size());
 		this.docsById = dataloader.docsById;
 		this.docsInOriginalOrder = dataloader.docsInOriginalOrder;
 	}
