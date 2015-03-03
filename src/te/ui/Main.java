@@ -180,18 +180,26 @@ public class Main {
 	 * this should be refactored into a more finegrained fulldoc update event.
 	 */
 	@Subscribe
-	void setAndShowFulldoc(AllQueryUpdate e) {
+	public void setAndShowFulldoc(AllQueryUpdate e) {
+		U.p("HERHERE " + e);
 		Document doc = corpus.docsById.get(AQ().fulldocPanelCurrentDocID);
-		assert doc != null;
+		if (doc == null) return;
 		fulldocDock.setTitleText("Document: " + doc.docid);
 		fulldocPanel.show(AQ().termQuery().terms, doc);
 		kwicPanel.top().repaint();
 		brushPanel.repaint();
 	}
+	
+	@Subscribe
+	public void refreshDocdrivenTermListFromUpdateEvent(AllQueryUpdate e) {
+		U.p("HERE " + e);
+		refreshDocdrivenTermList();
+	}
 
 	void refreshDocdrivenTermList() {
 		// two inputs.  1. docsel according to brush/doc panel.  2. freq thresh spinners.
 		DocSet curDS = curDS();
+		U.p("docset " + curDS.docs());
 		docvarCompare = new TermvecComparison(curDS.terms, corpus.globalTerms);
 		docdrivenTerms.clear();
 		docdrivenTerms.addAll( docvarCompare.topEpmi(getTermProbThresh(), getTermCountThresh()) );
@@ -226,7 +234,7 @@ public class Main {
 	}
 	
 	@Subscribe
-	void refreshFromNewTermquery(AllQueryUpdate e) {
+	public void refreshFromNewTermquery(AllQueryUpdate e) {
 		TermQuery curTQ = AQ().termQuery();
 		String msg = curTQ.terms.size()==0 ? "No selected terms" 
 				: curTQ.terms.size()+" selected terms: " + StringUtils.join(curTQ.terms, ", ");
@@ -244,16 +252,16 @@ public class Main {
 		return corpus.getDocSet(AQ().brushPanelCovariateSelectedDocIDs);
 	}
 	@Subscribe
-	void refreshFulldocPanel(AllQueryUpdate e) {
+	public void refreshFulldocPanel(AllQueryUpdate e) {
 		fulldocPanel.showForCurrentDoc(AQ().termQuery().terms, false);
 	}
 	@Subscribe
-	void refreshKWICPanel(AllQueryUpdate e) {
+	public void refreshKWICPanel(AllQueryUpdate e) {
 		DocSet curDS = curDS();
 		kwicPanel.show(AQ().termQuery().terms, curDS);
 	}
 	@Subscribe	
-	void refreshQueryInfoPanel(AllQueryUpdate e) {
+	public void refreshQueryInfoPanel(AllQueryUpdate e) {
 		DocSet cd = curDS();
 		String s = U.sf("Docvar selection: %s docs, %s wordtoks", 
 				GUtil.commaize(cd.docs().size()), 
@@ -325,6 +333,7 @@ public class Main {
 	
 	void setupUI() {
 		AQ().corpus = this.corpus;
+		eventBus.register(this);
 		
         /////////////////  termpanel  ///////////////////
         
@@ -473,6 +482,7 @@ public class Main {
 	
 
 	void pushUpdatedDocSelectionFromDocPanel(Collection<String> docids) {
+		U.p("received and pushing docids " + docids);
 		AQ().brushPanelCovariateSelectedDocIDs = new HashSet<>(docids);
 		eventBus.post(new AllQueryUpdate());
 	}

@@ -208,7 +208,7 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 	@Override
 	public void mousePressed(MouseEvent e) {
 		if (mode==Mode.STILL_BRUSH && !brush.getRegionPhys().contains(e.getPoint())) {
-			clearSelection();
+			pushEmptyDocSelection();
 			setMode(Mode.NO_BRUSH);
 			brush = null;
 			repaint();
@@ -235,19 +235,20 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 	@Override
 	public void mouseDragged(MouseEvent e) {
 //		U.p("mousedrag at current mode " + mode);
+//		U.p("DRAG "+brush);
 		// TODO this is where to only analyze the diff from the previous brush position for a faster selected docset update.
 		if (mode==Mode.NO_BRUSH) {
 			// Start a brush
 			brush = new Brush(x_p2u(e.getX()), y_p2u(e.getY()));
 //			brush.storeCurrentPositionAsInitial();
-			clearSelection();
+			pushEmptyDocSelection();
 			setMode(Mode.DRAWING_BRUSH);
 		}
 		else if (mode==Mode.DRAWING_BRUSH) {
 			// keep drawing
 			brush.x2=x_p2u(e.getX());
 			brush.y2=y_p2u(e.getY());
-			refreshSelection();
+			pushDocsInBrushSelection();
 		}
 		else if (mode==Mode.STILL_BRUSH && brush.getRegionPhys().contains(e.getPoint())) {
 			// start a move
@@ -256,13 +257,12 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 			brush.storeCurrentPositionAsInitial();
 			setMode(Mode.MOVING_BRUSH);
 			continueBrushMove(e);
-			refreshSelection();
+			pushDocsInBrushSelection();
 		}
 		else if (mode==Mode.MOVING_BRUSH) {
 			continueBrushMove(e);
-			refreshSelection();
+			pushDocsInBrushSelection();
 		}
-//		U.p("DRAG "+brush);
 		repaint();
 	}
 	
@@ -275,17 +275,16 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 		brush.y2 = brush.inity2 + dy;
 	}
 	
-	void refreshSelection() {
-		clearSelection();
-		Set<String> docsel = AllQueries.instance().brushPanelCovariateSelectedDocIDs;
+	void pushDocsInBrushSelection() {
+		Set<String> docsel = new HashSet<>();
 		for (int i : selectPoints(brush.getRegionPhys())) {
 			docsel.add(points.get(i).doc.docid);
 		}
-		repaint();
+		queryReceiver.receiveDocSelection(docsel);
 	}
 
-	void clearSelection() {
-		AllQueries.instance().brushPanelCovariateSelectedDocIDs.clear();
+	void pushEmptyDocSelection() {
+		queryReceiver.receiveDocSelection(new ArrayList<>());
 	}
 	
 	public void paintComponent(Graphics _g) {
