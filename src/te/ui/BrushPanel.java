@@ -28,12 +28,20 @@ import java.util.stream.Collectors;
 import javax.swing.BorderFactory;
 import javax.swing.JPanel;
 
+import com.google.common.eventbus.Subscribe;
+
 import te.data.Corpus;
 import te.data.Document;
 import te.data.Schema;
 import te.data.TermQuery;
+import te.ui.queries.AllQueries;
 import util.U;
 
+/**
+ * ISSUE: with the allqueries refactor, its data structures are updated fairly realtime.
+ * would be better to have a more transaction/commit sort of process where a big changeset is atomically applied all at once.
+ * it's either that, or a message approach.  the old system was a message approach, but that was starting to get messy.
+ */
 public class BrushPanel extends JPanel implements MouseListener, MouseMotionListener {
 	
 	String xattr, yattr;  // allowed to be NULL.
@@ -65,17 +73,24 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 	List<MyPoint> points = new ArrayList<>();
 	Map<String,MyPoint> pointsByDocid = new HashMap<>();
 	DocSelectionListener queryReceiver;
-	MyPoint fulldocSelectedPoint = null;
-	Set<String> termquerySelectedPointDocIDs = new HashSet<>();
-	Set<String> docSelection = new HashSet<>();
 	
 	Color BRUSH_COLOR = new Color(61,56,240);
 	
 	class MyPoint {
 		Document doc;
-		boolean isDocquerySelected() { return docSelection.contains(doc.docid); }
-		boolean isTermquery1Selected() { return termquerySelectedPointDocIDs.contains(doc.docid); }
-		boolean isFulldocSelected() { return this==fulldocSelectedPoint; }
+		boolean isDocquerySelected() {
+			return AllQueries.instance().brushPanelCovariateSelectedDocIDs.contains(doc.docid);
+//			return docSelection.contains(doc.docid); 
+		}
+		boolean isTermquery1Selected() {
+			return AllQueries.instance().termQuery().getMatchingDocs().docsById.containsKey(doc.docid);
+//			return termquerySelectedPointDocIDs.contains(doc.docid);
+		}
+		boolean isFulldocSelected() {
+			String d = AllQueries.instance().fulldocPanelCurrentDocID;
+			return d!=null && d==doc.docid;
+//			return this==fulldocSelectedPoint; 
+		}
 	
 		public double physX() {
 			return x_u2p(xOfDoc(doc));
@@ -262,18 +277,15 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 	
 	void refreshSelection() {
 		clearSelection();
+		Set<String> docsel = AllQueries.instance().brushPanelCovariateSelectedDocIDs;
 		for (int i : selectPoints(brush.getRegionPhys())) {
-			docSelection.add(points.get(i).doc.docid);
+			docsel.add(points.get(i).doc.docid);
 		}
-		queryReceiver.receiveDocSelection(getSelectedDocIds());
+		repaint();
 	}
 
-	Set<String> getSelectedDocIds() {
-		return docSelection;
-	}
-	
 	void clearSelection() {
-		docSelection.clear();
+		AllQueries.instance().brushPanelCovariateSelectedDocIDs.clear();
 	}
 	
 	public void paintComponent(Graphics _g) {
@@ -310,15 +322,6 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 		renderBrush(g);
 	}
 	
-	public void showTerms(TermQuery tq) {
-		termquerySelectedPointDocIDs.clear();
-		for (Document d : tq.getMatchingDocs().docs()) {
-			termquerySelectedPointDocIDs.add(d.docid);
-		}
-		repaint();
-	}
-
-
 	
 	void drawAxes(Graphics2D g) {
 		double aa = tickLabelOffset;
@@ -543,11 +546,6 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 				"Brush[cur=(%.2f %.2f) (%.2f %.2f)  init=(%.2f %.2f) (%.2f %.2f)  initmousepos=(%s %s)",
 				x1,y1,x2,y2, initx1,inity1, initx2,inity2, initialMousePositionX, initialMousePositionY);
 		}
-	}
-
-	public void setFulldoc(Document doc) {
-		fulldocSelectedPoint = pointsByDocid.get(doc.docid);
-		repaint();
 	}
 
 }

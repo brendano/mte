@@ -14,12 +14,15 @@ import javax.swing.border.EmptyBorder;
 import te.data.Document;
 import util.U;
 
+// TODO implement pushes to the query receiver
+
 public class DocList {
 	JList<Document> jlist;
 	JScrollPane scrollpane;
 	DocSelectionListener queryReceiver;
 	
 	DocList(DocSelectionListener qr, List<Document> docsInDocidOrder) {
+		queryReceiver = qr;
 		Vector<Document> docOldVector = new Vector<Document>();
 		for (Document d : docsInDocidOrder) docOldVector.add(d);
 		jlist = new JList<>(docOldVector);

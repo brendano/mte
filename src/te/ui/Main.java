@@ -58,6 +58,8 @@ import javax.swing.table.TableCellRenderer;
 import org.codehaus.jackson.JsonProcessingException;
 
 import com.google.common.collect.Lists;
+import com.google.common.eventbus.EventBus;
+import com.google.common.eventbus.Subscribe;
 
 import bibliothek.gui.DockController;
 import bibliothek.gui.dock.DefaultDockable;
@@ -79,6 +81,8 @@ import te.data.Schema.Levels;
 import te.exceptions.BadConfig;
 import te.exceptions.BadData;
 import te.exceptions.BadSchema;
+import te.ui.queries.AllQueries;
+import te.ui.queries.AllQueryUpdate;
 import te.ui.textview.FullDocViewer;
 import te.ui.textview.Highlighter;
 import te.ui.textview.KWICViewer;
@@ -87,15 +91,23 @@ import util.JsonUtil;
 import util.U;
 import edu.stanford.nlp.util.StringUtils;
 
-/** someone who listens to updates from a brush panel */
 interface DocSelectionListener {
 	public void receiveDocSelection(Collection<String> docids);
 }
 
-public class Main implements DocSelectionListener {
+/* event system
+ * 
+ * refresh*() are the entry points from the event notification system. they RECEIVE data from the centralized state.
+ * user*() are entry points from the UI event system, which should be directly, or fairly directly, caused by user actions.
+ * push*() are invoked during the codepath of a UI action. They SEND data into the event notification system.
+ * 
+ * ideally the callgraphs of receiving vs sending code pathways should not be mixed, i think?
+ * at least, methods that can potentially change UI state.
+ */
+
+public class Main {
 	public Corpus corpus = new Corpus();
-	public DocSet curDS = new DocSet();
-	Document currentFulldoc;
+	EventBus eventBus = new EventBus();
 	
 	String xattr, yattr;
 
@@ -152,32 +164,34 @@ public class Main implements DocSelectionListener {
 	int getTermCountThresh() {
 		return (int) tcSpinner.getValue();
 	}
-	@Override
-	public void receiveDocSelection(Collection<String> docids) {
-		curDS = corpus.getDocSet(docids);
-		refreshQueryInfo();
-		refreshDocdrivenTermList();
-		refreshKWICPanel();
-	}
-	void refreshKWICPanel() {
-		kwicPanel.show(getCurrentTQ().terms, curDS);
-	}
-	void selectTerminstForFullview(Document d, TermInstance ti) {
-		selectSingleDocumentForFullview(d);
+	AllQueries AQ() { return AllQueries.instance(); }
+	
+	void userSelectsTerminstForFullview(Document d, TermInstance ti) {
+		userSelectsSingleDocumentForFullview(d);
 		fulldocPanel.textarea.requestScrollToTerminst(ti);
 	}
-	void selectSingleDocumentForFullview(Document doc) {
-		fulldocDock.setTitleText("Document: " + doc.docid);
-		fulldocPanel.show(getCurrentTQ().terms, doc);
-		currentFulldoc = doc;
-		brushPanel.setFulldoc(doc);
-		kwicPanel.top().repaint();
-	}
-	void refreshSingleDocumentInFullview() {
-		fulldocPanel.showForCurrentDoc(getCurrentTQ().terms, false);
+	
+	void userSelectsSingleDocumentForFullview(Document doc) {
+		AQ().fulldocPanelCurrentDocID = doc.docid;
+		eventBus.post(new AllQueryUpdate());
 	}
 	
+	/** trying to only do functionality specific to an update to the fulldoc setting.
+	 * this should be refactored into a more finegrained fulldoc update event.
+	 */
+	@Subscribe
+	void setAndShowFulldoc(AllQueryUpdate e) {
+		Document doc = corpus.docsById.get(AQ().fulldocPanelCurrentDocID);
+		assert doc != null;
+		fulldocDock.setTitleText("Document: " + doc.docid);
+		fulldocPanel.show(AQ().termQuery().terms, doc);
+		kwicPanel.top().repaint();
+		brushPanel.repaint();
+	}
+
 	void refreshDocdrivenTermList() {
+		// two inputs.  1. docsel according to brush/doc panel.  2. freq thresh spinners.
+		DocSet curDS = curDS();
 		docvarCompare = new TermvecComparison(curDS.terms, corpus.globalTerms);
 		docdrivenTerms.clear();
 		docdrivenTerms.addAll( docvarCompare.topEpmi(getTermProbThresh(), getTermCountThresh()) );
@@ -207,15 +221,47 @@ public class Main implements DocSelectionListener {
 //		List<String> termResults = tta.topEpmi(1);
 	}
 	
-
-	void refreshQueryInfo() {
-		String s = U.sf("Docvar selection: %s docs, %s wordtoks", 
-				GUtil.commaize(curDS.docs().size()), 
-				GUtil.commaize((int)curDS.terms.totalCount));
-		mainqueryInfo.setText(s);
+	void pushTermdrivenQueryChange() {
+		eventBus.post(new AllQueryUpdate());
 	}
 	
-	TermQuery getCurrentTQ() {
+	@Subscribe
+	void refreshFromNewTermquery(AllQueryUpdate e) {
+		TermQuery curTQ = AQ().termQuery();
+		String msg = curTQ.terms.size()==0 ? "No selected terms" 
+				: curTQ.terms.size()+" selected terms: " + StringUtils.join(curTQ.terms, ", ");
+		subqueryInfo.setText(msg);
+		brushPanel.repaint();
+		runTermTermQuery(curTQ);
+		// these dont need to be explicitly called in the refresh pubsub framework
+		// but keep comments here so we know we need to single them out for subscriptions to termdrivenquery changes
+//		refreshKWICPanel();
+//		refreshSingleDocumentInFullview();
+	}
+
+
+	DocSet curDS() {
+		return corpus.getDocSet(AQ().brushPanelCovariateSelectedDocIDs);
+	}
+	@Subscribe
+	void refreshFulldocPanel(AllQueryUpdate e) {
+		fulldocPanel.showForCurrentDoc(AQ().termQuery().terms, false);
+	}
+	@Subscribe
+	void refreshKWICPanel(AllQueryUpdate e) {
+		DocSet curDS = curDS();
+		kwicPanel.show(AQ().termQuery().terms, curDS);
+	}
+	@Subscribe	
+	void refreshQueryInfoPanel(AllQueryUpdate e) {
+		DocSet cd = curDS();
+		String s = U.sf("Docvar selection: %s docs, %s wordtoks", 
+				GUtil.commaize(cd.docs().size()), 
+				GUtil.commaize((int) cd.terms.totalCount));
+		mainqueryInfo.setText(s);
+	}
+
+	TermQuery getCurrentTQFromUIState() {
 		TermQuery curTQ = new TermQuery(corpus);
     	Set<String> selterms = new LinkedHashSet<>();
     	selterms.addAll(docdrivenTermTable.getSelectedTerms());
@@ -227,30 +273,18 @@ public class Main implements DocSelectionListener {
 	void addTermdriverAction(final TermTable tt) {
         tt.table.getSelectionModel().addListSelectionListener(e -> {
         	if (!e.getValueIsAdjusting()) {
-        		runTermdrivenQuery(); 
+        		pushTermdrivenQueryChange();
     		}});
 	}
 	
-	void runTermdrivenQuery() {
-		TermQuery curTQ = getCurrentTQ();
-		String msg = curTQ.terms.size()==0 ? "No selected terms" 
-				: curTQ.terms.size()+" selected terms: " + StringUtils.join(curTQ.terms, ", ");
-		subqueryInfo.setText(msg);
-		refreshKWICPanel();
-		brushPanel.showTerms(curTQ);
-		runTermTermQuery(curTQ);
-		refreshSingleDocumentInFullview();
-	}
-	
-
-	
-	void pinTerm(String term) { 
+	void pinTerm(String term) {
 		pinnedTerms.add(term);
 //		refreshTermList();
 //		refreshQueryInfo();
 //		pinnedTermTable.model.fireTableRowsInserted(pinnedTerms.size()-2, pinnedTerms.size()-1);
 		pinnedTermTable.model.fireTableRowsInserted(0, pinnedTerms.size()-1);
 //		pinnedTermTable.table.setRowSelectionInterval(pinnedTerms.size()-1, pinnedTerms.size()-1);
+		pushTermdrivenQueryChange();
 	}
 	void unpinTerm(String term) {
 //		refreshTermList();
@@ -262,6 +296,7 @@ public class Main implements DocSelectionListener {
 			pinnedTermTable.model.fireTableRowsDeleted(row,row);	
 		}
 		pinnedTerms.remove(term);
+		pushTermdrivenQueryChange();
 	}
 	
 	static JPanel titledPanel(String title, JComponent internal) {
@@ -289,6 +324,8 @@ public class Main implements DocSelectionListener {
 	}
 	
 	void setupUI() {
+		AQ().corpus = this.corpus;
+		
         /////////////////  termpanel  ///////////////////
         
         setupTermfilterSpinners();
@@ -369,7 +406,7 @@ public class Main implements DocSelectionListener {
     		}
         };
 
-        brushPanel = new BrushPanel(this, corpus.allDocs());
+        brushPanel = new BrushPanel(this::pushUpdatedDocSelectionFromDocPanel, corpus.allDocs());
         brushPanel.schema = corpus.schema;
         // todo this is bad organization that the app owns the xattr/yattr selections and copies them to the brushpanel, right?
         // i guess eventually we'll need a current-user-config object as the source of truth for this and brushpanel should be hooked up to pull from it?
@@ -377,12 +414,11 @@ public class Main implements DocSelectionListener {
         if (yattr != null) brushPanel.yattr = yattr;
         brushPanel.setDefaultXYLim(corpus);
         
-        doclistPanel = new DocList(this, new ArrayList<>(corpus.allDocs()));
+        doclistPanel = new DocList(this::pushUpdatedDocSelectionFromDocPanel, new ArrayList<>(corpus.allDocs()));
         
         kwicPanel = new KWICViewer();
-        kwicPanel.fulldocClickReceiver = this::selectSingleDocumentForFullview;
-        kwicPanel.fulldocTerminstClickReceiver = this::selectTerminstForFullview;
-        kwicPanel.getCurrentFulldocDoc = () -> this.currentFulldoc;
+        kwicPanel.fulldocClickReceiver = this::userSelectsSingleDocumentForFullview;
+        kwicPanel.fulldocTerminstClickReceiver = this::userSelectsTerminstForFullview;
         
         fulldocPanel = new FullDocViewer();
         
@@ -436,6 +472,11 @@ public class Main implements DocSelectionListener {
 	}
 	
 
+	void pushUpdatedDocSelectionFromDocPanel(Collection<String> docids) {
+		AQ().brushPanelCovariateSelectedDocIDs = new HashSet<>(docids);
+		eventBus.post(new AllQueryUpdate());
+	}
+	
 	void setupTermfilterSpinners() {
 		tpSpinner = new JSpinner(new SpinnerStuff.MySM1());
 		tpSpinner.setToolTipText("Minimum term frequency in units of Words Per Million.");
@@ -447,13 +488,22 @@ public class Main implements DocSelectionListener {
         });
         tpText.setEditable(true);
         tpSpinner.setValue(1e-4);
-        tpSpinner.addChangeListener(e -> refreshDocdrivenTermList());
+        tpSpinner.addChangeListener(e -> {
+        	refreshDocdrivenTermList();
+        	eventBus.post(new AllQueryUpdate());  // todo should exclude docdriventermlist
+        });
 
         tcSpinner = new JSpinner(new SpinnerNumberModel(1, 0, 1000, 1));
         tcSpinner.setValue(2);
-        tcSpinner.addChangeListener(e -> refreshDocdrivenTermList());
+        tcSpinner.addChangeListener(e -> {
+        	refreshDocdrivenTermList();
+        	eventBus.post(new AllQueryUpdate());  // todo should exclude docdriventermlist
+        });
         tcSpinner.setToolTipText("Minimum term count (number of occurrences).");
 	}
+	
+	
+	/////////////////////////////////////////////////////////////////////////////////////////////////////
 	
 	static void usage() {
 		System.out.println("Usage:  Launch ConfigFilename");

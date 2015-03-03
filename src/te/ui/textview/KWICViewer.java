@@ -47,6 +47,7 @@ import te.data.Corpus;
 import te.data.DocSet;
 import te.data.Document;
 import te.data.TermInstance;
+import te.ui.queries.AllQueries;
 import util.Arr;
 import util.U;
 import util.misc.Pair;
@@ -62,7 +63,6 @@ public class KWICViewer  {
 	public int wordRadius = 5;
 	private Set<String> termset;
 	private List<Document> doclist;
-	public Supplier<Document> getCurrentFulldocDoc;
 
 	public KWICViewer() {
 		panel = new JPanel();
@@ -113,9 +113,9 @@ public class KWICViewer  {
 			@Override public void paintComponent(Graphics _g) {
 				super.paintComponent(_g);
 				Graphics2D g = (Graphics2D) _g;
-				if (getCurrentFulldocDoc!=null &&
-						getCurrentFulldocDoc.get() != null &&
-						document.docid.equals(getCurrentFulldocDoc.get().docid)) {
+				String fulldocDocID = AllQueries.instance().fulldocPanelCurrentDocID;
+				if (fulldocDocID!=null &&
+						document.docid.equals(fulldocDocID)) {
 					g.setColor(Color.black);
 					g.drawRect(0,0,getWidth(),getHeight());
 					g.drawRect(1,1,getWidth()-2,getHeight()-2);
