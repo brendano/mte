@@ -141,6 +141,8 @@ public class Main {
 	Supplier<Void> uiOverridesCallback = () -> null;
 	Function<String,List<Token>> tokenizerForAnalysis;
 	
+	//////////////   controller type stuff    ////////////
+	
 	/** only call this after schema is set. return false if fails. */
 	public boolean setXAttr(String xattrName) {
 		if ( ! corpus.schema.varnames().contains(xattrName)) {
@@ -181,7 +183,6 @@ public class Main {
 	 */
 	@Subscribe
 	public void setAndShowFulldoc(AllQueryUpdate e) {
-		U.p("HERHERE " + e);
 		Document doc = corpus.docsById.get(AQ().fulldocPanelCurrentDocID);
 		if (doc == null) return;
 		fulldocDock.setTitleText("Document: " + doc.docid);
@@ -192,7 +193,6 @@ public class Main {
 	
 	@Subscribe
 	public void refreshDocdrivenTermListFromUpdateEvent(AllQueryUpdate e) {
-		U.p("HERE " + e);
 		refreshDocdrivenTermList();
 	}
 
@@ -230,6 +230,7 @@ public class Main {
 	}
 	
 	void pushTermdrivenQueryChange() {
+		AQ().setTermQuery( getCurrentTQFromUIState() );
 		eventBus.post(new AllQueryUpdate());
 	}
 	
@@ -269,6 +270,12 @@ public class Main {
 		mainqueryInfo.setText(s);
 	}
 
+	void pushUpdatedDocSelectionFromDocPanel(Collection<String> docids) {
+		U.p("received and pushing docids " + docids);
+		AQ().brushPanelCovariateSelectedDocIDs = new HashSet<>(docids);
+		eventBus.post(new AllQueryUpdate());
+	}
+
 	TermQuery getCurrentTQFromUIState() {
 		TermQuery curTQ = new TermQuery(corpus);
     	Set<String> selterms = new LinkedHashSet<>();
@@ -280,6 +287,7 @@ public class Main {
 	
 	void addTermdriverAction(final TermTable tt) {
         tt.table.getSelectionModel().addListSelectionListener(e -> {
+        	U.p(e);
         	if (!e.getValueIsAdjusting()) {
         		pushTermdrivenQueryChange();
     		}});
@@ -287,16 +295,12 @@ public class Main {
 	
 	void pinTerm(String term) {
 		pinnedTerms.add(term);
-//		refreshTermList();
-//		refreshQueryInfo();
 //		pinnedTermTable.model.fireTableRowsInserted(pinnedTerms.size()-2, pinnedTerms.size()-1);
 		pinnedTermTable.model.fireTableRowsInserted(0, pinnedTerms.size()-1);
 //		pinnedTermTable.table.setRowSelectionInterval(pinnedTerms.size()-1, pinnedTerms.size()-1);
 		pushTermdrivenQueryChange();
 	}
 	void unpinTerm(String term) {
-//		refreshTermList();
-//		refreshQueryInfo();
 		int[] rowsToDel = IntStream.range(0,pinnedTermTable.model.getRowCount())
 			.filter(row -> pinnedTermTable.getTermAt(row).equals(term))
 			.toArray();
@@ -330,6 +334,36 @@ public class Main {
 	static String sizes(JComponent x) {
 		return String.format("size=%s prefsize=%s min=%s max=%s", x.getSize(), x.getPreferredSize(), x.getMinimumSize(), x.getMaximumSize());
 	}
+	
+
+	void setupTermfilterSpinners() {
+		tpSpinner = new JSpinner(new SpinnerStuff.MySM1());
+		tpSpinner.setToolTipText("Minimum term frequency in units of Words Per Million.");
+        JFormattedTextField tpText = ((JSpinner.DefaultEditor) tpSpinner.getEditor()).getTextField();
+        tpText.setFormatterFactory(new AbstractFormatterFactory() {
+			@Override public AbstractFormatter getFormatter(JFormattedTextField tf) {
+				return new SpinnerStuff.WPMFormatter();
+			}
+        });
+        tpText.setEditable(true);
+        tpSpinner.setValue(1e-4);
+        tpSpinner.addChangeListener(e -> {
+        	refreshDocdrivenTermList();
+        	eventBus.post(new AllQueryUpdate());  // todo should exclude docdriventermlist
+        });
+
+        tcSpinner = new JSpinner(new SpinnerNumberModel(1, 0, 1000, 1));
+        tcSpinner.setValue(2);
+        tcSpinner.addChangeListener(e -> {
+        	refreshDocdrivenTermList();
+        	eventBus.post(new AllQueryUpdate());  // todo should exclude docdriventermlist
+        });
+        tcSpinner.setToolTipText("Minimum term count (number of occurrences).");
+	}
+	
+	
+	//////////////////////  main setup method   ////////////////////////////////////////////////////////////////////////////
+	
 	
 	void setupUI() {
 		AQ().corpus = this.corpus;
@@ -480,40 +514,7 @@ public class Main {
         return tmp;
 	}
 	
-
-	void pushUpdatedDocSelectionFromDocPanel(Collection<String> docids) {
-		U.p("received and pushing docids " + docids);
-		AQ().brushPanelCovariateSelectedDocIDs = new HashSet<>(docids);
-		eventBus.post(new AllQueryUpdate());
-	}
-	
-	void setupTermfilterSpinners() {
-		tpSpinner = new JSpinner(new SpinnerStuff.MySM1());
-		tpSpinner.setToolTipText("Minimum term frequency in units of Words Per Million.");
-        JFormattedTextField tpText = ((JSpinner.DefaultEditor) tpSpinner.getEditor()).getTextField();
-        tpText.setFormatterFactory(new AbstractFormatterFactory() {
-			@Override public AbstractFormatter getFormatter(JFormattedTextField tf) {
-				return new SpinnerStuff.WPMFormatter();
-			}
-        });
-        tpText.setEditable(true);
-        tpSpinner.setValue(1e-4);
-        tpSpinner.addChangeListener(e -> {
-        	refreshDocdrivenTermList();
-        	eventBus.post(new AllQueryUpdate());  // todo should exclude docdriventermlist
-        });
-
-        tcSpinner = new JSpinner(new SpinnerNumberModel(1, 0, 1000, 1));
-        tcSpinner.setValue(2);
-        tcSpinner.addChangeListener(e -> {
-        	refreshDocdrivenTermList();
-        	eventBus.post(new AllQueryUpdate());  // todo should exclude docdriventermlist
-        });
-        tcSpinner.setToolTipText("Minimum term count (number of occurrences).");
-	}
-	
-	
-	/////////////////////////////////////////////////////////////////////////////////////////////////////
+	/////////////  startup initialization stuff   /////////////////////////////////////////////////////////////////////
 	
 	static void usage() {
 		System.out.println("Usage:  Launch ConfigFilename");
