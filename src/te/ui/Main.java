@@ -199,11 +199,20 @@ public class Main {
 	void refreshDocdrivenTermList() {
 		// two inputs.  1. docsel according to brush/doc panel.  2. freq thresh spinners.
 		DocSet curDS = curDS();
+		List<String> oldSelTerms = docdrivenTermTable.getSelectedTerms();
 		U.p("docset " + curDS.docs());
 		docvarCompare = new TermvecComparison(curDS.terms, corpus.globalTerms);
 		docdrivenTerms.clear();
 		docdrivenTerms.addAll( docvarCompare.topEpmi(getTermProbThresh(), getTermCountThresh()) );
 		docdrivenTermTable.model.fireTableDataChanged();
+		
+		// INFINITE LOOP BUG: calling this seems to fire a swing event, which in turn fires an AQ update event and thus infinite loop
+		for (int i=0; i<docdrivenTerms.size(); i++) {
+			if (oldSelTerms.contains( docdrivenTerms.get(i))) {
+				docdrivenTermTable.table.setRowSelectionInterval(i, i);		
+			}
+		}
+		
 		termlistInfo.setText(U.sf("%d/%d terms", docdrivenTerms.size(), curDS.terms.support().size()));
 		pinnedTermTable.updateCalculations();
 //		int effectiveTermcountThresh = (int) Math.floor(getTermProbThresh() * curDS.terms.totalCount);
