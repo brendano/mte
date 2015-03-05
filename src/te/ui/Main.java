@@ -83,6 +83,7 @@ import te.exceptions.BadData;
 import te.exceptions.BadSchema;
 import te.ui.queries.AllQueries;
 import te.ui.queries.AllQueryUpdate;
+import te.ui.queries.DocSelectionChanged;
 import te.ui.textview.FullDocViewer;
 import te.ui.textview.Highlighter;
 import te.ui.textview.KWICViewer;
@@ -192,31 +193,24 @@ public class Main {
 	}
 	
 	@Subscribe
-	public void refreshDocdrivenTermListFromUpdateEvent(AllQueryUpdate e) {
+	public void refreshDocdrivenTermListFromUpdateEvent(DocSelectionChanged e) {
 		refreshDocdrivenTermList();
 	}
 
 	void refreshDocdrivenTermList() {
 		// two inputs.  1. docsel according to brush/doc panel.  2. freq thresh spinners.
 		DocSet curDS = curDS();
-		List<String> oldSelTerms = docdrivenTermTable.getSelectedTerms();
-		U.p("docset " + curDS.docs());
 		docvarCompare = new TermvecComparison(curDS.terms, corpus.globalTerms);
 		docdrivenTerms.clear();
 		docdrivenTerms.addAll( docvarCompare.topEpmi(getTermProbThresh(), getTermCountThresh()) );
 		docdrivenTermTable.model.fireTableDataChanged();
 		
-		// INFINITE LOOP BUG: calling this seems to fire a swing event, which in turn fires an AQ update event and thus infinite loop
-		for (int i=0; i<docdrivenTerms.size(); i++) {
-			if (oldSelTerms.contains( docdrivenTerms.get(i))) {
-				docdrivenTermTable.table.setRowSelectionInterval(i, i);		
-			}
-		}
-		
 		termlistInfo.setText(U.sf("%d/%d terms", docdrivenTerms.size(), curDS.terms.support().size()));
 		pinnedTermTable.updateCalculations();
 //		int effectiveTermcountThresh = (int) Math.floor(getTermProbThresh() * curDS.terms.totalCount);
 //		termcountInfo.setText(effectiveTermcountThresh==0 ? "all terms" : U.sf("count >= %d", effectiveTermcountThresh));
+
+		// TODO does this have to push to the new TQ?
 	}
 	
 	void runTermTermQuery(TermQuery tq) {
@@ -280,9 +274,14 @@ public class Main {
 	}
 
 	void pushUpdatedDocSelectionFromDocPanel(Collection<String> docids) {
-		U.p("received and pushing docids " + docids);
-		AQ().brushPanelCovariateSelectedDocIDs = new HashSet<>(docids);
-		eventBus.post(new AllQueryUpdate());
+		U.p("received " + docids);
+		Set<String> s = new HashSet<>(docids);
+		boolean same = AQ().brushPanelCovariateSelectedDocIDs.equals(s);
+		U.p("same? " + same);
+		if (!same) {
+			AQ().brushPanelCovariateSelectedDocIDs = new HashSet<>(docids);
+			eventBus.post(new DocSelectionChanged());
+		}
 	}
 
 	TermQuery getCurrentTQFromUIState() {
