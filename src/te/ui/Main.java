@@ -1,5 +1,6 @@
 package te.ui;
 
+import te.ui.queries.*;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
@@ -82,8 +83,8 @@ import te.exceptions.BadConfig;
 import te.exceptions.BadData;
 import te.exceptions.BadSchema;
 import te.ui.queries.AllQueries;
-import te.ui.queries.AllQueryUpdate;
-import te.ui.queries.DocSelectionChanged;
+import te.ui.queries.AllQueryChange;
+import te.ui.queries.DocSelectionChange;
 import te.ui.textview.FullDocViewer;
 import te.ui.textview.Highlighter;
 import te.ui.textview.KWICViewer;
@@ -171,29 +172,34 @@ public class Main {
 	
 	void userSelectsTerminstForFullview(Document d, TermInstance ti) {
 		userSelectsSingleDocumentForFullview(d);
-		fulldocPanel.textarea.requestScrollToTerminst(ti);
+		AQ().fulldocPanelCurrentDocID = d.docid;
+		FulldocChange e = new FulldocChange();
+		e.desiredTerminstToScrollTo = ti;
+		eventBus.post(e);
 	}
 	
 	void userSelectsSingleDocumentForFullview(Document doc) {
 		AQ().fulldocPanelCurrentDocID = doc.docid;
-		eventBus.post(new AllQueryUpdate());
+		FulldocChange e = new FulldocChange();
+		eventBus.post(e);
+		kwicPanel.top().repaint();
 	}
 	
-	/** trying to only do functionality specific to an update to the fulldoc setting.
-	 * this should be refactored into a more finegrained fulldoc update event.
-	 */
 	@Subscribe
-	public void setAndShowFulldoc(AllQueryUpdate e) {
+	public void refreshFulldoc(FulldocChange e) {
 		Document doc = corpus.docsById.get(AQ().fulldocPanelCurrentDocID);
 		if (doc == null) return;
 		fulldocDock.setTitleText("Document: " + doc.docid);
 		fulldocPanel.show(AQ().termQuery().terms, doc);
+		if (e.desiredTerminstToScrollTo != null) {
+			fulldocPanel.textarea.requestScrollToTerminst(e.desiredTerminstToScrollTo);
+		}
 		kwicPanel.top().repaint();
 		brushPanel.repaint();
 	}
 	
 	@Subscribe
-	public void refreshDocdrivenTermListFromUpdateEvent(DocSelectionChanged e) {
+	public void refreshDocdrivenTermListFromUpdateEvent(DocSelectionChange e) {
 		refreshDocdrivenTermList();
 	}
 
@@ -232,13 +238,13 @@ public class Main {
 //		List<String> termResults = tta.topEpmi(1);
 	}
 	
-	void pushTermdrivenQueryChange() {
+	void pushTermQueryChange() {
 		AQ().setTermQuery( getCurrentTQFromUIState() );
-		eventBus.post(new AllQueryUpdate());
+		eventBus.post(new TermQueryChange());
 	}
 	
 	@Subscribe
-	public void refreshFromNewTermquery(AllQueryUpdate e) {
+	public void refreshFromNewTermquery(TermQueryChange e) {
 		TermQuery curTQ = AQ().termQuery();
 		String msg = curTQ.terms.size()==0 ? "No selected terms" 
 				: curTQ.terms.size()+" selected terms: " + StringUtils.join(curTQ.terms, ", ");
@@ -255,17 +261,22 @@ public class Main {
 	DocSet curDS() {
 		return corpus.getDocSet(AQ().brushPanelCovariateSelectedDocIDs);
 	}
-	@Subscribe
-	public void refreshFulldocPanel(AllQueryUpdate e) {
+	@Subscribe public void refreshFulldocPanel(FulldocChange e) { refreshFulldocPanel(); }
+	@Subscribe public void refreshFulldocPanel(TermQueryChange e) { refreshFulldocPanel(); }
+	public void refreshFulldocPanel() {
 		fulldocPanel.showForCurrentDoc(AQ().termQuery().terms, false);
 	}
-	@Subscribe
-	public void refreshKWICPanel(AllQueryUpdate e) {
+	
+	@Subscribe public void refreshKWICPanel(DocSelectionChange e) { refreshKWICPanel(); }
+	@Subscribe public void refreshKWICPanel(TermQueryChange e) { refreshKWICPanel(); }
+	public void refreshKWICPanel() {
+		U.p("kwic refresh");
 		DocSet curDS = curDS();
 		kwicPanel.show(AQ().termQuery().terms, curDS);
 	}
+	
 	@Subscribe	
-	public void refreshQueryInfoPanel(AllQueryUpdate e) {
+	public void refreshQueryInfoPanel(AllQueryChange e) {
 		DocSet cd = curDS();
 		String s = U.sf("Docvar selection: %s docs, %s wordtoks", 
 				GUtil.commaize(cd.docs().size()), 
@@ -280,7 +291,7 @@ public class Main {
 		U.p("same? " + same);
 		if (!same) {
 			AQ().brushPanelCovariateSelectedDocIDs = new HashSet<>(docids);
-			eventBus.post(new DocSelectionChanged());
+			eventBus.post(new DocSelectionChange());
 		}
 	}
 
@@ -297,7 +308,7 @@ public class Main {
         tt.table.getSelectionModel().addListSelectionListener(e -> {
         	U.p(e);
         	if (!e.getValueIsAdjusting()) {
-        		pushTermdrivenQueryChange();
+        		pushTermQueryChange();
     		}});
 	}
 	
@@ -306,7 +317,7 @@ public class Main {
 //		pinnedTermTable.model.fireTableRowsInserted(pinnedTerms.size()-2, pinnedTerms.size()-1);
 		pinnedTermTable.model.fireTableRowsInserted(0, pinnedTerms.size()-1);
 //		pinnedTermTable.table.setRowSelectionInterval(pinnedTerms.size()-1, pinnedTerms.size()-1);
-		pushTermdrivenQueryChange();
+		pushTermQueryChange();
 	}
 	void unpinTerm(String term) {
 		int[] rowsToDel = IntStream.range(0,pinnedTermTable.model.getRowCount())
@@ -316,7 +327,7 @@ public class Main {
 			pinnedTermTable.model.fireTableRowsDeleted(row,row);	
 		}
 		pinnedTerms.remove(term);
-		pushTermdrivenQueryChange();
+		pushTermQueryChange();
 	}
 	
 	static JPanel titledPanel(String title, JComponent internal) {
@@ -357,14 +368,14 @@ public class Main {
         tpSpinner.setValue(1e-4);
         tpSpinner.addChangeListener(e -> {
         	refreshDocdrivenTermList();
-        	eventBus.post(new AllQueryUpdate());  // todo should exclude docdriventermlist
+        	eventBus.post(new AllQueryChange());  // todo should exclude docdriventermlist
         });
 
         tcSpinner = new JSpinner(new SpinnerNumberModel(1, 0, 1000, 1));
         tcSpinner.setValue(2);
         tcSpinner.addChangeListener(e -> {
         	refreshDocdrivenTermList();
-        	eventBus.post(new AllQueryUpdate());  // todo should exclude docdriventermlist
+        	eventBus.post(new AllQueryChange());  // todo should exclude docdriventermlist
         });
         tcSpinner.setToolTipText("Minimum term count (number of occurrences).");
 	}
@@ -487,8 +498,8 @@ public class Main {
 		y=0;
 		grid.addDockable(0,0,   w1,h=5, new DefaultDockable("Pinned terms") {{ add(pinnedWrapper); }});
 		grid.addDockable(0,y+=h, w1,h=2, new DefaultDockable("Frequency control") {{ add(termfilterPanel); }});
-		grid.addDockable(0,y+=h, w1,h=10, new DefaultDockable("Covariate-associated terms") {{ add(docdrivenWrapper); }});
-		grid.addDockable(0,y+=h, w1,h=5, new DefaultDockable("Term-associated terms") {{ add(termdrivenWrapper); }});
+		grid.addDockable(0,y+=h, w1,h=15, new DefaultDockable("Covariate-associated terms") {{ add(docdrivenWrapper); }});
+//		grid.addDockable(0,y+=h, w1,h=5, new DefaultDockable("Term-associated terms") {{ add(termdrivenWrapper); }});
 //		grid.addDockable(0,y+=h, x,8, fulldocDock);
 		
 		y=0;

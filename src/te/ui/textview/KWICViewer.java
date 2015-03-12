@@ -105,8 +105,11 @@ public class KWICViewer  {
 				setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 				addMouseListener(new MouseAdapter() {
 					public void mouseClicked(MouseEvent e) {
-						if (fulldocClickReceiver != null)
+						if (fulldocClickReceiver != null) {
+							U.p("click fulldoc receiver");
 							fulldocClickReceiver.accept(document);
+						}
+							
 					}
 				});
 			}
@@ -143,8 +146,10 @@ public class KWICViewer  {
 			
 			addMouseListener(new MouseAdapter() {
 				public void mouseClicked(MouseEvent e) {
-					if (fulldocTerminstClickReceiver != null)
+					if (fulldocTerminstClickReceiver != null) {
+						U.p("click fulldoc terminst receiver");
 						fulldocTerminstClickReceiver.accept(doc, getTermInstanceOfHit());
+					}
 				}
 			});
 		}
