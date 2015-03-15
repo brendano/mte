@@ -9,7 +9,7 @@ import util.U;
 
 /** intended to be a singleton that encapsulates all selections global in the system right now. */
 public class AllQueries {
-	public Set<String> brushPanelCovariateSelectedDocIDs = Collections.emptySet();
+	public Set<String> docPanelSelectedDocIDs = Collections.emptySet();
 	public String fulldocPanelCurrentDocID;
 	private TermQuery _termQuery;
 	/** necessary for at least some convenience calls.  is this a bad idea to have here? */
@@ -26,7 +26,7 @@ public class AllQueries {
 	}
 	
 	public DocSet curDocs() {
-		return corpus.getDocSet(brushPanelCovariateSelectedDocIDs);
+		return corpus.getDocSet(docPanelSelectedDocIDs);
 	}
 	
 	private static AllQueries _instance;
@@ -38,7 +38,7 @@ public class AllQueries {
 	
 	public Collection<String> docQueryDocIDs() {
 		Set<String> docids = new HashSet<>();
-		docids.addAll(brushPanelCovariateSelectedDocIDs);
+		docids.addAll(docPanelSelectedDocIDs);
 		if (fulldocPanelCurrentDocID!=null) {
 			docids.add(fulldocPanelCurrentDocID);
 		}
@@ -47,7 +47,7 @@ public class AllQueries {
 
 	public String toString() {
 		return "\nAQ\n" +
-				"bp cov " + brushPanelCovariateSelectedDocIDs + "\n" +
+				"bp cov " + docPanelSelectedDocIDs + "\n" +
 				"fulldoc " + fulldocPanelCurrentDocID + "\n" +
 				"tq " + termQuery() + "\n" +
 				"\n";

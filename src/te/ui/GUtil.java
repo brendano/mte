@@ -241,4 +241,16 @@ public class GUtil {
 					(s1 <= s2 && s2 < e1) ||
 					(s2 <= s1 && s1 < e2);
 	}
+	
+	///////////// really misc stuff //////////////
+	
+	/** returns true if o1 and o2 are both nonnull and equal 
+	 * 
+	 * reason this exists: o1.equals(o2) crashes if o1 is null.  and usually null means some weird exceptional case
+	 * or that the data isn't set to anything yet, so getting that two things are both null usually means something
+	 * quite different compared to two non-null variables having the same value.
+	 */
+	public static boolean nonnullEqual(Object o1, Object o2) {
+		return o1!=null && o2!=null && o1.equals(o2);
+	}
 }

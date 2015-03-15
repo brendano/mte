@@ -110,7 +110,6 @@ public class KWICViewer  {
 				addMouseListener(new MouseAdapter() {
 					public void mouseClicked(MouseEvent e) {
 						if (fulldocClickReceiver != null) {
-							U.p("click fulldoc receiver");
 							fulldocClickReceiver.accept(document);
 						}
 							

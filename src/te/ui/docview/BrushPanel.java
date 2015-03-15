@@ -81,7 +81,7 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 	class MyPoint {
 		Document doc;
 		boolean isDocquerySelected() {
-			return AllQueries.instance().brushPanelCovariateSelectedDocIDs.contains(doc.docid);
+			return AllQueries.instance().docPanelSelectedDocIDs.contains(doc.docid);
 //			return docSelection.contains(doc.docid); 
 		}
 		boolean isTermquery1Selected() {
@@ -553,7 +553,6 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 	
 	@Subscribe
 	public void refreshFulldoc(FulldocChange e) {
-		U.p("brushpanel fulldoc refresh");
 		repaint();
 	}
 

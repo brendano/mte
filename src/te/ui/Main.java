@@ -325,7 +325,6 @@ public class Main {
 	
 	void addTermdriverAction(final TermTable tt) {
         tt.table.getSelectionModel().addListSelectionListener(e -> {
-        	U.p(e);
         	if (!e.getValueIsAdjusting()) {
         		pushTermQueryChange();
     		}});
@@ -451,11 +450,11 @@ public class Main {
         JPanel pinnedWrapper = new JPanel(new BorderLayout());
         pinnedWrapper.add(pinnedTermTable.top(), BorderLayout.CENTER);
         
-        JPanel docdrivenWrapper = new JPanel(new BorderLayout());
+        JPanel docdrivenTermsWrapper = new JPanel(new BorderLayout());
         JPanel topstuff = new JPanel(new FlowLayout(FlowLayout.LEFT));
         topstuff.add(termlistInfo);
-        docdrivenWrapper.add(topstuff, BorderLayout.NORTH);
-        docdrivenWrapper.add(docdrivenTermTable.top(), BorderLayout.CENTER);
+        docdrivenTermsWrapper.add(topstuff, BorderLayout.NORTH);
+        docdrivenTermsWrapper.add(docdrivenTermTable.top(), BorderLayout.CENTER);
                 
         termtermDescription = new InfoArea("");
         JPanel termdrivenWrapper = new JPanel(new BorderLayout()) {{
@@ -497,6 +496,7 @@ public class Main {
         eventBus.register(brushPanel);
         
         doclistPanel = new DocList(this::pushUpdatedDocSelectionFromDocPanel, new ArrayList<>(corpus.allDocs()));
+        doclistPanel.fulldocClickReceiver = this::userSelectsSingleDocumentForFullview;
         eventBus.register(doclistPanel);
         
         kwicPanel = new KWICViewer();
