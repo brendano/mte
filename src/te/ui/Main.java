@@ -1,6 +1,9 @@
 package te.ui;
 
+import te.ui.docview.BrushPanel;
+import te.ui.docview.DocList;
 import te.ui.queries.*;
+
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
@@ -93,9 +96,6 @@ import util.JsonUtil;
 import util.U;
 import edu.stanford.nlp.util.StringUtils;
 
-interface DocSelectionListener {
-	public void receiveDocSelection(Collection<String> docids);
-}
 
 /* event system
  * 
@@ -182,7 +182,6 @@ public class Main {
 		AQ().fulldocPanelCurrentDocID = doc.docid;
 		FulldocChange e = new FulldocChange();
 		eventBus.post(e);
-		kwicPanel.top().repaint();
 	}
 	
 	@Subscribe
@@ -194,8 +193,6 @@ public class Main {
 		if (e.desiredTerminstToScrollTo != null) {
 			fulldocPanel.textarea.requestScrollToTerminst(e.desiredTerminstToScrollTo);
 		}
-		kwicPanel.top().repaint();
-		brushPanel.repaint();
 	}
 	
 	@Subscribe
@@ -205,7 +202,7 @@ public class Main {
 
 	void refreshDocdrivenTermList() {
 		// two inputs.  1. docsel according to brush/doc panel.  2. freq thresh spinners.
-		DocSet curDS = curDS();
+		DocSet curDS = AQ().curDocs();
 		docvarCompare = new TermvecComparison(curDS.terms, corpus.globalTerms);
 		docdrivenTerms.clear();
 		docdrivenTerms.addAll( docvarCompare.topEpmi(getTermProbThresh(), getTermCountThresh()) );
@@ -249,7 +246,6 @@ public class Main {
 		String msg = curTQ.terms.size()==0 ? "No selected terms" 
 				: curTQ.terms.size()+" selected terms: " + StringUtils.join(curTQ.terms, ", ");
 		subqueryInfo.setText(msg);
-		brushPanel.repaint();
 		runTermTermQuery(curTQ);
 		// these dont need to be explicitly called in the refresh pubsub framework
 		// but keep comments here so we know we need to single them out for subscriptions to termdrivenquery changes
@@ -257,27 +253,15 @@ public class Main {
 //		refreshSingleDocumentInFullview();
 	}
 
-
-	DocSet curDS() {
-		return corpus.getDocSet(AQ().brushPanelCovariateSelectedDocIDs);
-	}
 	@Subscribe public void refreshFulldocPanel(FulldocChange e) { refreshFulldocPanel(); }
 	@Subscribe public void refreshFulldocPanel(TermQueryChange e) { refreshFulldocPanel(); }
 	public void refreshFulldocPanel() {
 		fulldocPanel.showForCurrentDoc(AQ().termQuery().terms, false);
 	}
 	
-	@Subscribe public void refreshKWICPanel(DocSelectionChange e) { refreshKWICPanel(); }
-	@Subscribe public void refreshKWICPanel(TermQueryChange e) { refreshKWICPanel(); }
-	public void refreshKWICPanel() {
-		U.p("kwic refresh");
-		DocSet curDS = curDS();
-		kwicPanel.show(AQ().termQuery().terms, curDS);
-	}
-	
 	@Subscribe	
 	public void refreshQueryInfoPanel(AllQueryChange e) {
-		DocSet cd = curDS();
+		DocSet cd = AQ().curDocs();
 		String s = U.sf("Docvar selection: %s docs, %s wordtoks", 
 				GUtil.commaize(cd.docs().size()), 
 				GUtil.commaize((int) cd.terms.totalCount));
@@ -475,12 +459,15 @@ public class Main {
         if (xattr != null) brushPanel.xattr = xattr;
         if (yattr != null) brushPanel.yattr = yattr;
         brushPanel.setDefaultXYLim(corpus);
+        eventBus.register(brushPanel);
         
         doclistPanel = new DocList(this::pushUpdatedDocSelectionFromDocPanel, new ArrayList<>(corpus.allDocs()));
+        eventBus.register(doclistPanel);
         
         kwicPanel = new KWICViewer();
         kwicPanel.fulldocClickReceiver = this::userSelectsSingleDocumentForFullview;
         kwicPanel.fulldocTerminstClickReceiver = this::userSelectsTerminstForFullview;
+        eventBus.register(kwicPanel);
         
         fulldocPanel = new FullDocViewer();
         

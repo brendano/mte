@@ -42,12 +42,16 @@ import javax.swing.text.DefaultCaret;
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
+import com.google.common.eventbus.Subscribe;
 
 import te.data.Corpus;
 import te.data.DocSet;
 import te.data.Document;
 import te.data.TermInstance;
 import te.ui.queries.AllQueries;
+import te.ui.queries.DocSelectionChange;
+import te.ui.queries.FulldocChange;
+import te.ui.queries.TermQueryChange;
 import util.Arr;
 import util.U;
 import util.misc.Pair;
@@ -256,5 +260,19 @@ public class KWICViewer  {
 //				.comparing((WithinDocHit h) -> h.termStart).thenComparing((WithinDocHit h) ->h.termEnd));
 		return hits;
 	}
+
+	///////////////////////////////////////////
 	
+	@Subscribe public void refresh(FulldocChange e) {
+		top().repaint();
+	}
+	
+	@Subscribe public void refreshFull(DocSelectionChange e) { refreshFull(); }
+	@Subscribe public void refreshFull(TermQueryChange e) { refreshFull(); }
+	public void refreshFull() {
+		DocSet curDS = AllQueries.instance().curDocs();
+		show(AllQueries.instance().termQuery().terms, curDS);
+	}
+	
+
 }

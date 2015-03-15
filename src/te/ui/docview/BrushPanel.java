@@ -1,4 +1,4 @@
-package te.ui;
+package te.ui.docview;
 
 import java.awt.BasicStroke;
 import java.awt.Color;
@@ -34,7 +34,9 @@ import te.data.Corpus;
 import te.data.Document;
 import te.data.Schema;
 import te.data.TermQuery;
+import te.ui.GUtil;
 import te.ui.queries.AllQueries;
+import te.ui.queries.FulldocChange;
 import util.U;
 
 /**
@@ -44,14 +46,14 @@ import util.U;
  */
 public class BrushPanel extends JPanel implements MouseListener, MouseMotionListener {
 	
-	String xattr, yattr;  // allowed to be NULL.
-	Schema schema;
+	public String xattr, yattr;  // allowed to be NULL.
+	public Schema schema;
 	
 	// "user": (meta)data value space
-	double minUserX=1984;
-	double maxUserX=2015;
-	double minUserY=-2;
-	double maxUserY=2;
+	public double minUserX=1984;
+	public double maxUserX=2015;
+	public double minUserY=-2;
+	public double maxUserY=2;
 	
 	// "phys": graphics(~pixels) coordinate space, boundaries of the plotting area.
 	// we maintain min<=max always, so the directionality of the y-axis is flipped compared to user space.
@@ -545,6 +547,14 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 				"Brush[cur=(%.2f %.2f) (%.2f %.2f)  init=(%.2f %.2f) (%.2f %.2f)  initmousepos=(%s %s)",
 				x1,y1,x2,y2, initx1,inity1, initx2,inity2, initialMousePositionX, initialMousePositionY);
 		}
+	}
+	
+	///////////////////
+	
+	@Subscribe
+	public void refreshFulldoc(FulldocChange e) {
+		U.p("brushpanel fulldoc refresh");
+		repaint();
 	}
 
 }

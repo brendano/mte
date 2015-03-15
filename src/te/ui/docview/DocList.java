@@ -1,4 +1,4 @@
-package te.ui;
+package te.ui.docview;
 import java.awt.Color;
 import java.awt.Component;
 import java.util.*;
@@ -11,7 +11,10 @@ import javax.swing.ListCellRenderer;
 import javax.swing.ListSelectionModel;
 import javax.swing.border.EmptyBorder;
 
+import com.google.common.eventbus.Subscribe;
+
 import te.data.Document;
+import te.ui.queries.FulldocChange;
 import util.U;
 
 // TODO implement pushes to the query receiver
@@ -21,7 +24,7 @@ public class DocList {
 	JScrollPane scrollpane;
 	DocSelectionListener queryReceiver;
 	
-	DocList(DocSelectionListener qr, List<Document> docsInDocidOrder) {
+	public DocList(DocSelectionListener qr, List<Document> docsInDocidOrder) {
 		queryReceiver = qr;
 		Vector<Document> docOldVector = new Vector<Document>();
 		for (Document d : docsInDocidOrder) docOldVector.add(d);
@@ -33,7 +36,7 @@ public class DocList {
 		scrollpane = new JScrollPane(jlist);
 	}
 	
-	JComponent top() { return scrollpane; }
+	public JComponent top() { return scrollpane; }
 	
 	class MyCellRenderer implements ListCellRenderer<Document> {
 
@@ -56,6 +59,11 @@ public class DocList {
 			return jl;
 		}
 		
+	}
+	
+	@Subscribe
+	public void refreshFulldoc(FulldocChange e) {
+		U.p("doclist change here");
 	}
 	
 }
