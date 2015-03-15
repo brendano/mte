@@ -97,14 +97,36 @@ import util.U;
 import edu.stanford.nlp.util.StringUtils;
 
 
-/* event system
+/* UI state and event architecture for  [A] <==> [B] <== [C]
+ *   A = global state in AllQueries.instance()
+ *   B = state in UI components, typically within Swing classes
+ *   C = the user, or at least, whatever the low-level user interaction subsystem is deep within swing/awt
+ * 
+ * [AQ global state]  <== EventBus ==> [UI components] <== Swing events from user actions
+ * 
+ * there are two different event systems in use:
+ *   A <=> B is a Guava EventBus system, that we define here
+ *   C  => B is the Swing UI event system
+ * 
+ * the arrows represent groups of functions that control and move state around.
  * 
  * refresh*() are the entry points from the event notification system. they RECEIVE data from the centralized state.
- * user*() are entry points from the UI event system, which should be directly, or fairly directly, caused by user actions.
+ *    i.e. A ==> B
+ * user*() are entry points from the UI Swing event system, which should be directly, or fairly directly, caused by user actions.
+ *   i.e. C ==> B
  * push*() are invoked during the codepath of a UI action. They SEND data into the event notification system.
+ *   i.e. B ==> A
  * 
  * ideally the callgraphs of receiving vs sending code pathways should not be mixed, i think?
  * at least, methods that can potentially change UI state.
+ * messages that updates are necessary should always? come from the EventBus system.
+ * 
+ * all UI code should feel free to read global state off the AQ.  (this should simplify code compared to message-passing all information for all state changes.)
+ * pushing to AQ, however, right now is centralized in Main.
+ * so when UI code is in external files, they callback to Main which then pushes the right info to AQ.
+ * 
+ * the Guava EventBus is being used in serial mode, which considerably simplifies the logic and reduces race conditions.
+ * for better responsiveness during compute-heavy actions we might have to revisit this.
  */
 
 public class Main {
