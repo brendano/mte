@@ -36,7 +36,9 @@ import te.data.Schema;
 import te.data.TermQuery;
 import te.ui.GUtil;
 import te.ui.queries.AllQueries;
+import te.ui.queries.DocSelectionChange;
 import te.ui.queries.FulldocChange;
+import te.ui.queries.TermQueryChange;
 import util.U;
 
 /**
@@ -74,12 +76,15 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 	Brush brush = null;
 	List<MyPoint> points = new ArrayList<>();
 	Map<String,MyPoint> pointsByDocid = new HashMap<>();
-	DocSelectionListener queryReceiver;
+	DocSelectionListener docselFromBrushReceiver;
+	/** intended always nonnull */
+	Set<String> lastDocidSelectionByBrush = Collections.emptySet();
 	
 	Color BRUSH_COLOR = new Color(61,56,240);
 	
 	class MyPoint {
 		Document doc;
+		/** extensional selection */
 		boolean isDocquerySelected() {
 			return AllQueries.instance().docPanelSelectedDocIDs.contains(doc.docid);
 //			return docSelection.contains(doc.docid); 
@@ -160,6 +165,7 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 		return mode==Mode.DRAWING_BRUSH;
 	}
 	
+	/** todo this is where to use spatial index structures */
 	List<Integer> selectPoints(Rectangle q) {
 		List<Integer> ret = new ArrayList<>();
 		for (int i=0; i<points.size(); i++) {
@@ -178,7 +184,7 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 		addMouseListener(this);
 		addMouseMotionListener(this);
 		addComponentListener(new ResizerHandler());
-		queryReceiver = qr;
+		docselFromBrushReceiver = qr;
 		for (Document d : docs) {
 			MyPoint p = new MyPoint();
 			p.doc = d;
@@ -210,12 +216,14 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 	@Override
 	public void mousePressed(MouseEvent e) {
 		if (mode==Mode.STILL_BRUSH && !brush.getRegionPhys().contains(e.getPoint())) {
+			stopBrushDontPushUpdates();
 			pushEmptyDocSelection();
-			setMode(Mode.NO_BRUSH);
-			brush = null;
-			repaint();
-			queryReceiver.receiveDocSelection(new ArrayList<>());
 		}
+	}
+	void stopBrushDontPushUpdates() {
+		setMode(Mode.NO_BRUSH);
+		brush = null;
+		lastDocidSelectionByBrush = Collections.emptySet();
 	}
 
 	@Override
@@ -282,11 +290,13 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 		for (int i : selectPoints(brush.getRegionPhys())) {
 			docsel.add(points.get(i).doc.docid);
 		}
-		queryReceiver.receiveDocSelection(docsel);
+		lastDocidSelectionByBrush = docsel;
+		docselFromBrushReceiver.receiveDocSelection(docsel);
 	}
 
 	void pushEmptyDocSelection() {
-		queryReceiver.receiveDocSelection(new ArrayList<>());
+		lastDocidSelectionByBrush = Collections.emptySet();
+		docselFromBrushReceiver.receiveDocSelection(Collections.<String> emptyList());
 	}
 	
 	public void paintComponent(Graphics _g) {
@@ -305,7 +315,7 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 		for (int i=0; i<points.size(); i++) {
 			MyPoint mp = points.get(i);
 			Color c = mp.isTermquery1Selected() ? GUtil.Dark2[0] :
-							mp.isDocquerySelected() ? Color.black : 
+							mp.isDocquerySelected() ? BRUSH_COLOR : 
 							Color.gray;
 			g.setColor(c);
 			Point2D.Double p = mp.physPoint();
@@ -314,7 +324,11 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 			}
 			else {
 				GUtil.drawCenteredCircle(g, p.x, p.y, 3, mp.isTermquery1Selected());
+				if (mp.isDocquerySelected() && !mp.isTermquery1Selected()) {
+					GUtil.drawCenteredCircle(g, p.x, p.y, 2, mp.isTermquery1Selected());
+				}
 			}
+			
 			g.setColor(Color.black);
 			if (mp.isFulldocSelected()) {
 				GUtil.drawCenteredCircle(g, p.x, p.y, 4, false);
@@ -556,6 +570,19 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 		repaint();
 	}
 
+	@Subscribe
+	public void refreshNewDocSelection(DocSelectionChange e) {
+		Set<String> newDocsel = AllQueries.instance().docPanelSelectedDocIDs;
+		if ( ! lastDocidSelectionByBrush.equals(newDocsel)) {
+			stopBrushDontPushUpdates();
+		}
+		repaint();
+	}
+	
+	@Subscribe
+	public void refreshTermSelection(TermQueryChange e) {
+		repaint();
+	}
 }
 
 
