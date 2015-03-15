@@ -160,6 +160,8 @@ public class Main {
 	InfoArea termtermDescription;
 //	private JButton killDocvarQuery;
 	
+	DocdrivenTermsDock docdrivenTermsDock;
+	
 	NLP.DocAnalyzer da = new NLP.UnigramAnalyzer();
 	Supplier<Void> afteranalysisCallback = () -> null;
 	Supplier<Void> uiOverridesCallback = () -> null;
@@ -291,13 +293,24 @@ public class Main {
 	}
 
 	void pushUpdatedDocSelectionFromDocPanel(Collection<String> docids) {
-		U.p("received " + docids);
 		Set<String> s = new HashSet<>(docids);
-		boolean same = AQ().brushPanelCovariateSelectedDocIDs.equals(s);
-		U.p("same? " + same);
+		boolean same = AQ().docPanelSelectedDocIDs.equals(s);
 		if (!same) {
-			AQ().brushPanelCovariateSelectedDocIDs = new HashSet<>(docids);
+			AQ().docPanelSelectedDocIDs = new HashSet<>(docids);
 			eventBus.post(new DocSelectionChange());
+		}
+	}
+	
+	class DocdrivenTermsDock extends DefaultDockable {
+		@Subscribe
+		public void updateFromDocSelection(DocSelectionChange e) {
+			int n = AQ().docPanelSelectedDocIDs.size();
+			if (n==0) { 
+				setTitleText("Terms associated with document selection (empty)");
+			}
+			else {
+				setTitleText(String.format("Terms associated with %d documents", n));
+			}
 		}
 	}
 
@@ -500,14 +513,18 @@ public class Main {
 		SplitDockGrid grid = new SplitDockGrid();
 
 		fulldocDock = new DefaultDockable("Document view") {{ add(fulldocPanel.top()); }};
-
+		docdrivenTermsDock = new DocdrivenTermsDock();
+		docdrivenTermsDock.add(docdrivenTermsWrapper);
+		docdrivenTermsDock.setTitleText("Document-associated terms");
+		eventBus.register(docdrivenTermsDock);
+		
 //		double x=0.5, rx=1-0.5;
 		double w1=3, w2=6;
 		double y,h;
 		y=0;
 		grid.addDockable(0,0,   w1,h=5, new DefaultDockable("Pinned terms") {{ add(pinnedWrapper); }});
 		grid.addDockable(0,y+=h, w1,h=2, new DefaultDockable("Frequency control") {{ add(termfilterPanel); }});
-		grid.addDockable(0,y+=h, w1,h=15, new DefaultDockable("Covariate-associated terms") {{ add(docdrivenWrapper); }});
+		grid.addDockable(0,y+=h, w1,h=15, docdrivenTermsDock);
 //		grid.addDockable(0,y+=h, w1,h=5, new DefaultDockable("Term-associated terms") {{ add(termdrivenWrapper); }});
 //		grid.addDockable(0,y+=h, x,8, fulldocDock);
 		
@@ -515,8 +532,8 @@ public class Main {
 		grid.addDockable(w1,y, w2,h=3, new DefaultDockable("Query info") {{ add(queryInfo); }});
 		y+=h;
 		h=7;
-		grid.addDockable(w1,y, w2,h, new DefaultDockable("Covariate view") {{ add(brushPanel); }});
-		grid.addDockable(w1,y, w2,h, new DefaultDockable("Doclist") {{ add(doclistPanel.top()); }});
+		grid.addDockable(w1,y, w2,h, new DefaultDockable("Doc Covariates") {{ add(brushPanel); }});
+		grid.addDockable(w1,y, w2,h, new DefaultDockable("Documents") {{ add(doclistPanel.top()); }});
 		y += h;
 		h=15;
 		grid.addDockable(w1, y,           w2/2, h, new DefaultDockable("KWIC view") {{ add(kwicPanel.top()); }});
