@@ -9,6 +9,7 @@ import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
+import java.awt.Font;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ComponentAdapter;
@@ -114,7 +115,7 @@ import edu.stanford.nlp.util.StringUtils;
  *    i.e. A ==> B
  * user*() are entry points from the UI Swing event system, which should be directly, or fairly directly, caused by user actions.
  *   i.e. C ==> B
- * push*() are invoked during the codepath of a UI action. They SEND data into the event notification system.
+ * push*() are invoked during the codepath of a UI action. They SEND data into the centralized state.
  *   i.e. B ==> A
  * 
  * ideally the callgraphs of receiving vs sending code pathways should not be mixed, i think?
@@ -236,8 +237,6 @@ public class Main {
 		pinnedTermTable.updateCalculations();
 //		int effectiveTermcountThresh = (int) Math.floor(getTermProbThresh() * curDS.terms.totalCount);
 //		termcountInfo.setText(effectiveTermcountThresh==0 ? "all terms" : U.sf("count >= %d", effectiveTermcountThresh));
-
-		// TODO does this have to push to the new TQ?
 	}
 	
 	void runTermTermQuery(TermQuery tq) {
@@ -374,7 +373,7 @@ public class Main {
 	
 
 	void setupTermfilterSpinners() {
-		tpSpinner = new JSpinner(new SpinnerStuff.MySM1());
+		tpSpinner = new JSpinner(new SpinnerStuff.MySpinnerModel());
 		tpSpinner.setToolTipText("Minimum term frequency in units of Words Per Million.");
         JFormattedTextField tpText = ((JSpinner.DefaultEditor) tpSpinner.getEditor()).getTextField();
         tpText.setFormatterFactory(new AbstractFormatterFactory() {
@@ -383,14 +382,15 @@ public class Main {
 			}
         });
         tpText.setEditable(true);
-        tpSpinner.setValue(1e-4);
+        tpSpinner.setMinimumSize(new Dimension(20,-1));
+        tpSpinner.setValue(300 / 1e6);
         tpSpinner.addChangeListener(e -> {
         	refreshDocdrivenTermList();
         	eventBus.post(new AllQueryChange());  // todo should exclude docdriventermlist
         });
 
         tcSpinner = new JSpinner(new SpinnerNumberModel(1, 0, 1000, 1));
-        tcSpinner.setValue(2);
+        tcSpinner.setValue(1);  // should be 2 usually, i think?
         tcSpinner.addChangeListener(e -> {
         	refreshDocdrivenTermList();
         	eventBus.post(new AllQueryChange());  // todo should exclude docdriventermlist
@@ -412,12 +412,11 @@ public class Main {
 
         JPanel termfilterPanel = new JPanel();
         termfilterPanel.setLayout(new BoxLayout(termfilterPanel, BoxLayout.X_AXIS));
-        termfilterPanel.add(new JLabel("Term Prob >="));
+        termfilterPanel.add(new JLabel("Term WPM >=") {{ setFont(new Font("SansSerif",Font.PLAIN,10)); }});
         termfilterPanel.add(tpSpinner);
-        termfilterPanel.add(new JLabel("WPM"));
-        termfilterPanel.add(new JLabel("   "));
-        termfilterPanel.add(new JLabel("Count >="));
-        termfilterPanel.add(tcSpinner);
+//        termfilterPanel.add(new JLabel("   "));
+//        termfilterPanel.add(new JLabel("Count >=") {{ setFont(new Font("SansSerif",Font.PLAIN,9)); }});
+//        termfilterPanel.add(tcSpinner);
         tpSpinner.setMinimumSize(new Dimension(150,30));
 //        tpSpinner.setMinimumSize(new Dimension(300,30));
         tcSpinner.setMinimumSize(new Dimension(60,30));

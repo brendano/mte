@@ -92,15 +92,25 @@ public class KWICViewer  {
 	
 	class KWICDocView extends JPanel {
 		Document document;
-		KWICDocView(Document doc, List<WithinDocHit> hits) {
+		KWICDocView(Document doc, HitsResult r) { //List<WithinDocHit> hits) {
 			document = doc;
 			setBackground(Color.white);
 			setLayout(new BoxLayout(this,BoxLayout.Y_AXIS));
-			add(new DocIDLabel(doc.docid));
-			for (WithinDocHit h : hits) {
+			JPanel bla = new JPanel() {{ setLayout(new BoxLayout(this, BoxLayout.X_AXIS)); }};
+			bla.add(new DocIDLabel(doc.docid));
+			bla.add(new JLabel(String.format("  (%d instances)", r.totalHits)));
+			bla.setBackground(Color.WHITE);
+			add(bla);
+//			add(new DocIDLabel(doc.docid));
+			for (WithinDocHit h : r.hits) {
 //				add(new JLabel(h.toString()));
 				HitView hv = new HitView(doc, h);
 				add(hv);
+			}
+			if (r.totalHits > r.hits.size()) {
+				add(new JLabel(String.format("(%s shown, %s more)", r.hits.size(), r.totalHits - r.hits.size() )) {{ 
+					setFont(new Font("SansSerif", Font.PLAIN, 10));
+				}} );
 			}
 		}
 		class DocIDLabel extends JLabel {
@@ -150,7 +160,6 @@ public class KWICViewer  {
 			addMouseListener(new MouseAdapter() {
 				public void mouseClicked(MouseEvent e) {
 					if (fulldocTerminstClickReceiver != null) {
-						U.p("click fulldoc terminst receiver");
 						fulldocTerminstClickReceiver.accept(doc, getTermInstanceOfHit());
 					}
 				}
@@ -208,8 +217,8 @@ public class KWICViewer  {
 			if (!Sets.intersects(d.termVec.support(), termset)) {
 				continue;
 			}
-			List<WithinDocHit> hits = getHitsInDoc(d, termset, 10);
-			docviews.add(new KWICDocView(d,hits));
+			HitsResult r = getHitsInDoc(d, termset, 500);
+			docviews.add(new KWICDocView(d,r));
 		}
 		panel.removeAll();
 		for (KWICDocView dv : docviews) {
@@ -239,25 +248,35 @@ public class KWICViewer  {
 		int termStart, termEnd;
 	}
 	
-	List<WithinDocHit> getHitsInDoc(Document d, Set<String> terms, int maxHitsWithinDoc) {
+	static class HitsResult {
 		List<WithinDocHit> hits = new ArrayList<>();
+		int totalHits = 0;
+	}
+	
+	HitsResult getHitsInDoc(Document d, Set<String> terms, int maxHitsWithinDoc) {
+		HitsResult r = new HitsResult();
+		
+		// this doesnt use an index -- super slow!
 		for (int i=0; i<d.tokens.size(); i++) {
 			if ( ! d.tisByStartTokindex.containsKey(i)) continue;
 			for (TermInstance ti : d.tisByStartTokindex.get(i)) {
 				if (terms.contains(ti.termName)) {
-					WithinDocHit h = new WithinDocHit();
-					h.termStart = ti.tokIndsInDoc.get(0);
-					h.termEnd = ti.tokIndsInDoc.get( ti.tokIndsInDoc.size()-1 ) + 1;
-					hits.add(h);
+					if (r.hits.size() < maxHitsWithinDoc) {
+						WithinDocHit h = new WithinDocHit();
+						h.termStart = ti.tokIndsInDoc.get(0);
+						h.termEnd = ti.tokIndsInDoc.get( ti.tokIndsInDoc.size()-1 ) + 1;
+						r.hits.add(h);
+					}
+					r.totalHits += 1;
 				}
-				if (hits.size() >= maxHitsWithinDoc) break;
+//				if (r.hits.size() >= maxHitsWithinDoc) break;
 			}
-			if (hits.size() >= maxHitsWithinDoc) break;
+//			if (r.hits.size() >= maxHitsWithinDoc) break;
 		}
-		Collections.sort(hits, Ordering.natural().onResultOf(h -> U.pair(h.termStart, h.termEnd)));
+		Collections.sort(r.hits, Ordering.natural().onResultOf(h -> U.pair(h.termStart, h.termEnd)));
 //		Collections.sort(hits, Comparator
 //				.comparing((WithinDocHit h) -> h.termStart).thenComparing((WithinDocHit h) ->h.termEnd));
-		return hits;
+		return r;
 	}
 
 	///////////////////////////////////////////

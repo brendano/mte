@@ -165,7 +165,7 @@ class TermCellRenderer extends DefaultTableCellRenderer {
 		Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
 		if (column==4) {
 			JLabel label = (JLabel) c;
-			String text = String.format("%.3f", (Number) value);
+			String text = String.format("%.2f", (Number) value);
 			label.setText(text);
 		}
 		return c;

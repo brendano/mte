@@ -54,7 +54,7 @@ public class SpinnerStuff {
 		}
 	}
 
-	static class MySM1 extends AbstractSpinnerModel {
+	static class MySpinnerModel extends AbstractSpinnerModel {
 		double prob;
 		
 		@Override
