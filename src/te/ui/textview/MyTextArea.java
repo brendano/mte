@@ -47,6 +47,15 @@ import javax.swing.SwingUtilities;
 
 import edu.stanford.nlp.util.MutableInteger;
 
+/**
+ * the rationale for this class is to allow faster updating compared to throwing html at the swing rich text area
+ * esp with dynamically changing the styling.  (an html renderer with good css support has this built-in, of course)
+ * and allow scrolling to positions.
+ * 
+ * again, a real html5-capable component could do all this pretty well and maybe better
+ * i couldnt find one that seemed easy to integrate into java so just made a new thing
+ * (without any html support!) 
+ */
 public class MyTextArea {
 	InternalTextArea area;
 	JScrollPane scrollpane;
@@ -219,6 +228,8 @@ public class MyTextArea {
 	 * the latest one gets priority.
 	 * this is implemented by killing the currently running thread (well, using Thread.interrupt bcs that's supposed to be safer).
 	 * finally, there's a lock around the thread management and launching code, which hopefully should be pretty quick.  it's the render that's potentially slow.
+	 * 
+	 * assuming this is all on the swing edt.
 	 */
 
 	Rendering finishedRendering = null;

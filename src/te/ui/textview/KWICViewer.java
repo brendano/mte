@@ -127,6 +127,7 @@ public class KWICViewer  {
 				});
 			}
 			@Override public void paintComponent(Graphics _g) {
+				U.p("KWICDocView paint");
 				super.paintComponent(_g);
 				Graphics2D g = (Graphics2D) _g;
 				String fulldocDocID = AllQueries.instance().fulldocPanelCurrentDocID;
@@ -179,6 +180,7 @@ public class KWICViewer  {
 		}
 		@Override
 		public void paintComponent(Graphics _g) {
+//			U.p("HitView paint");
 			Graphics2D g = (Graphics2D) _g;
 		    g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 		    g.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_NORMALIZE);
@@ -211,6 +213,11 @@ public class KWICViewer  {
 		}
 	}
 	
+	/** this should only be invoked on the swing event thread.
+	 * http://stackoverflow.com/a/14940127/86684
+	 * originally i was doing this on the eventbus thread, and was getting i guess a race condition that
+	 * it sometimes went blank and swing didnt want to repaint it.
+	 */
 	void buildViews() {
 		docviews = new ArrayList<>();
 		for (Document d : doclist) {
@@ -238,8 +245,7 @@ public class KWICViewer  {
 		doclist = new ArrayList<>(docs.docs());
 		Collections.sort(doclist, Ordering.natural().onResultOf(d -> d.docid));
 		termset = new HashSet<>(terms);
-		buildViews();
-		top().repaint();
+		SwingUtilities.invokeLater(this::buildViews);
 	}
 	
 	
@@ -282,7 +288,8 @@ public class KWICViewer  {
 	///////////////////////////////////////////
 	
 	@Subscribe public void refresh(FulldocChange e) {
-		top().repaint();
+		U.p("fulldoc change to kwic");
+		SwingUtilities.invokeLater(top()::repaint);
 	}
 	
 	@Subscribe public void refreshFull(DocSelectionChange e) { refreshFull(); }

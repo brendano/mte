@@ -27,6 +27,7 @@ import java.util.stream.Collectors;
 
 import javax.swing.BorderFactory;
 import javax.swing.JPanel;
+import javax.swing.SwingUtilities;
 
 import com.google.common.eventbus.Subscribe;
 
@@ -567,7 +568,7 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 	
 	@Subscribe
 	public void refreshFulldoc(FulldocChange e) {
-		repaint();
+		SwingUtilities.invokeLater(this::repaint);
 	}
 
 	@Subscribe
@@ -576,12 +577,12 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 		if ( ! lastDocidSelectionByBrush.equals(newDocsel)) {
 			stopBrushDontPushUpdates();
 		}
-		repaint();
+		SwingUtilities.invokeLater(this::repaint);
 	}
 	
 	@Subscribe
 	public void refreshTermSelection(TermQueryChange e) {
-		repaint();
+		SwingUtilities.invokeLater(this::repaint);
 	}
 }
 

@@ -16,6 +16,7 @@ import javax.swing.JScrollPane;
 import javax.swing.ListCellRenderer;
 import javax.swing.ListModel;
 import javax.swing.ListSelectionModel;
+import javax.swing.SwingUtilities;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
 import javax.swing.event.ListSelectionEvent;
@@ -147,7 +148,7 @@ public class DocList {
 	
 	@Subscribe
 	public void refreshFulldoc(FulldocChange e) {
-		top().repaint();
+		SwingUtilities.invokeLater(top()::repaint);
 	}
 	
 	void status() {

@@ -21,4 +21,11 @@ public class TermQuery {
 		}
 		return matchingDocs;
 	}
+	
+	@Override
+	public String toString() {
+		return String.format("TQ[%s terms, %s docs]", 
+				terms==null?null:terms.size(), 
+				matchingDocs==null?null:matchingDocs.docsById.size());
+	}
 }

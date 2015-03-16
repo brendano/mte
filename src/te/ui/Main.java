@@ -259,6 +259,7 @@ public class Main {
 	}
 	
 	void pushTermQueryChange() {
+		U.p("push tq change");
 		AQ().setTermQuery( getCurrentTQFromUIState() );
 		eventBus.post(new TermQueryChange());
 	}
@@ -319,6 +320,7 @@ public class Main {
     	selterms.addAll(docdrivenTermTable.getSelectedTerms());
     	selterms.addAll(pinnedTermTable.getSelectedTerms());
     	curTQ.terms.addAll(selterms);
+    	U.pf("curTQ %s\n", curTQ);
     	return curTQ;
 	}
 	
@@ -330,11 +332,13 @@ public class Main {
 	}
 	
 	void pinTerm(String term) {
-		pinnedTerms.add(term);
-//		pinnedTermTable.model.fireTableRowsInserted(pinnedTerms.size()-2, pinnedTerms.size()-1);
-		pinnedTermTable.model.fireTableRowsInserted(0, pinnedTerms.size()-1);
-//		pinnedTermTable.table.setRowSelectionInterval(pinnedTerms.size()-1, pinnedTerms.size()-1);
-		pushTermQueryChange();
+		if ( ! pinnedTerms.contains(term)) {
+			pinnedTerms.add(term);
+//			pinnedTermTable.model.fireTableRowsInserted(pinnedTerms.size()-2, pinnedTerms.size()-1);
+			pinnedTermTable.model.fireTableRowsInserted(0, pinnedTerms.size()-1);
+//			pinnedTermTable.table.setRowSelectionInterval(pinnedTerms.size()-1, pinnedTerms.size()-1);
+			pushTermQueryChange();
+		}
 	}
 	void unpinTerm(String term) {
 		int[] rowsToDel = IntStream.range(0,pinnedTermTable.model.getRowCount())
