@@ -18,10 +18,19 @@ import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import javax.swing.JPanel;
+import javax.swing.border.EmptyBorder;
+
 import te.data.Span;
 import util.U;
 
 public class GUtil {
+	
+	public static JPanel emptyPanel() {
+		JPanel p =new JPanel();
+		p.setBorder(new EmptyBorder(0,0,0,0) );
+		return p;
+	}
 
 	/** Dark2 from http://colorbrewer2.org/ http://blog.mollietaylor.com/2012/10/color-blindness-and-palette-choice.html */
 	public static Color[] Dark2 = new Color[] {

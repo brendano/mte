@@ -420,8 +420,8 @@ public class Main {
 //        termfilterPanel.add(new JLabel("   "));
 //        termfilterPanel.add(new JLabel("Count >=") {{ setFont(new Font("SansSerif",Font.PLAIN,9)); }});
 //        termfilterPanel.add(tcSpinner);
-        tpSpinner.setMinimumSize(new Dimension(150,30));
-//        tpSpinner.setMinimumSize(new Dimension(300,30));
+        tpSpinner.setMinimumSize(new Dimension(100,30));
+        tpSpinner.setPreferredSize(new Dimension(100,30));
         tcSpinner.setMinimumSize(new Dimension(60,30));
         tcSpinner.setMaximumSize(new Dimension(60,30));
 
@@ -453,11 +453,16 @@ public class Main {
         pinnedWrapper.add(pinnedTermTable.top(), BorderLayout.CENTER);
         
         JPanel docdrivenTermsWrapper = new JPanel(new BorderLayout());
-        JPanel topstuff = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        topstuff.add(termlistInfo);
-        docdrivenTermsWrapper.add(topstuff, BorderLayout.NORTH);
+        JPanel toptop = GUtil.emptyPanel();
+        toptop.setLayout(new BoxLayout(toptop,BoxLayout.Y_AXIS));
+        	JPanel topstuff = GUtil.emptyPanel();
+        	topstuff.setLayout(new FlowLayout(FlowLayout.LEFT));
+        	topstuff.add(termfilterPanel);
+        	topstuff.add(termlistInfo);
+    	toptop.add(topstuff);
+        docdrivenTermsWrapper.add(toptop, BorderLayout.NORTH);
         docdrivenTermsWrapper.add(docdrivenTermTable.top(), BorderLayout.CENTER);
-                
+
         termtermDescription = new InfoArea("");
         JPanel termdrivenWrapper = new JPanel(new BorderLayout()) {{
         	addComponentListener(new ComponentAdapter() {
@@ -525,7 +530,7 @@ public class Main {
 		double y,h;
 		y=0;
 		grid.addDockable(0,0,   w1,h=5, new DefaultDockable("Pinned terms") {{ add(pinnedWrapper); }});
-		grid.addDockable(0,y+=h, w1,h=2, new DefaultDockable("Frequency control") {{ add(termfilterPanel); }});
+//		grid.addDockable(0,y+=h, w1,h=2, new DefaultDockable("Frequency control") {{ add(termfilterPanel); }});
 		grid.addDockable(0,y+=h, w1,h=15, docdrivenTermsDock);
 //		grid.addDockable(0,y+=h, w1,h=5, new DefaultDockable("Term-associated terms") {{ add(termdrivenWrapper); }});
 //		grid.addDockable(0,y+=h, x,8, fulldocDock);
