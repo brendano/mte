@@ -127,7 +127,7 @@ public class KWICViewer  {
 				});
 			}
 			@Override public void paintComponent(Graphics _g) {
-				U.p("KWICDocView paint");
+//				U.p("KWICDocView paint");
 				super.paintComponent(_g);
 				Graphics2D g = (Graphics2D) _g;
 				String fulldocDocID = AllQueries.instance().fulldocPanelCurrentDocID;
@@ -288,7 +288,6 @@ public class KWICViewer  {
 	///////////////////////////////////////////
 	
 	@Subscribe public void refresh(FulldocChange e) {
-		U.p("fulldoc change to kwic");
 		SwingUtilities.invokeLater(top()::repaint);
 	}
 	

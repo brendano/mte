@@ -259,7 +259,6 @@ public class Main {
 	}
 	
 	void pushTermQueryChange() {
-		U.p("push tq change");
 		AQ().setTermQuery( getCurrentTQFromUIState() );
 		eventBus.post(new TermQueryChange());
 	}
@@ -320,7 +319,7 @@ public class Main {
     	selterms.addAll(docdrivenTermTable.getSelectedTerms());
     	selterms.addAll(pinnedTermTable.getSelectedTerms());
     	curTQ.terms.addAll(selterms);
-    	U.pf("curTQ %s\n", curTQ);
+//    	U.pf("curTQ %s\n", curTQ);
     	return curTQ;
 	}
 	
