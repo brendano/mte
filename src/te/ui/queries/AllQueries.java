@@ -36,15 +36,6 @@ public class AllQueries {
 		return _instance;
 	}
 	
-	public Collection<String> docQueryDocIDs() {
-		Set<String> docids = new HashSet<>();
-		docids.addAll(docPanelSelectedDocIDs);
-		if (fulldocPanelCurrentDocID!=null) {
-			docids.add(fulldocPanelCurrentDocID);
-		}
-		return docids;
-	}
-
 	public String toString() {
 		return "\nAQ\n" +
 				"bp cov " + docPanelSelectedDocIDs + "\n" +
