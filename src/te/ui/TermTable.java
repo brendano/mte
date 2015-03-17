@@ -13,6 +13,7 @@ import java.util.function.Consumer;
 import javax.swing.*;
 import javax.swing.table.*;
 
+import te.ui.queries.AllQueries;
 import util.U;
 
 public class TermTable {
@@ -75,11 +76,11 @@ public class TermTable {
 	}
 
 	void setupTermTable() {
-		table.setSelectionBackground(GUtil.Dark2[0]);
+		table.setSelectionBackground(AllQueries.highlightVersion(AllQueries.instance().termQueryColor));
+		table.setSelectionForeground(Color.BLACK);
 		
 //		U.p("prefsize "+table.getPreferredSize() + " scrollprefsize "+table.getPreferredScrollableViewportSize()
 //				+ " scrollpane's prefsize "+scrollpane.getPreferredSize());
-
 
 		TermCellRenderer centerNumberRenderer = new TermCellRenderer();
 		centerNumberRenderer.setHorizontalAlignment( JLabel.CENTER );

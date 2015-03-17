@@ -25,12 +25,14 @@ import javax.swing.event.ListSelectionListener;
 import com.google.common.eventbus.Subscribe;
 import com.google.common.primitives.Ints;
 
+import te.data.DocSet;
 import te.data.Document;
 import te.ui.GUtil;
 import te.ui.My_DefaultListSelectionModel;
 import te.ui.queries.AllQueries;
 import te.ui.queries.DocSelectionChange;
 import te.ui.queries.FulldocChange;
+import te.ui.queries.TermQueryChange;
 import util.U;
 
 // TODO implement pushes to the query receiver
@@ -41,7 +43,6 @@ public class DocList {
 	DocSelectionListener docselUpdateReceiver;
 	public Consumer<Document> fulldocClickReceiver;
 	ListSelectionListener listenerCallback = this::userChangesListSelection;
-	
 	
 	public DocList(DocSelectionListener qr, List<Document> docsInOrderForDisplay) {
 		docselUpdateReceiver = qr;
@@ -127,16 +128,20 @@ public class DocList {
 		public Component getListCellRendererComponent(
 				JList<? extends Document> list, Document doc, int index,
 				boolean isSelected, boolean cellHasFocus) {
-
+			AllQueries AQ = AllQueries.instance();
 			JLabel jl = new JLabel(doc.docid);
 			jl.setBorder(new EmptyBorder(1,2,1,2));
 			jl.setOpaque(true);
 			if (isSelected) {
-				jl.setBackground(Color.BLUE);
-				jl.setForeground(Color.WHITE);
-			}
-			else {
+				jl.setBackground(AllQueries.highlightVersion(AQ.docPanelQueryColor));
+			} else {
 				jl.setBackground(Color.WHITE);
+			}
+			DocSet termDocs = AQ.termQuery().getMatchingDocs();
+			if (termDocs.docsById.containsKey(doc.docid)) {
+				jl.setForeground(AQ.termQueryColor);
+			} else {
+				jl.setForeground(Color.BLACK);
 			}
 			if (GUtil.nonnullEqual(doc.docid, AllQueries.instance().fulldocPanelCurrentDocID)) {
 				jl.setBorder(new LineBorder(Color.BLACK, 2));
@@ -148,6 +153,10 @@ public class DocList {
 	
 	@Subscribe
 	public void refreshFulldoc(FulldocChange e) {
+		SwingUtilities.invokeLater(top()::repaint);
+	}
+	@Subscribe
+	public void refreshTermQuery(TermQueryChange e) {
 		SwingUtilities.invokeLater(top()::repaint);
 	}
 	

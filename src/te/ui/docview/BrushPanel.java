@@ -81,7 +81,8 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 	/** intended always nonnull */
 	Set<String> lastDocidSelectionByBrush = Collections.emptySet();
 	
-	Color BRUSH_COLOR = new Color(61,56,240);
+//	Color BRUSH_COLOR = new Color(61,56,240);
+	Color BRUSH_COLOR = AllQueries.instance().docPanelQueryColor;
 	
 	class MyPoint {
 		Document doc;
@@ -315,7 +316,7 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 		
 		for (int i=0; i<points.size(); i++) {
 			MyPoint mp = points.get(i);
-			Color c = mp.isTermquery1Selected() ? GUtil.Dark2[0] :
+			Color c = mp.isTermquery1Selected() ? AllQueries.instance().termQueryColor :
 							mp.isDocquerySelected() ? BRUSH_COLOR : 
 							Color.gray;
 			g.setColor(c);

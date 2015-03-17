@@ -12,6 +12,7 @@ import javax.swing.text.DefaultCaret;
 
 import te.data.DocSet;
 import te.data.Document;
+import te.ui.queries.AllQueries;
 import util.Timer;
 import util.U;
 
@@ -35,8 +36,7 @@ public class FullDocViewer {
 	}
 
 	public void showForCurrentDoc(Collection<String> terms, boolean isNewDoc) {
-//		textarea.termHighlighter = ti -> ti.termName.equals("the") ? Color.blue : null;
-		textarea.termHighlighter = ti -> terms.contains(ti.termName) ? Color.blue : null;
+		textarea.termHighlighter = ti -> terms.contains(ti.termName) ? AllQueries.instance().termQueryColor : null;
 		if (isNewDoc) {
 			textarea.launchTextRender(isNewDoc);
 		}

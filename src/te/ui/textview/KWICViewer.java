@@ -133,7 +133,7 @@ public class KWICViewer  {
 				String fulldocDocID = AllQueries.instance().fulldocPanelCurrentDocID;
 				if (fulldocDocID!=null &&
 						document.docid.equals(fulldocDocID)) {
-					g.setColor(Color.black);
+					g.setColor(AllQueries.instance().fulldocColor);
 					g.drawRect(0,0,getWidth(),getHeight());
 					g.drawRect(1,1,getWidth()-2,getHeight()-2);
 				}
@@ -206,7 +206,7 @@ public class KWICViewer  {
 			g.drawString(leftstr, (int) (hittermLeft - twCalc.apply(leftstr)), (int) cury);
 			g.drawString(rightstr, (int) hittermRight, (int) cury);
 //			g.setFont(BOLD_FONT);
-			g.setColor(Color.BLUE);
+			g.setColor(AllQueries.instance().termQueryColor);
 			g.drawString(hitstr, (int) hittermLeft, (int) cury);
 			g.setColor(Color.BLACK);
 //			g.setFont(NORMAL_FONT);

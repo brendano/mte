@@ -32,16 +32,29 @@ public class GUtil {
 		return p;
 	}
 
-	/** Dark2 from http://colorbrewer2.org/ http://blog.mollietaylor.com/2012/10/color-blindness-and-palette-choice.html */
+	/// http://colorbrewer2.org/
+	
 	public static Color[] Dark2 = new Color[] {
-			new Color(27,158,119),
-			new Color(217,95,2),
-			new Color(117,112,179),
-			new Color(231,41,138),
-			new Color(102,166,30),
-			new Color(230,171,2),
-			new Color(166,118,29),
-			new Color(102,102,102)
+			new Color(27,158,119), //teal
+			new Color(217,95,2), //orangebrown
+			new Color(117,112,179), //purpley
+			new Color(231,41,138), //magentapink
+			new Color(102,166,30), //green
+			new Color(230,171,2),  //tan
+			new Color(166,118,29),  //brown
+			new Color(102,102,102)  //darkgray
+	};
+	
+	public static Color[] Set1 = new Color[] {
+		new Color(228,26,28), //red
+		new Color(55,126,184), //blue
+		new Color(77,175,74), //green
+		new Color(152,78,163), //purple
+		new Color(255,127,0),  //orange
+		new Color(255,255,51),  //yellow
+		new Color(166,86,40),  //brown
+		new Color(247,129,191), //pink
+		new Color(153,153,153)  //gray
 	};
 
 	public static void drawLine(Graphics2D g, double x1, double y1, double x2, double y2) {
