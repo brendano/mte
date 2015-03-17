@@ -36,7 +36,9 @@ public class FullDocViewer {
 	}
 
 	public void showForCurrentDoc(Collection<String> terms, boolean isNewDoc) {
-		textarea.termHighlighter = ti -> terms.contains(ti.termName) ? AllQueries.instance().termQueryColor : null;
+		textarea.termHighlighter = ti -> terms.contains(ti.termName) ? 
+				AllQueries.foregroundVersion(AllQueries.instance().termQueryColor) 
+				: null;
 		if (isNewDoc) {
 			textarea.launchTextRender(isNewDoc);
 		}

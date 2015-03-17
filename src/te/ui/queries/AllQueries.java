@@ -25,6 +25,13 @@ public class AllQueries {
 		int r=basecolor.getRed(), g=basecolor.getGreen(), b=basecolor.getBlue();
 		return new Color(r,g,b, 30);
 	}
+	public static Color foregroundVersion(Color basecolor) {
+		int r=basecolor.getRed(), g=basecolor.getGreen(), b=basecolor.getBlue();
+		float[] hsb = Color.RGBtoHSB(r,g,b, null);
+		hsb[2] *= 0.8;
+		hsb[1] *= 0.9;
+		return new Color(Color.HSBtoRGB(hsb[0], hsb[1], hsb[2]));
+	}
 	
 	public TermQuery termQuery() {
 		if (_termQuery==null) {

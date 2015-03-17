@@ -139,7 +139,7 @@ public class DocList {
 			}
 			DocSet termDocs = AQ.termQuery().getMatchingDocs();
 			if (termDocs.docsById.containsKey(doc.docid)) {
-				jl.setForeground(AQ.termQueryColor);
+				jl.setForeground(AllQueries.foregroundVersion(AQ.termQueryColor));
 			} else {
 				jl.setForeground(Color.BLACK);
 			}

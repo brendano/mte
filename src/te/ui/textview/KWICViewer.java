@@ -206,7 +206,8 @@ public class KWICViewer  {
 			g.drawString(leftstr, (int) (hittermLeft - twCalc.apply(leftstr)), (int) cury);
 			g.drawString(rightstr, (int) hittermRight, (int) cury);
 //			g.setFont(BOLD_FONT);
-			g.setColor(AllQueries.instance().termQueryColor);
+//			g.setColor(AllQueries.instance().termQueryColor);
+			g.setColor(AllQueries.foregroundVersion(AllQueries.instance().termQueryColor));
 			g.drawString(hitstr, (int) hittermLeft, (int) cury);
 			g.setColor(Color.BLACK);
 //			g.setFont(NORMAL_FONT);
