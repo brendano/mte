@@ -1,6 +1,4 @@
 package te.data;
-import java.util.*;
-import util.U;
 
 /** this class is underspecified what the span is about (characters? tokens? sentences?)
  * but in all cases it's intended to represent a [start,end) inc-exc pair with length (end-start).

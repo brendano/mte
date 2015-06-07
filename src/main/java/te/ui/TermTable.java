@@ -1,20 +1,16 @@
 package te.ui;
 
-import java.awt.Color;
-import java.awt.Component;
-import java.awt.Dimension;
+import te.ui.queries.AllQueries;
+
+import javax.swing.*;
+import javax.swing.table.DefaultTableCellRenderer;
+import javax.swing.table.TableColumn;
+import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
-
-import javax.swing.*;
-import javax.swing.table.*;
-
-import te.ui.queries.AllQueries;
-import util.U;
 
 public class TermTable {
 	JTable table;

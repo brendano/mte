@@ -3,8 +3,6 @@ package te.data;
 import java.util.ArrayList;
 import java.util.List;
 
-import util.U;
-
 public class TermQuery {
 	public List<String> terms;
 	private DocSet matchingDocs = null;

@@ -1,6 +1,5 @@
 package te.data;
 import java.util.*;
-import java.util.Map.Entry;
 
 public class TermVector {
 	public Map<String,Double> map;

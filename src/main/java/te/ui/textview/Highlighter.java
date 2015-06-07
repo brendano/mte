@@ -1,11 +1,9 @@
 package te.ui.textview;
 
 import java.util.*;
-import java.util.function.Function;
 
 import te.data.Document;
 import te.data.TermInstance;
-import util.U;
 
 public class Highlighter {
 	

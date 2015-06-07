@@ -1,7 +1,6 @@
 package te.data;
 
 import util.OnlineNormal1d;
-import util.ReservoirSampler;
 
 public class SummaryStats {
 	private OnlineNormal1d meanvar = new OnlineNormal1d();

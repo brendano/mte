@@ -1,6 +1,5 @@
 package te.data;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import edu.stanford.nlp.util.StringUtils;

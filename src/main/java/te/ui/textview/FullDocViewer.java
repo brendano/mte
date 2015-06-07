@@ -1,20 +1,12 @@
 package te.ui.textview;
 
-import java.awt.Color;
 import java.util.Collection;
 
-import javax.swing.BoxLayout;
 import javax.swing.JComponent;
-import javax.swing.JEditorPane;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.text.DefaultCaret;
 
-import te.data.DocSet;
 import te.data.Document;
 import te.ui.queries.AllQueries;
 import util.Timer;
-import util.U;
 
 public class FullDocViewer {
 //	public JEditorPane htmlpane;
