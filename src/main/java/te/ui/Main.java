@@ -112,7 +112,7 @@ public class Main {
 
 	/** only call this after schema is set. return false if fails. */
 	public boolean setXAttr(String xattrName) {
-		if ( ! corpus.schema.varnames().contains(xattrName)) {
+		if ( ! corpus.getSchema().varnames().contains(xattrName)) {
 			return false;
 		}
 		xattr = xattrName;
@@ -120,7 +120,7 @@ public class Main {
 	}
 	/** only call this after schema is set. return false if fails. */
 	public boolean setYAttr(String yattrName) {
-		if ( ! corpus.schema.varnames().contains(yattrName)) {
+		if ( ! corpus.getSchema().varnames().contains(yattrName)) {
 			return false;
 		}
 		yattr = yattrName;
@@ -151,7 +151,7 @@ public class Main {
 
 	@Subscribe
 	public void refreshFulldoc(FulldocChange e) {
-		Document doc = corpus.docsById.get(AQ().fulldocPanelCurrentDocID);
+		Document doc = corpus.pullDocument(AQ().fulldocPanelCurrentDocID);
 		if (doc == null) return;
 		fulldocDock.setTitleText("Document: " + doc.docid);
 		fulldocPanel.show(AQ().termQuery().terms, doc);
@@ -396,7 +396,7 @@ public class Main {
 		};
 
 		brushPanel = new BrushPanel(this::pushUpdatedDocSelectionFromDocPanel, corpus.allDocs());
-		brushPanel.schema = corpus.schema;
+		brushPanel.schema = corpus.getSchema();
 		// todo this is bad organization that the app owns the xattr/yattr selections and copies them to the brushpanel, right?
 		// i guess eventually we'll need a current-user-config object as the source of truth for this and brushpanel should be hooked up to pull from it?
 		if (xattr != null) brushPanel.xattr = xattr;
@@ -536,7 +536,7 @@ public class Main {
 			main.setupUI();
 			main.uiOverridesCallback.get();
 			main.mainFrame.setVisible(true);
-			U.pf("UI ready (%.1f ms)\n", 1e-6*(System.nanoTime()-t0));
+			U.pf("UI ready (%.1f ms)\n", 1e-6 * (System.nanoTime() - t0));
 		});
 	}
 }

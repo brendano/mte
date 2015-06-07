@@ -13,13 +13,16 @@ import java.util.*;
 import java.util.function.Function;
 
 public class Corpus implements DataLayer {
-	public Map<String,Document> docsById;
+	private Map<String,Document> docsById;
 	public List<Document> docsInOriginalOrder;
+	/**
+	 * This is essentially the corpus statistics:
+	 */
 	public TermVector globalTerms;
-	InvertedIndex index;
+	private InvertedIndex index;
 //	SpatialIndex hierIndex;
 //	DoubleSummaryStatistics xSummary, ySummary;
-	public Schema schema;
+	private Schema schema;
 	public Map<String,SummaryStats> covariateSummaries;
 	double doclenSumSq = 0;
 	public boolean needsCovariateTypeConversion = false;
@@ -28,7 +31,7 @@ public class Corpus implements DataLayer {
 		docsById = new HashMap<>();
 		index = new InvertedIndex();
 		docsInOriginalOrder = new ArrayList<>();
-		schema = new Schema();
+		setSchema(new Schema());
 	}
 	
 	@Override
@@ -49,10 +52,10 @@ public class Corpus implements DataLayer {
 		DocSet ds = new DocSet();
 		docsById.values().stream()
 			.filter(d -> 
-				schema.getDouble(d,xAttr) >= minX && 
-				schema.getDouble(d,xAttr) <= maxX &&
-				schema.getDouble(d,yAttr) >=minY && 
-				schema.getDouble(d,yAttr) <=maxY)
+				getSchema().getDouble(d, xAttr) >= minX &&
+				getSchema().getDouble(d, xAttr) <= maxX &&
+				getSchema().getDouble(d, yAttr) >=minY &&
+				getSchema().getDouble(d, yAttr) <=maxY)
 			.forEach(d -> ds.add(d));
 		return ds;
 	}
@@ -121,23 +124,23 @@ public class Corpus implements DataLayer {
 
 	public void calculateCovariateSummaries() {
 		covariateSummaries = new HashMap<>();
-		for (String k : schema.varnames()) covariateSummaries.put(k, new SummaryStats());
+		for (String k : getSchema().varnames()) covariateSummaries.put(k, new SummaryStats());
 		for (Document d : allDocs()) {
-			for (String varname : schema.varnames()) {
+			for (String varname : getSchema().varnames()) {
 				if (!d.covariates.containsKey(varname)) continue;
-				covariateSummaries.get(varname).add((Double) schema.getDouble(d, varname));
+				covariateSummaries.get(varname).add(getSchema().getDouble(d, varname));
 			}
 		}
 		U.p("Covariate summary stats: " + covariateSummaries);
 	}
 	
 	public void convertCovariateTypes() {
-		U.p("Covariate types, before conversion pass: " + schema.columnTypes);
+		U.p("Covariate types, before conversion pass: " + getSchema().columnTypes);
 		for (Document d : allDocs()) {
-			for (String varname : schema.columnTypes.keySet()) {
+			for (String varname : getSchema().columnTypes.keySet()) {
 				if (!d.covariates.containsKey(varname)) continue;
-				ColumnInfo ci = schema.columnTypes.get(varname);
-				Object converted = schema.columnTypes.get(varname).convertFromJson( (JsonNode) d.covariates.get(varname) );
+				ColumnInfo ci = getSchema().columnTypes.get(varname);
+				Object converted = getSchema().columnTypes.get(varname).convertFromJson( (JsonNode) d.covariates.get(varname) );
 				d.covariates.put(varname, converted);
 				if (ci.dataType==DataType.CATEG && !ci.levels.name2level.containsKey(converted)) {
 					ci.levels.addLevel((String) converted);
@@ -145,7 +148,7 @@ public class Corpus implements DataLayer {
 				
 			}
 		}
-		U.p("Covariate types, after conversion pass: " + schema.columnTypes);
+		U.p("Covariate types, after conversion pass: " + getSchema().columnTypes);
 	}
 
 	public void setDataFromDataLoader(DataLoader dataloader) {
@@ -154,4 +157,17 @@ public class Corpus implements DataLayer {
 		this.docsInOriginalOrder = dataloader.docsInOriginalOrder;
 	}
 
+	@Override
+	public Schema getSchema() {
+		return schema;
+	}
+
+	@Override
+	public Document pullDocument(String id) {
+		return docsById.get(id);
+	}
+
+	public void setSchema(Schema schema) {
+		this.schema = schema;
+	}
 }

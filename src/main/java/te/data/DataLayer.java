@@ -17,4 +17,8 @@ public interface DataLayer {
 	void runTokenizer(Function<String, List<Token>> tokenizer);
 
 	DocSet select(List<String> terms);
+
+	Schema getSchema();
+
+	Document pullDocument(String id);
 }

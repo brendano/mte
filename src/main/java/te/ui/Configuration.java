@@ -1,6 +1,5 @@
 package te.ui;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import te.data.DataLoader;
@@ -95,7 +94,7 @@ public class Configuration {
 		}
 	}
 	
-	public void initWithConfig(Main _main, String filename, DataLoader dataloader) throws JsonProcessingException, IOException, BadConfig, BadSchema {
+	public void initWithConfig(Main _main, String filename, DataLoader dataloader) throws IOException, BadConfig, BadSchema {
 		
 		// TODO in the future, this function shouldn't be responsible for actually running potentially-expensive analysis routines.
 		// it should queue them up somehow.
@@ -123,10 +122,10 @@ public class Configuration {
 			Object schema = conf.getAnyRef("schema");
 			if (schema instanceof String) {
 				String sfilename = resolvePathExists(dirOfConfFile, (String) schema);
-				main.corpus.schema.loadSchemaFromFile(sfilename);
+				main.corpus.getSchema().loadSchemaFromFile(sfilename);
 			}
 			else {
-				main.corpus.schema.loadSchemaFromConfigObject(conf.getObject("schema"));
+				main.corpus.getSchema().loadSchemaFromConfigObject(conf.getObject("schema"));
 			}
 		}
 
