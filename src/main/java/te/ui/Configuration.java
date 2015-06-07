@@ -1,31 +1,20 @@
 package te.ui;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.typesafe.config.*;
+import te.data.DataLoader;
+import te.data.NLP;
+import te.exceptions.BadConfig;
+import te.exceptions.BadData;
+import te.exceptions.BadSchema;
+import util.U;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
-
-import org.codehaus.jackson.JsonProcessingException;
-
-import te.data.DataLoader;
-import te.data.NLP;
-import te.data.Schema;
-import te.exceptions.BadConfig;
-import te.exceptions.BadData;
-import te.exceptions.BadSchema;
-import util.U;
-
-import com.typesafe.config.Config;
-import com.typesafe.config.ConfigFactory;
-import com.typesafe.config.ConfigList;
-import com.typesafe.config.ConfigMergeable;
-import com.typesafe.config.ConfigObject;
-import com.typesafe.config.ConfigOrigin;
-import com.typesafe.config.ConfigResolveOptions;
-import com.typesafe.config.ConfigValue;
 
 public class Configuration {
 	Config conf;
@@ -36,7 +25,8 @@ public class Configuration {
 
 	public static Configuration defaultConfiguration(Main main) {
 		Configuration c = new Configuration();
-		c.conf = new EmptyConfig();
+		//c.conf = new EmptyConfig();
+		c.conf = ConfigFactory.parseString("{}");
 		c.tokenizerName = "StanfordTokenizer";
 		c.main = main;
 		return c;

@@ -1,12 +1,5 @@
 package te.ui;
-import java.io.IOException;
-import java.util.*;
-
-import org.codehaus.jackson.JsonProcessingException;
-
 import te.data.NLP;
-import te.exceptions.BadSchema;
-import util.U;
 
 public class ExtraInit {
 	public static void initWithCode(Main m) throws Exception {

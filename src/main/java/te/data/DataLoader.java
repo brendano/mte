@@ -1,24 +1,17 @@
 package te.data;
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.DirectoryStream;
-import java.nio.file.FileSystem;
-import java.nio.file.FileSystems;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.PathMatcher;
-import java.util.*;
 
-import org.codehaus.jackson.JsonNode;
-import org.codehaus.jackson.JsonProcessingException;
-
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.ImmutableList;
-
 import te.exceptions.BadData;
 import te.ui.Configuration;
 import util.BasicFileIO;
 import util.JsonUtil;
 import util.U;
+
+import java.io.IOException;
+import java.nio.file.*;
+import java.util.*;
 
 /** represents the data during the loading process.  can incrementally add new stuff into it.
  * it has to infer what the full schema is and stuff like that.
@@ -122,8 +115,8 @@ public class DataLoader {
 		Document doc = new Document();
 		JsonNode docidNode = j.has("docid") ? j.get("docid") : j.has("id") ? j.get("id") : null;
 		doc.docid = docidNode==null ? null : docidNode.asText();
-		doc.text = j.get("text").getTextValue();
-		for (String origKey : ImmutableList.copyOf(j.getFieldNames())) {
+		doc.text = j.get("text").asText();
+		for (String origKey : ImmutableList.copyOf(j.fieldNames())) {
 			if (SPECIAL_FIELDS.contains(origKey)) {
 				continue;
 			}

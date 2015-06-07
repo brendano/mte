@@ -1,14 +1,11 @@
 package te.ui;
-import static org.junit.Assert.*;
-
-import java.util.*;
-
+import com.google.common.collect.Lists;
 import org.junit.Test;
-
-import com.google.common.collect.*;
-
 import te.data.Span;
-import util.U;
+
+import java.util.List;
+
+import static org.junit.Assert.*;
 
 public class GUtilTest {
 

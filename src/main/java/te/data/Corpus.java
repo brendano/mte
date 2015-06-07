@@ -1,22 +1,17 @@
 package te.data;
 
-import java.io.FileNotFoundException;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import te.data.Schema.ColumnInfo;
+import te.data.Schema.DataType;
+import util.BasicFileIO;
+import util.JsonUtil;
+import util.U;
+
 import java.io.IOException;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
-import org.codehaus.jackson.JsonNode;
-import org.codehaus.jackson.JsonProcessingException;
-
-import te.data.Schema.ColumnInfo;
-import te.data.Schema.DataType;
-import te.exceptions.BadData;
-import te.exceptions.BadSchema;
-import util.BasicFileIO;
-import util.JsonUtil;
-import util.U;
 
 public class Corpus {
 	public Map<String,Document> docsById;

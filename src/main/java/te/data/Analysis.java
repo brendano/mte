@@ -1,24 +1,13 @@
 package te.data;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-
-import org.codehaus.jackson.JsonProcessingException;
-
 import com.google.common.collect.Lists;
-
-import te.exceptions.BadSchema;
 import te.ui.ExtraInit;
 import te.ui.Main;
 import util.Arr;
 import util.U;
+
+import java.util.*;
+import java.util.Map.Entry;
 
 public class Analysis {
 	static int VIEW_TOTAL = 20;
