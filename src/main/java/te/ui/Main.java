@@ -4,7 +4,6 @@ import bibliothek.gui.DockController;
 import bibliothek.gui.dock.DefaultDockable;
 import bibliothek.gui.dock.SplitDockStation;
 import bibliothek.gui.dock.station.split.SplitDockGrid;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
 import edu.stanford.nlp.util.StringUtils;
@@ -74,16 +73,16 @@ import java.util.stream.IntStream;
 public class Main {
 	public Corpus corpus = new Corpus();
 	EventBus eventBus = new EventBus();
-	
+
 	String xattr, yattr;
 
 	public List<String> docdrivenTerms = new ArrayList<>();
 	public List<String> pinnedTerms = new ArrayList<>();
 	public List<String> termdrivenTerms = new ArrayList<>();
-	
+
 	TermvecComparison docvarCompare;
 	TermvecComparison termtermBoolqueryCompare;
-	
+
 	JFrame mainFrame;
 	TermTable  docdrivenTermTable;
 	TermTable pinnedTermTable;
@@ -101,16 +100,16 @@ public class Main {
 	JLabel tcInfo;
 	InfoArea termtermDescription;
 //	private JButton killDocvarQuery;
-	
+
 	DocdrivenTermsDock docdrivenTermsDock;
-	
+
 	NLP.DocAnalyzer da = new NLP.UnigramAnalyzer();
 	Supplier<Void> afteranalysisCallback = () -> null;
 	Supplier<Void> uiOverridesCallback = () -> null;
 	Function<String,List<Token>> tokenizerForAnalysis;
-	
+
 	//////////////   controller type stuff    ////////////
-	
+
 	/** only call this after schema is set. return false if fails. */
 	public boolean setXAttr(String xattrName) {
 		if ( ! corpus.schema.varnames().contains(xattrName)) {
@@ -135,7 +134,7 @@ public class Main {
 		return (int) tcSpinner.getValue();
 	}
 	AllQueries AQ() { return AllQueries.instance(); }
-	
+
 	void userSelectsTerminstForFullview(Document d, TermInstance ti) {
 		userSelectsSingleDocumentForFullview(d);
 		AQ().fulldocPanelCurrentDocID = d.docid;
@@ -143,13 +142,13 @@ public class Main {
 		e.desiredTerminstToScrollTo = ti;
 		eventBus.post(e);
 	}
-	
+
 	void userSelectsSingleDocumentForFullview(Document doc) {
 		AQ().fulldocPanelCurrentDocID = doc.docid;
 		FulldocChange e = new FulldocChange();
 		eventBus.post(e);
 	}
-	
+
 	@Subscribe
 	public void refreshFulldoc(FulldocChange e) {
 		Document doc = corpus.docsById.get(AQ().fulldocPanelCurrentDocID);
@@ -160,7 +159,7 @@ public class Main {
 			fulldocPanel.textarea.requestScrollToTerminst(e.desiredTerminstToScrollTo);
 		}
 	}
-	
+
 	@Subscribe
 	public void refreshDocdrivenTermListFromUpdateEvent(DocSelectionChange e) {
 		refreshDocdrivenTermList();
@@ -173,19 +172,18 @@ public class Main {
 		docdrivenTerms.clear();
 		docdrivenTerms.addAll( docvarCompare.topEpmi(getTermProbThresh(), getTermCountThresh()) );
 		docdrivenTermTable.model.fireTableDataChanged();
-		
+
 		termlistInfo.setText(U.sf("%d/%d terms", docdrivenTerms.size(), curDS.terms.support().size()));
 		pinnedTermTable.updateCalculations();
 //		int effectiveTermcountThresh = (int) Math.floor(getTermProbThresh() * curDS.terms.totalCount);
 //		termcountInfo.setText(effectiveTermcountThresh==0 ? "all terms" : U.sf("count >= %d", effectiveTermcountThresh));
 	}
-	
+
 	void runTermTermQuery(TermQuery tq) {
 		// bool-occur
 		TermVector focus = corpus.select(tq.terms).terms;
 		termtermBoolqueryCompare = new TermvecComparison(focus, corpus.globalTerms);
-		List<String> termResults = termtermBoolqueryCompare.topEpmi(getTermProbThresh(), getTermCountThresh());
-		termdrivenTerms = termResults;
+		termdrivenTerms = termtermBoolqueryCompare.topEpmi(getTermProbThresh(), getTermCountThresh());
 		termdrivenTermTable.model.fireTableDataChanged();
 		String queryterms = tq.terms.stream().collect(Collectors.joining(", "));
 		String queryinfo = U.sf("%d %s: %s", tq.terms.size(), tq.terms.size()==1 ? "term" : "terms", queryterms);
@@ -198,16 +196,16 @@ public class Main {
 //		tta.corpus = corpus;
 //		List<String> termResults = tta.topEpmi(1);
 	}
-	
+
 	void pushTermQueryChange() {
 		AQ().setTermQuery( getCurrentTQFromUIState() );
 		eventBus.post(new TermQueryChange());
 	}
-	
+
 	@Subscribe
 	public void refreshFromNewTermquery(TermQueryChange e) {
 		TermQuery curTQ = AQ().termQuery();
-		String msg = curTQ.terms.size()==0 ? "No selected terms" 
+		String msg = curTQ.terms.size()==0 ? "No selected terms"
 				: curTQ.terms.size()+" selected terms: " + StringUtils.join(curTQ.terms, ", ");
 		subqueryInfo.setText(msg);
 		runTermTermQuery(curTQ);
@@ -222,12 +220,12 @@ public class Main {
 	public void refreshFulldocPanel() {
 		fulldocPanel.showForCurrentDoc(AQ().termQuery().terms, false);
 	}
-	
-	@Subscribe	
+
+	@Subscribe
 	public void refreshQueryInfoPanel(AllQueryChange e) {
 		DocSet cd = AQ().curDocs();
-		String s = U.sf("Docvar selection: %s docs, %s wordtoks", 
-				GUtil.commaize(cd.docs().size()), 
+		String s = U.sf("Docvar selection: %s docs, %s wordtoks",
+				GUtil.commaize(cd.docs().size()),
 				GUtil.commaize((int) cd.terms.totalCount));
 		mainqueryInfo.setText(s);
 	}
@@ -243,21 +241,21 @@ public class Main {
 
 	TermQuery getCurrentTQFromUIState() {
 		TermQuery curTQ = new TermQuery(corpus);
-    	Set<String> selterms = new LinkedHashSet<>();
-    	selterms.addAll(docdrivenTermTable.getSelectedTerms());
-    	selterms.addAll(pinnedTermTable.getSelectedTerms());
-    	curTQ.terms.addAll(selterms);
+		Set<String> selterms = new LinkedHashSet<>();
+		selterms.addAll(docdrivenTermTable.getSelectedTerms());
+		selterms.addAll(pinnedTermTable.getSelectedTerms());
+		curTQ.terms.addAll(selterms);
 //    	U.pf("curTQ %s\n", curTQ);
-    	return curTQ;
+		return curTQ;
 	}
-	
+
 	void addTermdriverAction(final TermTable tt) {
-        tt.table.getSelectionModel().addListSelectionListener(e -> {
-        	if (!e.getValueIsAdjusting()) {
-        		pushTermQueryChange();
-    		}});
+		tt.table.getSelectionModel().addListSelectionListener(e -> {
+			if (!e.getValueIsAdjusting()) {
+				pushTermQueryChange();
+			}});
 	}
-	
+
 	void pinTerm(String term) {
 		if ( ! pinnedTerms.contains(term)) {
 			pinnedTerms.add(term);
@@ -269,169 +267,158 @@ public class Main {
 	}
 	void unpinTerm(String term) {
 		int[] rowsToDel = IntStream.range(0,pinnedTermTable.model.getRowCount())
-			.filter(row -> pinnedTermTable.getTermAt(row).equals(term))
-			.toArray();
+				.filter(row -> pinnedTermTable.getTermAt(row).equals(term))
+				.toArray();
 		for (int row : rowsToDel) {
-			pinnedTermTable.model.fireTableRowsDeleted(row,row);	
+			pinnedTermTable.model.fireTableRowsDeleted(row,row);
 		}
 		pinnedTerms.remove(term);
 		pushTermQueryChange();
 	}
-	
-	static JPanel titledPanel(String title, JComponent internal) {
-		JPanel top = new JPanel();
-		top.add(new JLabel(title));
-		top.add(internal);
-		return top;
-	}
 
-	static String sizes(JComponent x) {
-		return String.format("size=%s prefsize=%s min=%s max=%s", x.getSize(), x.getPreferredSize(), x.getMinimumSize(), x.getMaximumSize());
-	}
-	
 
 	void setupTermfilterSpinners() {
 		tpSpinner = new JSpinner(new SpinnerStuff.MySpinnerModel());
 		tpSpinner.setToolTipText("Minimum term frequency in units of Words Per Million.");
-        JFormattedTextField tpText = ((JSpinner.DefaultEditor) tpSpinner.getEditor()).getTextField();
-        tpText.setFormatterFactory(new AbstractFormatterFactory() {
+		JFormattedTextField tpText = ((JSpinner.DefaultEditor) tpSpinner.getEditor()).getTextField();
+		tpText.setFormatterFactory(new AbstractFormatterFactory() {
 			@Override public AbstractFormatter getFormatter(JFormattedTextField tf) {
 				return new SpinnerStuff.WPMFormatter();
 			}
-        });
-        tpText.setEditable(true);
-        tpSpinner.setMinimumSize(new Dimension(20,-1));
-        tpSpinner.setValue(300 / 1e6);
-        tpSpinner.addChangeListener(e -> {
-        	refreshDocdrivenTermList();
-        	eventBus.post(new AllQueryChange());  // todo should exclude docdriventermlist
-        });
+		});
+		tpText.setEditable(true);
+		tpSpinner.setMinimumSize(new Dimension(20,-1));
+		tpSpinner.setValue(300 / 1e6);
+		tpSpinner.addChangeListener(e -> {
+			refreshDocdrivenTermList();
+			eventBus.post(new AllQueryChange());  // todo should exclude docdriventermlist
+		});
 
-        tcSpinner = new JSpinner(new SpinnerNumberModel(1, 0, 1000, 1));
-        tcSpinner.setValue(1);  // should be 2 usually, i think?
-        tcSpinner.addChangeListener(e -> {
-        	refreshDocdrivenTermList();
-        	eventBus.post(new AllQueryChange());  // todo should exclude docdriventermlist
-        });
-        tcSpinner.setToolTipText("Minimum term count (number of occurrences).");
+		tcSpinner = new JSpinner(new SpinnerNumberModel(1, 0, 1000, 1));
+		tcSpinner.setValue(1);  // should be 2 usually, i think?
+		tcSpinner.addChangeListener(e -> {
+			refreshDocdrivenTermList();
+			eventBus.post(new AllQueryChange());  // todo should exclude docdriventermlist
+		});
+		tcSpinner.setToolTipText("Minimum term count (number of occurrences).");
 	}
-	
-	
+
+
 	//////////////////////  main setup method   ////////////////////////////////////////////////////////////////////////////
-	
-	
+
+
 	void setupUI() {
 		AQ().corpus = this.corpus;
 		eventBus.register(this);
-		
-        /////////////////  termpanel  ///////////////////
-        
-        setupTermfilterSpinners();
 
-        JPanel termfilterPanel = new JPanel();
-        termfilterPanel.setLayout(new BoxLayout(termfilterPanel, BoxLayout.X_AXIS));
-        termfilterPanel.add(new JLabel("Term WPM >=") {{ setFont(new Font("SansSerif",Font.PLAIN,10)); }});
-        termfilterPanel.add(tpSpinner);
+		/////////////////  termpanel  ///////////////////
+
+		setupTermfilterSpinners();
+
+		JPanel termfilterPanel = new JPanel();
+		termfilterPanel.setLayout(new BoxLayout(termfilterPanel, BoxLayout.X_AXIS));
+		termfilterPanel.add(new JLabel("Term WPM >=") {{ setFont(new Font("SansSerif",Font.PLAIN,10)); }});
+		termfilterPanel.add(tpSpinner);
 //        termfilterPanel.add(new JLabel("   "));
 //        termfilterPanel.add(new JLabel("Count >=") {{ setFont(new Font("SansSerif",Font.PLAIN,9)); }});
 //        termfilterPanel.add(tcSpinner);
-        tpSpinner.setMinimumSize(new Dimension(100,30));
-        tpSpinner.setPreferredSize(new Dimension(100,30));
-        tcSpinner.setMinimumSize(new Dimension(60,30));
-        tcSpinner.setMaximumSize(new Dimension(60,30));
+		tpSpinner.setMinimumSize(new Dimension(100,30));
+		tpSpinner.setPreferredSize(new Dimension(100,30));
+		tcSpinner.setMinimumSize(new Dimension(60,30));
+		tcSpinner.setMaximumSize(new Dimension(60,30));
 
-        termlistInfo = new JLabel();
-        
-        //////  termtable: below the frequency spinners  /////
-        
-        docdrivenTermTable = new TermTable(new TermTableModel());
-        docdrivenTermTable.model.terms = () -> docdrivenTerms;
-        docdrivenTermTable.model.comparison = () -> docvarCompare;
-        docdrivenTermTable.setupTermTable();
+		termlistInfo = new JLabel();
+
+		//////  termtable: below the frequency spinners  /////
+
+		docdrivenTermTable = new TermTable(new TermTableModel());
+		docdrivenTermTable.model.terms = () -> docdrivenTerms;
+		docdrivenTermTable.model.comparison = () -> docvarCompare;
+		docdrivenTermTable.setupTermTable();
 		addTermdriverAction(docdrivenTermTable);
-        docdrivenTermTable.doubleClickListener = this::pinTerm;
-        
-        termdrivenTermTable = new TermTable(new TermTableModel());
-        termdrivenTermTable.model.terms = () -> termdrivenTerms;
-        termdrivenTermTable.model.comparison = () -> termtermBoolqueryCompare;
-        termdrivenTermTable.setupTermTable();
-        termdrivenTermTable.doubleClickListener = this::pinTerm;
-        
-        pinnedTermTable = new TermTable(new TermTableModel());
-        pinnedTermTable.model.terms = () -> pinnedTerms;
-        pinnedTermTable.model.comparison = () -> docvarCompare;
-        pinnedTermTable.setupTermTable();
-        addTermdriverAction(pinnedTermTable);
-        pinnedTermTable.doubleClickListener = this::unpinTerm;
+		docdrivenTermTable.doubleClickListener = this::pinTerm;
 
-        JPanel pinnedWrapper = new JPanel(new BorderLayout());
-        pinnedWrapper.add(pinnedTermTable.top(), BorderLayout.CENTER);
-        
-        JPanel docdrivenTermsWrapper = new JPanel(new BorderLayout());
-        JPanel toptop = GUtil.emptyPanel();
-        toptop.setLayout(new BoxLayout(toptop,BoxLayout.Y_AXIS));
-        	JPanel topstuff = GUtil.emptyPanel();
-        	topstuff.setLayout(new FlowLayout(FlowLayout.LEFT));
-        	topstuff.add(termfilterPanel);
-        	topstuff.add(termlistInfo);
-    	toptop.add(topstuff);
-        docdrivenTermsWrapper.add(toptop, BorderLayout.NORTH);
-        docdrivenTermsWrapper.add(docdrivenTermTable.top(), BorderLayout.CENTER);
+		termdrivenTermTable = new TermTable(new TermTableModel());
+		termdrivenTermTable.model.terms = () -> termdrivenTerms;
+		termdrivenTermTable.model.comparison = () -> termtermBoolqueryCompare;
+		termdrivenTermTable.setupTermTable();
+		termdrivenTermTable.doubleClickListener = this::pinTerm;
 
-        termtermDescription = new InfoArea("");
-        JPanel termdrivenWrapper = new JPanel(new BorderLayout()) {{
-        	addComponentListener(new ComponentAdapter() {
-        		@Override
-        		public void componentResized(ComponentEvent e) {
+		pinnedTermTable = new TermTable(new TermTableModel());
+		pinnedTermTable.model.terms = () -> pinnedTerms;
+		pinnedTermTable.model.comparison = () -> docvarCompare;
+		pinnedTermTable.setupTermTable();
+		addTermdriverAction(pinnedTermTable);
+		pinnedTermTable.doubleClickListener = this::unpinTerm;
+
+		JPanel pinnedWrapper = new JPanel(new BorderLayout());
+		pinnedWrapper.add(pinnedTermTable.top(), BorderLayout.CENTER);
+
+		JPanel docdrivenTermsWrapper = new JPanel(new BorderLayout());
+		JPanel toptop = GUtil.emptyPanel();
+		toptop.setLayout(new BoxLayout(toptop,BoxLayout.Y_AXIS));
+		JPanel topstuff = GUtil.emptyPanel();
+		topstuff.setLayout(new FlowLayout(FlowLayout.LEFT));
+		topstuff.add(termfilterPanel);
+		topstuff.add(termlistInfo);
+		toptop.add(topstuff);
+		docdrivenTermsWrapper.add(toptop, BorderLayout.NORTH);
+		docdrivenTermsWrapper.add(docdrivenTermTable.top(), BorderLayout.CENTER);
+
+		termtermDescription = new InfoArea("");
+		JPanel termdrivenWrapper = new JPanel(new BorderLayout()) {{
+			addComponentListener(new ComponentAdapter() {
+				@Override
+				public void componentResized(ComponentEvent e) {
 //        			U.p("termterm " + sizes(termtermDescription));
-        		}
-        	});
-        }};
-        termdrivenWrapper.add(termtermDescription, BorderLayout.NORTH);
-        termdrivenWrapper.add(termdrivenTermTable.top(), BorderLayout.CENTER);
-        
-        //////////////////////////  right-side panel  /////////////////////////
-        
-        mainqueryInfo = new InfoArea("");
-        subqueryInfo = new InfoArea("");
-        
-        JPanel queryInfo = new JPanel() {{
-	        	setLayout(new BoxLayout(this, BoxLayout.PAGE_AXIS));
-	        	add(mainqueryInfo); add(subqueryInfo);
-	        	addComponentListener(new ComponentAdapter() {
-	        		@Override
-	        		public void componentResized(ComponentEvent e) {
+				}
+			});
+		}};
+		termdrivenWrapper.add(termtermDescription, BorderLayout.NORTH);
+		termdrivenWrapper.add(termdrivenTermTable.top(), BorderLayout.CENTER);
+
+		//////////////////////////  right-side panel  /////////////////////////
+
+		mainqueryInfo = new InfoArea("");
+		subqueryInfo = new InfoArea("");
+
+		JPanel queryInfo = new JPanel() {{
+			setLayout(new BoxLayout(this, BoxLayout.PAGE_AXIS));
+			add(mainqueryInfo); add(subqueryInfo);
+			addComponentListener(new ComponentAdapter() {
+				@Override
+				public void componentResized(ComponentEvent e) {
 //	        			U.p("mainqueryInfo " + sizes(mainqueryInfo));
 //	        			U.p("subqueryInfo " + sizes(subqueryInfo));
-	        		}
-	        	});
-    		}
-        };
+				}
+			});
+		}
+		};
 
-        brushPanel = new BrushPanel(this::pushUpdatedDocSelectionFromDocPanel, corpus.allDocs());
-        brushPanel.schema = corpus.schema;
-        // todo this is bad organization that the app owns the xattr/yattr selections and copies them to the brushpanel, right?
-        // i guess eventually we'll need a current-user-config object as the source of truth for this and brushpanel should be hooked up to pull from it?
-        if (xattr != null) brushPanel.xattr = xattr;
-        if (yattr != null) brushPanel.yattr = yattr;
-        brushPanel.setDefaultXYLim(corpus);
-        eventBus.register(brushPanel);
-        
-        doclistPanel = new DocList(this::pushUpdatedDocSelectionFromDocPanel, new ArrayList<>(corpus.allDocs()));
-        doclistPanel.fulldocClickReceiver = this::userSelectsSingleDocumentForFullview;
-        eventBus.register(doclistPanel);
-        
-        kwicPanel = new KWICViewer();
-        kwicPanel.fulldocClickReceiver = this::userSelectsSingleDocumentForFullview;
-        kwicPanel.fulldocTerminstClickReceiver = this::userSelectsTerminstForFullview;
-        eventBus.register(kwicPanel);
-        
-        fulldocPanel = new FullDocViewer();
-        
+		brushPanel = new BrushPanel(this::pushUpdatedDocSelectionFromDocPanel, corpus.allDocs());
+		brushPanel.schema = corpus.schema;
+		// todo this is bad organization that the app owns the xattr/yattr selections and copies them to the brushpanel, right?
+		// i guess eventually we'll need a current-user-config object as the source of truth for this and brushpanel should be hooked up to pull from it?
+		if (xattr != null) brushPanel.xattr = xattr;
+		if (yattr != null) brushPanel.yattr = yattr;
+		brushPanel.setDefaultXYLim(corpus);
+		eventBus.register(brushPanel);
+
+		doclistPanel = new DocList(this::pushUpdatedDocSelectionFromDocPanel, new ArrayList<>(corpus.allDocs()));
+		doclistPanel.fulldocClickReceiver = this::userSelectsSingleDocumentForFullview;
+		eventBus.register(doclistPanel);
+
+		kwicPanel = new KWICViewer();
+		kwicPanel.fulldocClickReceiver = this::userSelectsSingleDocumentForFullview;
+		kwicPanel.fulldocTerminstClickReceiver = this::userSelectsTerminstForFullview;
+		eventBus.register(kwicPanel);
+
+		fulldocPanel = new FullDocViewer();
+
 		DockController controller = new DockController();
 		SplitDockStation station = new SplitDockStation();
 		controller.add(station);
-		
+
 		SplitDockGrid grid = new SplitDockGrid();
 
 		fulldocDock = new DefaultDockable("Document view") {{ add(fulldocPanel.top()); }};
@@ -439,7 +426,7 @@ public class Main {
 		docdrivenTermsDock.add(docdrivenTermsWrapper);
 		docdrivenTermsDock.setTitleText("Document-associated terms");
 		eventBus.register(docdrivenTermsDock);
-		
+
 //		double x=0.5, rx=1-0.5;
 		double w1=3, w2=6;
 		double y,h;
@@ -449,7 +436,7 @@ public class Main {
 		grid.addDockable(0,y+=h, w1,h=15, docdrivenTermsDock);
 //		grid.addDockable(0,y+=h, w1,h=5, new DefaultDockable("Term-associated terms") {{ add(termdrivenWrapper); }});
 //		grid.addDockable(0,y+=h, x,8, fulldocDock);
-		
+
 		y=0;
 		grid.addDockable(w1,y, w2,h=3, new DefaultDockable("Query info") {{ add(queryInfo); }});
 		y+=h;
@@ -460,72 +447,61 @@ public class Main {
 		h=15;
 		grid.addDockable(w1, y,           w2/2, h, new DefaultDockable("KWIC view") {{ add(kwicPanel.top()); }});
 		grid.addDockable(w1+w2/2, y, w2/2, h, fulldocDock);
-	
+
 		station.dropTree(grid.toTree());
 
-        mainFrame = new JFrame("Text Explorer Tool");
+		mainFrame = new JFrame("Text Explorer Tool");
 		mainFrame.add(station.getComponent());
 		mainFrame.pack();
 		mainFrame.setBounds(15,0, 1000, 768-25);  //  mac osx toolbar is 22,23ish tall
-        mainFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		mainFrame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
 
-        ToolTipManager.sharedInstance().setDismissDelay((int) 1e6);
+		ToolTipManager.sharedInstance().setDismissDelay((int) 1e6);
 	}
-	
-	static JPanel wrapWithPadding(JComponent comp, int mar) {
-//		JPanel tmp = new JPanel(new FlowLayout(FlowLayout.CENTER,mar,mar));
-		JPanel tmp = new JPanel();
-		tmp.setBorder(BorderFactory.createEmptyBorder(mar,mar,mar,mar));
-		tmp.setLayout(new BorderLayout());
-        tmp.add(comp, BorderLayout.CENTER);
-        return tmp;
-	}
-	
+
 	/////////////  startup initialization stuff   /////////////////////////////////////////////////////////////////////
-	
+
 	static void usage() {
 		System.out.println("Usage:  Launch ConfigFilename");
 		System.exit(1);
 	}
-	
+
 	void finalizeCorpusAnalysisAfterConfiguration() {
 		long t0=System.nanoTime();
 		U.p("Analyzing covariates");
-		
+
 		if (corpus.needsCovariateTypeConversion) {
-			corpus.convertCovariateTypes();	
+			corpus.convertCovariateTypes();
 		}
 		corpus.calculateCovariateSummaries();
-		
+
 		U.pf("done analyzing covariates (%.0f ms)\n", 1e-6*(System.nanoTime()-t0));
 		t0=System.nanoTime(); U.p("Analyzing document texts");
-		
+
 		for (Document doc : corpus.allDocs()) {
 			if (Thread.interrupted()) return;
-			NLP.analyzeDocument(da, doc);	
+			NLP.analyzeDocument(da, doc);
 		}
 		afteranalysisCallback.get();
-		
+
 		U.pf("done analyzing doc texts (%.0f ms)\n", 1e-6*(System.nanoTime()-t0));
-		
+
 		corpus.finalizeIndexing();
 	}
 	static FileSystem FS = FileSystems.getDefault();
 
-	void initializeFromCommandlineArgs(String args[]) throws JsonProcessingException, IOException, BadConfig, BadSchema, BadData {
-		
+	void initializeFromCommandlineArgs(String args[]) throws IOException, BadConfig, BadSchema, BadData {
+
 		boolean gotConfFile = false;
 		Configuration c = null;
 		DataLoader dataloader = new DataLoader();
-		
-		for (int i=0; i<args.length; i++) {
-			String arg = args[i];
+
+		for (String arg : args) {
 			Path p = FS.getPath(arg);
 //			U.pf("%s  isfile %s  isdir %s\n", arg, Files.isRegularFile(p), Files.isDirectory(p));
 			if (Files.isDirectory(p)) {
 				dataloader.loadTextFilesFromDirectory(arg);
-			}
-			else if (Files.isRegularFile(p)) {
+			} else if (Files.isRegularFile(p)) {
 				if (arg.matches(".*\\.(conf|config)$")) {
 					if (gotConfFile) {
 						assert false : "more than one configuration file specified";
@@ -534,15 +510,13 @@ public class Main {
 					gotConfFile = true;
 					c = new Configuration();
 					c.initWithConfig(this, arg, dataloader);
-				}
-				else if (arg.endsWith(".txt")) {
+				} else if (arg.endsWith(".txt")) {
 					dataloader.loadTextFileAsDocumentText(arg);
 				}
-			}
-			else {
+			} else {
 				U.p("WARNING: can't handle argument: " + arg);
 			}
-		} 
+		}
 		corpus.setDataFromDataLoader(dataloader);
 		if (c==null) {
 			c = Configuration.defaultConfiguration(this);
@@ -552,16 +526,11 @@ public class Main {
 	public static void myMain(String[] args) throws Exception {
 		long t0=System.nanoTime();
 		final Main main = new Main();
-		
+
 		if (args.length < 1) usage();
-		
-		if (args[0].equals("--debug")) {
-			ExtraInit.initWithCode(main);	
-		}
-		else {
-			main.initializeFromCommandlineArgs(args);
-			main.finalizeCorpusAnalysisAfterConfiguration();
-		}
+
+		main.initializeFromCommandlineArgs(args);
+		main.finalizeCorpusAnalysisAfterConfiguration();
 
 		SwingUtilities.invokeLater(() -> {
 			main.setupUI();

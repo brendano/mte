@@ -29,13 +29,14 @@
 
 package te.ui;
 
-import java.util.EventListener;
-import java.util.BitSet;
-import java.io.Serializable;
+import javax.swing.*;
+import javax.swing.event.EventListenerList;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
 import java.beans.Transient;
-
-import javax.swing.ListSelectionModel;
-import javax.swing.event.*;
+import java.io.Serializable;
+import java.util.BitSet;
+import java.util.EventListener;
 
 
 /**
@@ -108,7 +109,7 @@ public class My_DefaultListSelectionModel implements ListSelectionModel, Cloneab
 
     /** {@inheritDoc} */
     public boolean isSelectedIndex(int index) {
-        return ((index < minIndex) || (index > maxIndex)) ? false : value.get(index);
+        return (!((index < minIndex) || (index > maxIndex))) && value.get(index);
     }
 
     /** {@inheritDoc} */
