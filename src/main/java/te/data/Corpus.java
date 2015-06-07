@@ -13,7 +13,7 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-public class Corpus {
+public class Corpus implements DataLayer {
 	public Map<String,Document> docsById;
 	public List<Document> docsInOriginalOrder;
 	public TermVector globalTerms;
@@ -32,21 +32,25 @@ public class Corpus {
 		schema = new Schema();
 	}
 	
+	@Override
 	public Collection<Document> allDocs() {
 		return docsInOriginalOrder;
 	}
 	
 	/** docnum is 1-indexed (starts at 1) */
+	@Override
 	public Document getDocByDocnum(int docnum) {
 		return docsInOriginalOrder.get(docnum-1);
 	}
 	
 	/** sum_d n_d n_dw ... todo, cache here */ 
+	@Override
 	public double termSumSq(String term) {
 		return index.getMatchingDocs(term).stream().collect(Collectors.summingDouble(
 						d -> d.termVec.totalCount * d.termVec.value(term) ));
 	}
 	
+	@Override
 	public DocSet getDocSet(Collection<String> docids) {
 		DocSet ds = new DocSet();
 		for (String docid : docids) {
@@ -67,11 +71,13 @@ public class Corpus {
 		return ds;
 	}
 	
+	@Override
 	public DocSet select(String xAttr, String yAttr, double minX, double maxX, double minY, double maxY) {
 		return naiveSelect(xAttr, yAttr, minX, maxX, minY, maxY);
 	}
 	
-	public void runTokenizer(Function<String,List<Token>> tokenizer) {
+	@Override
+	public void runTokenizer(Function<String, List<Token>> tokenizer) {
 		long t0 = System.currentTimeMillis(); U.p("Running tokenizer");
 		for (Document d : docsById.values()) {
 			d.tokens = tokenizer.apply(d.text);
@@ -114,6 +120,7 @@ public class Corpus {
 	}
 
 	/** disjunction query */
+	@Override
 	public DocSet select(List<String> terms) {
 		DocSet ret = new DocSet();
 		for (String term : terms) {
