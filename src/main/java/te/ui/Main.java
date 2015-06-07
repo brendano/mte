@@ -240,19 +240,6 @@ public class Main {
 			eventBus.post(new DocSelectionChange());
 		}
 	}
-	
-	class DocdrivenTermsDock extends DefaultDockable {
-		@Subscribe
-		public void updateFromDocSelection(DocSelectionChange e) {
-			int n = AQ().docPanelSelectedDocIDs.size();
-			if (n==0) { 
-				setTitleText("Terms associated with document selection (empty)");
-			}
-			else {
-				setTitleText(String.format("Terms associated with %d documents", n));
-			}
-		}
-	}
 
 	TermQuery getCurrentTQFromUIState() {
 		TermQuery curTQ = new TermQuery(corpus);
@@ -297,20 +284,7 @@ public class Main {
 		top.add(internal);
 		return top;
 	}
-	
-	static class InfoArea extends JLabel {
-		public InfoArea(String s) {
-			super(s);
-			// WTF
-//			setMaximumSize(new Dimension(100,50));
-			setMinimumSize(new Dimension(200,16));
-			setBackground(Color.WHITE);
-		}
-//		public Dimension getMaximumSize() {
-////			return new Dimension(300,50);
-//		}
-	}
-	
+
 	static String sizes(JComponent x) {
 		return String.format("size=%s prefsize=%s min=%s max=%s", x.getSize(), x.getPreferredSize(), x.getMinimumSize(), x.getMaximumSize());
 	}
@@ -461,7 +435,7 @@ public class Main {
 		SplitDockGrid grid = new SplitDockGrid();
 
 		fulldocDock = new DefaultDockable("Document view") {{ add(fulldocPanel.top()); }};
-		docdrivenTermsDock = new DocdrivenTermsDock();
+		docdrivenTermsDock = new DocdrivenTermsDock(this);
 		docdrivenTermsDock.add(docdrivenTermsWrapper);
 		docdrivenTermsDock.setTitleText("Document-associated terms");
 		eventBus.register(docdrivenTermsDock);

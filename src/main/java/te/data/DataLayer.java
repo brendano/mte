@@ -10,10 +10,6 @@ import java.util.function.Function;
 public interface DataLayer {
 	Collection<Document> allDocs();
 
-	Document getDocByDocnum(int docnum);
-
-	double termSumSq(String term);
-
 	DocSet getDocSet(Collection<String> docids);
 
 	DocSet select(String xAttr, String yAttr, double minX, double maxX, double minY, double maxY);

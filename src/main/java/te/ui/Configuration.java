@@ -67,7 +67,7 @@ public class Configuration {
 	}
 	
 	/** run this only once all the document texts are loaded */
-	void doNLPBasedOnConfig() throws BadConfig, BadSchema, JsonProcessingException, IOException {
+	void doNLPBasedOnConfig() throws BadConfig, BadSchema, IOException {
 		if (conf.hasPath("nlp_file") && conf.hasPath("tokenizer"))
 			throw new BadConfig("Don't specify both tokenizer and nlp_file");
 		if (conf.hasPath("nlp_file")) {
@@ -75,20 +75,23 @@ public class Configuration {
 			main.corpus.loadNLP(f);
 		}
 		else {
-			String tname = null;
-			if (!conf.hasPath("tokenizer")) {
+			String tname;
+			if (conf.hasPath("tokenizer")) {
+				tname = conf.getString("tokenizer");
+			} else {
 				U.p("Defaulting to tokenizer=StanfordTokenizer");
 				tname = "StanfordTokenizer";
 			}
-			else if (conf.hasPath("tokenizer")) {
-				tname = conf.getString("tokenizer");
+			switch (tname) {
+				case "WhitespaceTokenizer":
+					main.corpus.runTokenizer(NLP::whitespaceTokenize);
+					break;
+				case "StanfordTokenizer":
+					main.corpus.runTokenizer(NLP::stanfordTokenize);
+					break;
+				default:
+					throw new BadConfig("Unknown tokenizer: " + tname);
 			}
-			if (tname.equals("WhitespaceTokenizer")) {
-				main.corpus.runTokenizer(NLP::whitespaceTokenize);
-			} else if (tname.equals("StanfordTokenizer")) {
-				main.corpus.runTokenizer(NLP::stanfordTokenize);
-			}
-			else throw new BadConfig("Unknown tokenizer: " + tname);
 		}
 	}
 	

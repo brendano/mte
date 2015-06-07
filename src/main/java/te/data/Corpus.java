@@ -11,7 +11,6 @@ import utility.util.U;
 import java.io.IOException;
 import java.util.*;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 public class Corpus implements DataLayer {
 	public Map<String,Document> docsById;
@@ -36,20 +35,7 @@ public class Corpus implements DataLayer {
 	public Collection<Document> allDocs() {
 		return docsInOriginalOrder;
 	}
-	
-	/** docnum is 1-indexed (starts at 1) */
-	@Override
-	public Document getDocByDocnum(int docnum) {
-		return docsInOriginalOrder.get(docnum-1);
-	}
-	
-	/** sum_d n_d n_dw ... todo, cache here */ 
-	@Override
-	public double termSumSq(String term) {
-		return index.getMatchingDocs(term).stream().collect(Collectors.summingDouble(
-						d -> d.termVec.totalCount * d.termVec.value(term) ));
-	}
-	
+
 	@Override
 	public DocSet getDocSet(Collection<String> docids) {
 		DocSet ds = new DocSet();
