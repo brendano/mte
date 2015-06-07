@@ -9,7 +9,7 @@ import te.ui.queries.AllQueries;
 import te.ui.queries.DocSelectionChange;
 import te.ui.queries.FulldocChange;
 import te.ui.queries.TermQueryChange;
-import util.U;
+import utility.util.U;
 
 import javax.swing.*;
 import java.awt.*;

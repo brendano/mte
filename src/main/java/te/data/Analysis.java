@@ -3,8 +3,8 @@ package te.data;
 import com.google.common.collect.Lists;
 import te.ui.ExtraInit;
 import te.ui.Main;
-import util.Arr;
-import util.U;
+import utility.util.Arr;
+import utility.util.U;
 
 import java.util.*;
 import java.util.Map.Entry;

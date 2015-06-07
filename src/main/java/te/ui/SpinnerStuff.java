@@ -5,7 +5,7 @@ import java.text.ParseException;
 import javax.swing.AbstractSpinnerModel;
 import javax.swing.JFormattedTextField.AbstractFormatter;
 
-import util.U;
+import utility.util.U;
 
 @SuppressWarnings("serial")
 public class SpinnerStuff {

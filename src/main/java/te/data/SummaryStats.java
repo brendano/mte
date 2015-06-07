@@ -1,6 +1,6 @@
 package te.data;
 
-import util.OnlineNormal1d;
+import utility.util.OnlineNormal1d;
 
 public class SummaryStats {
 	private OnlineNormal1d meanvar = new OnlineNormal1d();

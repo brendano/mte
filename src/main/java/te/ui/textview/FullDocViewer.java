@@ -6,7 +6,7 @@ import javax.swing.JComponent;
 
 import te.data.Document;
 import te.ui.queries.AllQueries;
-import util.Timer;
+import utility.util.Timer;
 
 public class FullDocViewer {
 //	public JEditorPane htmlpane;

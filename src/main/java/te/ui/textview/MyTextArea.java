@@ -3,8 +3,8 @@ package te.ui.textview;
 
 import te.data.*;
 import te.ui.GUtil;
-import util.BasicFileIO;
-import util.U;
+import utility.util.BasicFileIO;
+import utility.util.U;
 
 import javax.swing.*;
 import java.awt.*;

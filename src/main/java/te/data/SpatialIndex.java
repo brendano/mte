@@ -2,7 +2,7 @@ package te.data;
 import java.awt.Point;
 import java.util.*;
 
-import util.U;
+import utility.util.U;
 
 public class SpatialIndex {
 	int bottomReso;

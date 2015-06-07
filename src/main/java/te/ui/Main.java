@@ -18,7 +18,7 @@ import te.ui.docview.DocList;
 import te.ui.queries.*;
 import te.ui.textview.FullDocViewer;
 import te.ui.textview.KWICViewer;
-import util.U;
+import utility.util.U;
 
 import javax.swing.*;
 import javax.swing.JFormattedTextField.AbstractFormatter;

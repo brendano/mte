@@ -1,7 +1,7 @@
 package te.ui;
 
 import te.data.Span;
-import util.U;
+import utility.util.U;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;

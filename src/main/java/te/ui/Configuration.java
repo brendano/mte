@@ -8,7 +8,7 @@ import te.data.NLP;
 import te.exceptions.BadConfig;
 import te.exceptions.BadData;
 import te.exceptions.BadSchema;
-import util.U;
+import utility.util.U;
 
 import java.io.File;
 import java.io.IOException;

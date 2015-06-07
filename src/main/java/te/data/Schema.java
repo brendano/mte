@@ -3,7 +3,7 @@ package te.data;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.typesafe.config.*;
 import te.exceptions.BadSchema;
-import util.U;
+import utility.util.U;
 
 import java.io.File;
 import java.util.*;

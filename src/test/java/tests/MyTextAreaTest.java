@@ -11,7 +11,7 @@ import com.google.common.collect.Lists;
 import te.data.Document;
 import te.data.NLP;
 import te.ui.textview.MyTextArea;
-import util.U;
+import utility.util.U;
 
 public class MyTextAreaTest {
 
