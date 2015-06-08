@@ -3,3 +3,7 @@ examples
 _build
 exper
 #lib
+.idea
+lib
+target
+*.iml

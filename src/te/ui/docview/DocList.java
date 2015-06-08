@@ -3,12 +3,9 @@ import java.awt.Color;
 import java.awt.Component;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.awt.event.MouseListener;
 import java.util.*;
 import java.util.function.Consumer;
 
-import javax.swing.BorderFactory;
-import javax.swing.DefaultListModel;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JList;
@@ -33,7 +30,7 @@ import te.ui.queries.AllQueries;
 import te.ui.queries.DocSelectionChange;
 import te.ui.queries.FulldocChange;
 import te.ui.queries.TermQueryChange;
-import util.U;
+import utility.util.U;
 
 // TODO implement pushes to the query receiver
 

@@ -1,13 +1,12 @@
 package te.ui.queries;
-import java.awt.Color;
-import java.util.*;
-import java.util.function.Consumer;
-
 import te.data.Corpus;
 import te.data.DocSet;
 import te.data.TermQuery;
 import te.ui.GUtil;
-import util.U;
+
+import java.awt.*;
+import java.util.Collections;
+import java.util.Set;
 
 /** intended to be a singleton that encapsulates all selections global in the system right now. */
 public class AllQueries {

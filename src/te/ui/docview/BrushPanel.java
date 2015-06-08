@@ -1,46 +1,23 @@
 package te.ui.docview;
 
-import java.awt.BasicStroke;
-import java.awt.Color;
-import java.awt.Graphics;
-import java.awt.Graphics2D;
-import java.awt.Point;
-import java.awt.Rectangle;
-import java.awt.RenderingHints;
-import java.awt.event.ComponentAdapter;
-import java.awt.event.ComponentEvent;
-import java.awt.event.MouseEvent;
-import java.awt.event.MouseListener;
-import java.awt.event.MouseMotionListener;
-import java.awt.geom.Point2D;
-import java.awt.geom.Rectangle2D;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
-
-import javax.swing.BorderFactory;
-import javax.swing.JPanel;
-import javax.swing.SwingUtilities;
-
 import com.google.common.eventbus.Subscribe;
-
 import te.data.Corpus;
 import te.data.Document;
 import te.data.Schema;
-import te.data.TermQuery;
 import te.ui.GUtil;
 import te.ui.queries.AllQueries;
 import te.ui.queries.DocSelectionChange;
 import te.ui.queries.FulldocChange;
 import te.ui.queries.TermQueryChange;
-import util.U;
+import utility.util.U;
+
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.*;
+import java.awt.geom.Point2D;
+import java.util.*;
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * ISSUE: with the allqueries refactor, its data structures are updated fairly realtime.
@@ -97,7 +74,7 @@ public class BrushPanel extends JPanel implements MouseListener, MouseMotionList
 		}
 		boolean isFulldocSelected() {
 			String d = AllQueries.instance().fulldocPanelCurrentDocID;
-			return d!=null && d==doc.docid;
+			return d!=null && Objects.equals(d, doc.docid);
 //			return this==fulldocSelectedPoint; 
 		}
 	

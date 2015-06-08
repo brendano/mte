@@ -1,18 +1,12 @@
 package te.data;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.typesafe.config.*;
+import te.exceptions.BadSchema;
+import utility.util.U;
+
 import java.io.File;
 import java.util.*;
-
-import org.codehaus.jackson.JsonNode;
-
-import com.typesafe.config.Config;
-import com.typesafe.config.ConfigFactory;
-import com.typesafe.config.ConfigObject;
-import com.typesafe.config.ConfigValue;
-import com.typesafe.config.ConfigValueType;
-
-import te.exceptions.BadSchema;
-import util.U;
 
 public class Schema {
 	public Map<String,ColumnInfo> columnTypes = new HashMap<>();

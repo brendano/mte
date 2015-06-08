@@ -6,7 +6,7 @@ mkdir _build
 # Compile all files
 javac -cp $(print lib/**/*.jar | tr ' ' :) \
     -d _build \
-    $(print -l src/**/*.java | grep -v src/tests/)
+    $(print -l src/**/*.java | grep -v src/tests/ | grep -v "Test.java")
 cd _build
 # This step is to make a standalone jar.
 # Comment it out if you want a jar only with te-specific code.

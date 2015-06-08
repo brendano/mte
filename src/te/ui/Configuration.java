@@ -1,31 +1,16 @@
 package te.ui;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.List;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
-
-import org.codehaus.jackson.JsonProcessingException;
-
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
 import te.data.DataLoader;
 import te.data.NLP;
-import te.data.Schema;
 import te.exceptions.BadConfig;
 import te.exceptions.BadData;
 import te.exceptions.BadSchema;
-import util.U;
+import utility.util.U;
 
-import com.typesafe.config.Config;
-import com.typesafe.config.ConfigFactory;
-import com.typesafe.config.ConfigList;
-import com.typesafe.config.ConfigMergeable;
-import com.typesafe.config.ConfigObject;
-import com.typesafe.config.ConfigOrigin;
-import com.typesafe.config.ConfigResolveOptions;
-import com.typesafe.config.ConfigValue;
+import java.io.File;
+import java.io.IOException;
 
 public class Configuration {
 	Config conf;
@@ -36,7 +21,8 @@ public class Configuration {
 
 	public static Configuration defaultConfiguration(Main main) {
 		Configuration c = new Configuration();
-		c.conf = new EmptyConfig();
+		//c.conf = new EmptyConfig();
+		c.conf = ConfigFactory.parseString("{}");
 		c.tokenizerName = "StanfordTokenizer";
 		c.main = main;
 		return c;
@@ -80,7 +66,7 @@ public class Configuration {
 	}
 	
 	/** run this only once all the document texts are loaded */
-	void doNLPBasedOnConfig() throws BadConfig, BadSchema, JsonProcessingException, IOException {
+	void doNLPBasedOnConfig() throws BadConfig, BadSchema, IOException {
 		if (conf.hasPath("nlp_file") && conf.hasPath("tokenizer"))
 			throw new BadConfig("Don't specify both tokenizer and nlp_file");
 		if (conf.hasPath("nlp_file")) {
@@ -88,24 +74,27 @@ public class Configuration {
 			main.corpus.loadNLP(f);
 		}
 		else {
-			String tname = null;
-			if (!conf.hasPath("tokenizer")) {
+			String tname;
+			if (conf.hasPath("tokenizer")) {
+				tname = conf.getString("tokenizer");
+			} else {
 				U.p("Defaulting to tokenizer=StanfordTokenizer");
 				tname = "StanfordTokenizer";
 			}
-			else if (conf.hasPath("tokenizer")) {
-				tname = conf.getString("tokenizer");
+			switch (tname) {
+				case "WhitespaceTokenizer":
+					main.corpus.runTokenizer(NLP::whitespaceTokenize);
+					break;
+				case "StanfordTokenizer":
+					main.corpus.runTokenizer(NLP::stanfordTokenize);
+					break;
+				default:
+					throw new BadConfig("Unknown tokenizer: " + tname);
 			}
-			if (tname.equals("WhitespaceTokenizer")) {
-				main.corpus.runTokenizer(NLP::whitespaceTokenize);
-			} else if (tname.equals("StanfordTokenizer")) {
-				main.corpus.runTokenizer(NLP::stanfordTokenize);
-			}
-			else throw new BadConfig("Unknown tokenizer: " + tname);
 		}
 	}
 	
-	public void initWithConfig(Main _main, String filename, DataLoader dataloader) throws JsonProcessingException, IOException, BadConfig, BadSchema {
+	public void initWithConfig(Main _main, String filename, DataLoader dataloader) throws IOException, BadConfig, BadSchema {
 		
 		// TODO in the future, this function shouldn't be responsible for actually running potentially-expensive analysis routines.
 		// it should queue them up somehow.
@@ -133,10 +122,10 @@ public class Configuration {
 			Object schema = conf.getAnyRef("schema");
 			if (schema instanceof String) {
 				String sfilename = resolvePathExists(dirOfConfFile, (String) schema);
-				main.corpus.schema.loadSchemaFromFile(sfilename);
+				main.corpus.getSchema().loadSchemaFromFile(sfilename);
 			}
 			else {
-				main.corpus.schema.loadSchemaFromConfigObject(conf.getObject("schema"));
+				main.corpus.getSchema().loadSchemaFromConfigObject(conf.getObject("schema"));
 			}
 		}
 
@@ -155,281 +144,5 @@ public class Configuration {
 			}
 		}
 
-	}
-
-	
-	
-	static class EmptyConfig implements Config {
-
-		@Override
-		public ConfigObject root() {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public ConfigOrigin origin() {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public Config withFallback(ConfigMergeable other) {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public Config resolve() {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public Config resolve(ConfigResolveOptions options) {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public boolean isResolved() {
-			// TODO Auto-generated method stub
-			return false;
-		}
-
-		@Override
-		public Config resolveWith(Config source) {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public Config resolveWith(Config source, ConfigResolveOptions options) {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public void checkValid(Config reference, String... restrictToPaths) {
-			// TODO Auto-generated method stub
-			
-		}
-
-		@Override
-		public boolean hasPath(String path) {
-			// TODO Auto-generated method stub
-			return false;
-		}
-
-		@Override
-		public boolean isEmpty() {
-			// TODO Auto-generated method stub
-			return true;
-		}
-
-		@Override
-		public Set<Entry<String, ConfigValue>> entrySet() {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public boolean getBoolean(String path) {
-			// TODO Auto-generated method stub
-			return false;
-		}
-
-		@Override
-		public Number getNumber(String path) {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public int getInt(String path) {
-			// TODO Auto-generated method stub
-			return 0;
-		}
-
-		@Override
-		public long getLong(String path) {
-			// TODO Auto-generated method stub
-			return 0;
-		}
-
-		@Override
-		public double getDouble(String path) {
-			// TODO Auto-generated method stub
-			return 0;
-		}
-
-		@Override
-		public String getString(String path) {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public ConfigObject getObject(String path) {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public Config getConfig(String path) {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public Object getAnyRef(String path) {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public ConfigValue getValue(String path) {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public Long getBytes(String path) {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public Long getMilliseconds(String path) {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public Long getNanoseconds(String path) {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public long getDuration(String path, TimeUnit unit) {
-			// TODO Auto-generated method stub
-			return 0;
-		}
-
-		@Override
-		public ConfigList getList(String path) {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public List<Boolean> getBooleanList(String path) {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public List<Number> getNumberList(String path) {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public List<Integer> getIntList(String path) {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public List<Long> getLongList(String path) {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public List<Double> getDoubleList(String path) {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public List<String> getStringList(String path) {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public List<? extends ConfigObject> getObjectList(String path) {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public List<? extends Config> getConfigList(String path) {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public List<? extends Object> getAnyRefList(String path) {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public List<Long> getBytesList(String path) {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public List<Long> getMillisecondsList(String path) {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public List<Long> getNanosecondsList(String path) {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public List<Long> getDurationList(String path, TimeUnit unit) {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public Config withOnlyPath(String path) {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public Config withoutPath(String path) {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public Config atPath(String path) {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public Config atKey(String key) {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public Config withValue(String path, ConfigValue value) {
-			// TODO Auto-generated method stub
-			return null;
-		}
-		
 	}
 }

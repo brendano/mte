@@ -1,31 +1,28 @@
 package te.data;
 
-import java.io.FileNotFoundException;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import te.data.Schema.ColumnInfo;
+import te.data.Schema.DataType;
+import utility.util.BasicFileIO;
+import utility.util.JsonUtil;
+import utility.util.U;
+
 import java.io.IOException;
 import java.util.*;
 import java.util.function.Function;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
-import org.codehaus.jackson.JsonNode;
-import org.codehaus.jackson.JsonProcessingException;
-
-import te.data.Schema.ColumnInfo;
-import te.data.Schema.DataType;
-import te.exceptions.BadData;
-import te.exceptions.BadSchema;
-import util.BasicFileIO;
-import util.JsonUtil;
-import util.U;
-
-public class Corpus {
-	public Map<String,Document> docsById;
+public class Corpus implements DataLayer {
+	private Map<String,Document> docsById;
 	public List<Document> docsInOriginalOrder;
+	/**
+	 * This is essentially the corpus statistics:
+	 */
 	public TermVector globalTerms;
-	InvertedIndex index;
+	private InvertedIndex index;
 //	SpatialIndex hierIndex;
 //	DoubleSummaryStatistics xSummary, ySummary;
-	public Schema schema;
+	private Schema schema;
 	public Map<String,SummaryStats> covariateSummaries;
 	double doclenSumSq = 0;
 	public boolean needsCovariateTypeConversion = false;
@@ -34,24 +31,15 @@ public class Corpus {
 		docsById = new HashMap<>();
 		index = new InvertedIndex();
 		docsInOriginalOrder = new ArrayList<>();
-		schema = new Schema();
+		setSchema(new Schema());
 	}
 	
+	@Override
 	public Collection<Document> allDocs() {
 		return docsInOriginalOrder;
 	}
-	
-	/** docnum is 1-indexed (starts at 1) */
-	public Document getDocByDocnum(int docnum) {
-		return docsInOriginalOrder.get(docnum-1);
-	}
-	
-	/** sum_d n_d n_dw ... todo, cache here */ 
-	public double termSumSq(String term) {
-		return index.getMatchingDocs(term).stream().collect(Collectors.summingDouble(
-						d -> d.termVec.totalCount * d.termVec.value(term) ));
-	}
-	
+
+	@Override
 	public DocSet getDocSet(Collection<String> docids) {
 		DocSet ds = new DocSet();
 		for (String docid : docids) {
@@ -64,19 +52,21 @@ public class Corpus {
 		DocSet ds = new DocSet();
 		docsById.values().stream()
 			.filter(d -> 
-				schema.getDouble(d,xAttr) >= minX && 
-				schema.getDouble(d,xAttr) <= maxX &&
-				schema.getDouble(d,yAttr) >=minY && 
-				schema.getDouble(d,yAttr) <=maxY)
+				getSchema().getDouble(d, xAttr) >= minX &&
+				getSchema().getDouble(d, xAttr) <= maxX &&
+				getSchema().getDouble(d, yAttr) >=minY &&
+				getSchema().getDouble(d, yAttr) <=maxY)
 			.forEach(d -> ds.add(d));
 		return ds;
 	}
 	
+	@Override
 	public DocSet select(String xAttr, String yAttr, double minX, double maxX, double minY, double maxY) {
 		return naiveSelect(xAttr, yAttr, minX, maxX, minY, maxY);
 	}
 	
-	public void runTokenizer(Function<String,List<Token>> tokenizer) {
+	@Override
+	public void runTokenizer(Function<String, List<Token>> tokenizer) {
 		long t0 = System.currentTimeMillis(); U.p("Running tokenizer");
 		for (Document d : docsById.values()) {
 			d.tokens = tokenizer.apply(d.text);
@@ -119,6 +109,7 @@ public class Corpus {
 	}
 
 	/** disjunction query */
+	@Override
 	public DocSet select(List<String> terms) {
 		DocSet ret = new DocSet();
 		for (String term : terms) {
@@ -133,23 +124,23 @@ public class Corpus {
 
 	public void calculateCovariateSummaries() {
 		covariateSummaries = new HashMap<>();
-		for (String k : schema.varnames()) covariateSummaries.put(k, new SummaryStats());
+		for (String k : getSchema().varnames()) covariateSummaries.put(k, new SummaryStats());
 		for (Document d : allDocs()) {
-			for (String varname : schema.varnames()) {
+			for (String varname : getSchema().varnames()) {
 				if (!d.covariates.containsKey(varname)) continue;
-				covariateSummaries.get(varname).add((Double) schema.getDouble(d, varname));
+				covariateSummaries.get(varname).add(getSchema().getDouble(d, varname));
 			}
 		}
 		U.p("Covariate summary stats: " + covariateSummaries);
 	}
 	
 	public void convertCovariateTypes() {
-		U.p("Covariate types, before conversion pass: " + schema.columnTypes);
+		U.p("Covariate types, before conversion pass: " + getSchema().columnTypes);
 		for (Document d : allDocs()) {
-			for (String varname : schema.columnTypes.keySet()) {
+			for (String varname : getSchema().columnTypes.keySet()) {
 				if (!d.covariates.containsKey(varname)) continue;
-				ColumnInfo ci = schema.columnTypes.get(varname);
-				Object converted = schema.columnTypes.get(varname).convertFromJson( (JsonNode) d.covariates.get(varname) );
+				ColumnInfo ci = getSchema().columnTypes.get(varname);
+				Object converted = getSchema().columnTypes.get(varname).convertFromJson( (JsonNode) d.covariates.get(varname) );
 				d.covariates.put(varname, converted);
 				if (ci.dataType==DataType.CATEG && !ci.levels.name2level.containsKey(converted)) {
 					ci.levels.addLevel((String) converted);
@@ -157,7 +148,7 @@ public class Corpus {
 				
 			}
 		}
-		U.p("Covariate types, after conversion pass: " + schema.columnTypes);
+		U.p("Covariate types, after conversion pass: " + getSchema().columnTypes);
 	}
 
 	public void setDataFromDataLoader(DataLoader dataloader) {
@@ -165,5 +156,20 @@ public class Corpus {
 		this.docsById = dataloader.docsById;
 		this.docsInOriginalOrder = dataloader.docsInOriginalOrder;
 	}
+
+	@Override
+	public Schema getSchema() {
+		return schema;
+	}
+
+	@Override
+	public Document pullDocument(String id) {
+		return docsById.get(id);
+	}
+
+	public void setSchema(Schema schema) {
+		this.schema = schema;
+	}
+
 
 }

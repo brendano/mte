@@ -1,24 +1,10 @@
 package te.data;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import utility.util.Arr;
+import utility.util.U;
+
+import java.util.*;
 import java.util.Map.Entry;
-
-import org.codehaus.jackson.JsonProcessingException;
-
-import com.google.common.collect.Lists;
-
-import te.exceptions.BadSchema;
-import te.ui.ExtraInit;
-import te.ui.Main;
-import util.Arr;
-import util.U;
 
 public class Analysis {
 	static int VIEW_TOTAL = 20;
@@ -155,23 +141,4 @@ public class Analysis {
 			return ret;
 		}
 	}
-	
-	public static void main(String[] args) throws Exception {
-		VERBOSE = true;
-		final Main main = new Main();
-		ExtraInit.initWithCode(main);
-		List<String> termQuery = Lists.newArrayList(args);
-		U.p("QUERY:\t" + termQuery);
-		
-		TermVector focus = main.corpus.select(termQuery).terms;
-//		TermVector focus = main.corpus.docsById.get("2000_clinton").termVec;
-		TermvecComparison view = new TermvecComparison(focus, main.corpus.globalTerms);
-		view.topEpmi(1e-5, 10);
-				
-		TermTermAssociations tta = new TermTermAssociations();
-		tta.corpus = main.corpus;
-		tta.queryTerms = termQuery;
-		tta.topEpmi(10);
-	}
-	
 }

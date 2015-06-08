@@ -1,50 +1,32 @@
 package te.ui.textview;
 
-import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Cursor;
 import java.awt.Dimension;
-import java.awt.FlowLayout;
 import java.awt.Font;
-import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
-import java.awt.Toolkit;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.awt.geom.AffineTransform;
 import java.awt.geom.Rectangle2D;
-import java.awt.image.BufferedImage;
 import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 
-import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
 import javax.swing.JComponent;
-import javax.swing.JEditorPane;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
-import javax.swing.JTextArea;
-import javax.swing.JTextPane;
-import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
-import javax.swing.event.ListSelectionListener;
-import javax.swing.text.DefaultCaret;
 
 import com.google.common.base.Function;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
 import com.google.common.eventbus.Subscribe;
 
-import te.data.Corpus;
 import te.data.DocSet;
 import te.data.Document;
 import te.data.TermInstance;
@@ -52,9 +34,7 @@ import te.ui.queries.AllQueries;
 import te.ui.queries.DocSelectionChange;
 import te.ui.queries.FulldocChange;
 import te.ui.queries.TermQueryChange;
-import util.Arr;
-import util.U;
-import util.misc.Pair;
+import utility.util.U;
 import edu.stanford.nlp.util.Sets;
 
 public class KWICViewer  {
