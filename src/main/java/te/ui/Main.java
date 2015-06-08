@@ -32,7 +32,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.List;
-import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -97,16 +96,13 @@ public class Main {
 	JLabel termlistInfo;
 	JSpinner tpSpinner;
 	JSpinner tcSpinner;
-	JLabel tcInfo;
 	InfoArea termtermDescription;
-//	private JButton killDocvarQuery;
 
 	DocdrivenTermsDock docdrivenTermsDock;
 
 	NLP.DocAnalyzer da = new NLP.UnigramAnalyzer();
 	Supplier<Void> afteranalysisCallback = () -> null;
 	Supplier<Void> uiOverridesCallback = () -> null;
-	Function<String,List<Token>> tokenizerForAnalysis;
 
 	//////////////   controller type stuff    ////////////
 

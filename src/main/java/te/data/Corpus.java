@@ -170,4 +170,6 @@ public class Corpus implements DataLayer {
 	public void setSchema(Schema schema) {
 		this.schema = schema;
 	}
+
+
 }
